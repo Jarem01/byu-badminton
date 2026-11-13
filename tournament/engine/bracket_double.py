@@ -196,3 +196,16 @@ def champion(bracket: Bracket):
         if gf1.result.winner == gf1.side1:
             return gf1.result.winner
     return None
+
+
+def is_inactive_reset(match) -> bool:
+    """True for the grand-final reset game before it is needed.
+
+    The reset exists up front but only becomes a real match if the
+    loser-bracket finalist wins the first grand final (see ``after_result``).
+    An inactive reset has no sides at all, so it needs no court time and should
+    not be drawn as a match.
+    """
+    return (match.bracket_part == "grand_final" and match.result is None
+            and match.side1 is None and match.side2 is None
+            and match.id.endswith("-gf-2"))

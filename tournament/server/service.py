@@ -302,6 +302,16 @@ class TournamentService:
             players_per_team=opts.get("players_per_team"),
             events=fmt.events, team_type=team_type,
             rng_seed=opts.get("rng_seed", 0), manual=opts.get("manual"))
+        asked = opts.get("num_teams")
+        if asked and len(teams) < int(asked):
+            # A pair can't be split across two teams, so a roster whose partner
+            # links join everyone can only make one team. Say so instead of
+            # quietly returning fewer teams than were asked for.
+            report["warnings"] = list(report.get("warnings") or []) + [
+                f"asked for {asked} teams but only {len(teams)} can be formed: "
+                f"the partner links join all players into {len(teams)} group(s), "
+                f"and a pair can't be split across teams. Pick fewer teams, a "
+                f"single event, or clear some partner links first."]
         return teams, report, fmt
 
     def _entry_group_view(self, tm) -> list[dict]:
@@ -1149,6 +1159,12 @@ class TournamentService:
             """Both sides are real entrants (not pool/wildcard placeholders)."""
             return _playable_side(mm.side1) and _playable_side(mm.side2)
 
+        def is_phantom(m) -> bool:
+            """The double-elim reset game only becomes a real match if the
+            loser-bracket finalist wins the first grand final; until then it has
+            no sides, so don't render an empty card for it."""
+            return bracket_double.is_inactive_reset(m)
+
         def rubber_view(rid):
             r = br.matches[rid]
             label = r.round_name.split("·")[-1].strip() if "·" in r.round_name else r.round_name
@@ -1165,6 +1181,8 @@ class TournamentService:
             matches = []
             for mid in rnd.match_ids:
                 m = br.matches[mid]
+                if is_phantom(m):
+                    continue
                 matches.append({
                     "id": m.id, "round": m.round_name, "part": m.bracket_part,
                     "seq": m.seq, "side1": sv(m.side1), "side2": sv(m.side2),

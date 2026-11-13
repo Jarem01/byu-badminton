@@ -13,7 +13,7 @@ from __future__ import annotations
 import random as _random
 from collections import defaultdict
 
-from ..model.entities import EntryRef, Player, Team
+from ..model.entities import EntryRef, Pair, Player, Team
 from .seeding import entry_strength
 
 ALL_EVENTS = ("MS", "WS", "MD", "WD", "XD")
@@ -107,6 +107,98 @@ def _resolve_num_teams(n_entries, n_clusters, num_teams, per_team) -> int:
     return max(1, min(k, 32, n_clusters))
 
 
+def _requested_teams(n_entries, num_teams, per_team) -> int:
+    """The team count the organizer asked for, before the roster caps it."""
+    return _resolve_num_teams(n_entries, 32, num_teams, per_team)
+
+
+def _split_players(t, players, k, rng_seed):
+    """Balanced split of PEOPLE into k teams (used when partner links leave
+    fewer groups than were requested). Strongest first, dealt out round-robin,
+    so the teams' total strength stays close."""
+    order = sorted(players, key=lambda p: (-(t.players[p].skill or 0), p))
+    if rng_seed:
+        _random.Random(rng_seed).shuffle(order)      # tie-break variety only
+        order.sort(key=lambda p: -(t.players[p].skill or 0))
+    teams: list[list[str]] = [[] for _ in range(k)]
+    for i, pid in enumerate(order):
+        teams[i % k].append(pid)
+    return teams
+
+
+def _new_pair(t, ev, team_no, a, b) -> str:
+    n = 1
+    pid = "pair-%s-t%d-%d" % (ev.lower(), team_no, n)
+    while pid in t.pairs:
+        n += 1
+        pid = "pair-%s-t%d-%d" % (ev.lower(), team_no, n)
+    t.pairs[pid] = Pair(id=pid, player_ids=[a, b], event=ev, origin="team")
+    return pid
+
+
+def _pair_within(t, pool, ev, team_no, warnings) -> list[str]:
+    """Pair one team's leftover players for one doubles event, obeying the
+    event's gender rule. A team event's captain picks the pairings, so this is
+    how a roster whose partner links span teams still fields every event."""
+    def gender(pid):
+        return t.players[pid].gender
+
+    made: list[str] = []
+    pool = sorted(pool, key=lambda p: (-(t.players[p].skill or 0), p))
+    if ev == "XD":
+        men = [p for p in pool if gender(p) == "M"]
+        women = [p for p in pool if gender(p) == "F"]
+        for a, b in zip(men, women):
+            made.append(_new_pair(t, ev, team_no, a, b))
+        leftover = men[len(women):] + women[len(men):]
+    else:
+        want = "M" if ev == "MD" else "F"
+        same = [p for p in pool if gender(p) == want]
+        leftover = [p for p in pool if gender(p) != want]
+        for i in range(0, len(same) - 1, 2):
+            made.append(_new_pair(t, ev, team_no, same[i], same[i + 1]))
+        if len(same) % 2:
+            leftover.append(same[-1])
+    if leftover:
+        warnings.append("%s: team %d has %d player(s) without a partner of the "
+                        "right gender (left out of that event)."
+                        % (ev, team_no, len(leftover)))
+    return made
+
+
+def _team_entries(t, pids, events, team_no, warnings) -> list[EntryRef]:
+    """Entries one team can field: singles as registered, doubles from the
+    players' existing pairs when both partners are on this team, and otherwise
+    a fresh pair formed inside the team."""
+    out: list[EntryRef] = []
+    for ev in events:
+        if ev in ("MS", "WS"):
+            out.extend(EntryRef("player", pid) for pid in sorted(pids)
+                       if ev in t.players[pid].events)
+            continue
+        pool = [pid for pid in sorted(pids) if ev in t.players[pid].events]
+        pair_of = {}
+        for pr in t.pairs.values():
+            if pr.event == ev and len(pr.player_ids) == 2:
+                pair_of[frozenset(pr.player_ids)] = pr.id
+        used: set[str] = set()
+        rest: list[str] = []
+        for pid in pool:
+            if pid in used:
+                continue
+            mate = next((q for q in pool
+                         if q != pid and q not in used
+                         and frozenset((pid, q)) in pair_of), None)
+            if mate:
+                used.update((pid, mate))
+                out.append(EntryRef("pair", pair_of[frozenset((pid, mate))]))
+            else:
+                rest.append(pid)
+        out.extend(EntryRef("pair", pid)
+                   for pid in _pair_within(t, rest, ev, team_no, warnings))
+    return out
+
+
 def build_teams(t, method: str = "balanced", *, num_teams=None, players_per_team=None,
                 events: list[str] | None = None, team_type: str = "open",
                 rng_seed: int = 0, manual=None):
@@ -114,6 +206,7 @@ def build_teams(t, method: str = "balanced", *, num_teams=None, players_per_team
     are kept intact, a player's entries stay together, nobody is dropped."""
     events = events or TYPE_EVENTS.get(team_type, list(ALL_EVENTS))
     entries = build_entries(t, events)
+    extra_warnings: list[str] = []
 
     if method == "manual" and manual:      # {team_name: [entry_key,...]}
         idx = {e.key(): e for e in entries}
@@ -129,8 +222,21 @@ def build_teams(t, method: str = "balanced", *, num_teams=None, players_per_team
         rosters = [groups[n] for n in names]
     else:
         clusters = _clusters(t, entries)
-        k = _resolve_num_teams(len(entries), len(clusters), num_teams, players_per_team)
-        rosters = _distribute_by_event(t, clusters, k, events, method, rng_seed)
+        wanted = _requested_teams(len(entries), num_teams, players_per_team)
+        if wanted > len(clusters):
+            # Partner links join every player into fewer groups than were asked
+            # for (a pair cannot be split across two teams). Fall back to a
+            # people-level split and let each team field its own pairings.
+            everyone = sorted({p for e in entries for p in entry_players(t, e)})
+            split = _split_players(t, everyone, wanted, rng_seed)
+            pair_warnings: list[str] = []
+            rosters = [_team_entries(t, pids, events, i + 1, pair_warnings)
+                       for i, pids in enumerate(split)]
+            extra_warnings = pair_warnings
+        else:
+            rosters = _distribute_by_event(t, clusters, wanted if wanted <= len(clusters)
+                                           else len(clusters), events, method, rng_seed)
+            extra_warnings = []
         names = [f"Team {i + 1}" for i in range(len(rosters))]
 
     teams = []
@@ -142,7 +248,10 @@ def build_teams(t, method: str = "balanced", *, num_teams=None, players_per_team
         teams.append(Team(id=f"team-{i + 1}", name=names[i], entries=list(roster),
                           player_ids=list(dict.fromkeys(pids)),
                           color=TEAM_COLORS[i % len(TEAM_COLORS)]))
-    return teams, _report(t, teams, events)
+    report = _report(t, teams, events)
+    if extra_warnings:
+        report["warnings"] = list(report.get("warnings") or []) + extra_warnings
+    return teams, report
 
 
 def _cluster_events(t, cluster) -> list[str]:

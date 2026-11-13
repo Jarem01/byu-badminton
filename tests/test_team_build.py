@@ -153,3 +153,26 @@ class TestTeamBuild(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestLinkedRoster(unittest.TestCase):
+    """Partner links can join every player into one group. A pair can't be split
+    across teams, but that must not stop the organizer forming the teams they
+    asked for: the fallback splits people and pairs them inside each team."""
+
+    def test_requested_teams_are_still_formed(self):
+        t = Tournament(mode="team")
+        for i in range(6):
+            add_single(t, f"m{i}", "MD", "M", 5)
+        for i in range(5):                     # a chain -> one component
+            t.pairs[f"md{i}"] = Pair(id=f"md{i}", event="MD",
+                                     player_ids=[f"m{i}", f"m{i + 1}"])
+        teams, report = team_build.build_teams(t, "balanced", num_teams=3,
+                                               events=["MD"], rng_seed=1)
+        self.assertEqual(len(teams), 3)
+        rostered = [p for tm in teams for p in tm.player_ids]
+        self.assertEqual(sorted(rostered), [f"m{i}" for i in range(6)])
+        self.assertEqual(len(rostered), len(set(rostered)))   # nobody twice
+        for tm in teams:
+            self.assertEqual(len(tm.entries), 1)
+            self.assertEqual(tm.entries[0].kind, "pair")

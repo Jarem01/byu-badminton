@@ -280,3 +280,22 @@ class TestSharedCenterCourtRule(unittest.TestCase):
         # 8 draw: its first round already is the quarterfinal.
         self.assertEqual((len(t.brackets["small"].matches),
                           len(protected("small"))), (7, 7))
+
+
+class TestPlayedMatchesLeaveTheSchedule(unittest.TestCase):
+    """A match that has already been played must not be given court time again
+    when the schedule is regenerated mid-tournament."""
+
+    def test_played_match_is_not_rescheduled(self):
+        from tournament.engine.advancement import record_result
+        t = Tournament()
+        single_elim_division(t, "d", "MD", 4)
+        br = t.brackets["d"]
+        settings = Settings(court_count=2, center_courts=())
+        before = generate_schedule(t, settings)
+        self.assertEqual(len(before), 3)          # two semis + the final
+        played = before[0].match_id
+        record_result(br, played, [[21, 5], [21, 5]])
+        after = generate_schedule(t, settings)
+        self.assertNotIn(played, [b.match_id for b in after])
+        self.assertEqual(len(after), 2)

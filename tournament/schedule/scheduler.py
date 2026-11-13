@@ -12,6 +12,7 @@ Greedy earliest-slot placement; deterministic given the same inputs.
 from __future__ import annotations
 
 from ..config import Settings
+from ..engine.bracket_double import is_inactive_reset
 from ..model.entities import Court, Match, ScheduleBlock, Tournament
 from .courtplan import center_court_numbers, is_center_court_match
 
@@ -90,9 +91,13 @@ def generate_schedule(t: Tournament, settings: Settings,
         team = bool(div and div.team_format)
         concurrent = team and div.team_format.play_mode == "concurrent"
         for m in br.matches.values():
+            if is_inactive_reset(m):
+                continue      # double-elim reset that will never be played
             fmt_by_match[m.id] = br.format
-            if m.result is not None and m.result.walkover:
-                continue          # resolved bye/walkover: no court time
+            if m.result is not None:
+                # Already decided: a bye/walkover needs no court, and a match
+                # that has been played must not be scheduled again.
+                continue
             if team:
                 # A team draw schedules RUBBERS, not the tie aggregates. Skip
                 # unfilled/void rubbers and, under 'stop', dead rubbers of a

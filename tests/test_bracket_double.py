@@ -153,3 +153,38 @@ class TestPlaythrough(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestInactiveReset(unittest.TestCase):
+    """The reset game only exists once it is needed; until then it must not be
+    drawn as an empty card or given court time."""
+
+    def _played_out(self):
+        t, div, seeds = make(4)
+        br = DE.generate(div, seeds)
+        for m in sorted(br.matches.values(), key=lambda m: m.seq):
+            if m.bracket_part == "grand_final" or m.result is not None:
+                continue
+            if m.side1 and m.side2:
+                win(br, m.id, side1_wins=True)
+        # The winners-bracket finalist takes the first grand final.
+        win(br, f"{div.id}-gf-1", side1_wins=True)
+        return t, div, br
+
+    def test_unused_reset_is_not_scheduled(self):
+        from tournament.config import Settings
+        from tournament.schedule.scheduler import generate_schedule
+        t, div, br = self._played_out()
+        self.assertTrue(DE.is_inactive_reset(br.matches[f"{div.id}-gf-2"]))
+        blocks = generate_schedule(t, Settings(court_count=2, center_courts=()))
+        self.assertNotIn(f"{div.id}-gf-2", [b.match_id for b in blocks])
+
+    def test_unused_reset_is_not_drawn(self):
+        from tournament.server.service import TournamentService
+        t, div, br = self._played_out()
+        svc = TournamentService.__new__(TournamentService)
+        svc.t = t
+        shown = [m["id"] for r in svc._view_of(div, br)["rounds"]
+                 for m in r["matches"]]
+        self.assertNotIn(f"{div.id}-gf-2", shown)
+        self.assertIn(f"{div.id}-gf-1", shown)
