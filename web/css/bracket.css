@@ -1,0 +1,133 @@
+/* Visual bracket tree. Rounds are columns; matches within a round are spaced
+   evenly so a later round's match centers between its two feeders. Elbow
+   connectors are drawn with borders. Prints cleanly (see @media print). */
+.bracket-wrap { overflow-x: auto; padding: 8px 2px 16px; }
+.bracket { display: flex; gap: 0; min-width: max-content; }
+.round {
+  display: flex; flex-direction: column; justify-content: space-around;
+  min-width: 210px; padding: 0 22px 0 0; position: relative;
+}
+.round-title {
+  position: sticky; top: 0; text-align: center; font-size: 11.5px;
+  text-transform: uppercase; letter-spacing: .09em; color: var(--royal);
+  font-weight: 700; margin-bottom: 8px; font-family: var(--sans);
+}
+.match {
+  position: relative; background: #fff; border: 1px solid var(--line);
+  border-radius: 6px; margin: 8px 0; box-shadow: 0 1px 2px rgba(0,0,0,.05);
+}
+.match .side {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 9px; font-size: 13px; border-bottom: 1px solid var(--line);
+}
+/* Fixed heights so the coordinate tree layout aligns exactly (BOX_H=54). */
+.bracket-tree { position: relative; }
+.bracket-tree .match { margin: 0; height: 54px; }
+.bracket-tree .match .side { height: 27px; box-sizing: border-box; padding: 4px 9px; }
+.bracket-tree svg { position: absolute; left: 0; top: 0; pointer-events: none; }
+.seg-heading { margin: 14px 0 4px; font-size: 12px; font-weight: 700;
+  color: var(--royal); text-transform: uppercase; letter-spacing: .08em;
+  font-family: var(--sans); }
+.match .side:last-child { border-bottom: 0; }
+.match .side { align-items: center; }
+/* Names may wrap; score boxes must NOT wrap and stay centred beside the name. */
+.match .side .nm { min-width: 0; overflow-wrap: anywhere; }
+.match .side .seed { color: var(--muted); font-size: 11px; margin: 0 6px 0 4px; flex: none; }
+.match .side .games { display: inline-flex; gap: 3px; margin-left: auto;
+  flex: 0 0 auto; white-space: nowrap; align-items: center; }
+/* Inside the fixed-height tree, keep names to a single line (ellipsis). */
+.bracket-tree .match .side .nm { white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; max-width: 96px; }
+.match .side .gbox {
+  min-width: 20px; text-align: center; font-size: 12px; color: var(--muted);
+  background: #eef1f5; border-radius: 3px; padding: 0 3px;
+  font-variant-numeric: tabular-nums;
+}
+.match .side .gbox.gwin { background: var(--navy); color: #fff; font-weight: 600; }
+.match .side .games .gin {
+  width: 30px; height: 22px; padding: 0; text-align: center; font-size: 12px;
+  border: 1px solid var(--line); border-radius: 3px; background: #fff;
+  font-variant-numeric: tabular-nums; -moz-appearance: textfield;
+}
+.match .side .games .gin:focus { border-color: var(--royal); outline: none;
+  box-shadow: 0 0 0 2px rgba(0,71,186,.2); }
+/* Winner's game boxes once the match is decided (matches the public view). */
+.match .side .games .gin.gwin { background: var(--navy); color: #fff;
+  border-color: var(--navy); font-weight: 600; }
+/* No spinner arrows on the score boxes. */
+.match .side .games .gin::-webkit-outer-spin-button,
+.match .side .games .gin::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.match.scoring { cursor: default; position: relative; }
+.match .clear-x {
+  position: absolute; top: -8px; right: -8px; width: 18px; height: 18px;
+  border-radius: 50%; border: 1px solid var(--line); background: #fff;
+  color: var(--err); font-size: 12px; line-height: 1; cursor: pointer; padding: 0;
+  display: none; z-index: 3;
+}
+.match.scoring.done:hover .clear-x { display: block; }
+.bracket-tree .match.scoring .side .nm { max-width: 74px; }
+.match .side.win { background: #eef7f1; font-weight: 600; }
+.match .side.win .nm { color: var(--ok); }
+.match .side.tbd { color: #9aa6b4; font-style: italic; }
+.match .side.bye { color: #9aa6b4; }
+.match.ready { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(74,108,148,.25); }
+.match.done  { border-color: #cfe3d6; }
+.match.editable { cursor: pointer; }
+.match.editable:hover { box-shadow: 0 0 0 2px rgba(74,108,148,.4); }
+.match .seedno { display: inline-block; min-width: 16px; color: var(--accent); font-size: 11px; margin-right: 4px; }
+
+.champion-line { margin: 6px 0 0; font-size: 14px; color: var(--navy); }
+.champion-line b { color: var(--ok); }
+
+.standings-wrap { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 0 14px; }
+.standings { border: 1px solid var(--line); border-radius: 6px; min-width: 260px; }
+.standings-title { background: var(--navy); color: #fff; padding: 5px 10px; font-size: 13px; font-weight: 600; border-radius: 6px 6px 0 0; }
+.standings table { font-size: 13px; }
+.standings th, .standings td { padding: 4px 8px; }
+.standings tr.adv td { background: #eef7f1; font-weight: 600; }
+.standings tr.adv td:first-child { border-left: 3px solid var(--ok); }
+.standings tr.wild td { background: #fff4e0; font-weight: 600; }
+.standings tr.wild td:first-child { border-left: 3px solid #e08a00; }
+.standings-legend { flex-basis: 100%; font-size: 12px; color: #555; margin-top: 2px; }
+.standings-legend em { color: #777; }
+.standings-legend .key { display: inline-block; width: 11px; height: 11px; border-radius: 2px;
+  vertical-align: -1px; margin: 0 4px 0 12px; }
+.standings-legend .key:first-child { margin-left: 0; }
+.standings-legend .key.adv { background: #eef7f1; border-left: 3px solid var(--ok); }
+.standings-legend .key.wild { background: #fff4e0; border-left: 3px solid #e08a00; }
+
+/* Planner: format comparison gallery */
+.plan-gallery { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px; }
+.plan-card { border: 1px solid var(--line); border-radius: 8px; width: 340px;
+  display: flex; flex-direction: column; background: #fff; }
+.plan-card.unfit { border-color: #e5b8bf; }
+.plan-card.unavail { opacity: .7; }
+.plan-card.recommended { border-color: var(--ok); box-shadow: 0 0 0 2px rgba(26,127,75,.25); }
+.combined-note { background: #eef7f1; border: 1px solid #cfe3d6; border-left: 4px solid var(--ok);
+  border-radius: 8px; padding: 8px 12px; margin-bottom: 10px; font-size: 13px; }
+.combined-note b { color: var(--ok); }
+.plan-card .head { background: var(--navy); color: #fff; padding: 8px 10px;
+  border-radius: 8px 8px 0 0; display: flex; justify-content: space-between;
+  align-items: center; gap: 8px; }
+.plan-card .head .badge { color: #12351f; }
+.plan-card .stats { padding: 8px 10px; font-size: 13px; color: var(--text); }
+.plan-card .mini { height: 210px; overflow: auto; border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line); background: #fbfcfe; }
+.plan-card .mini .champion-line, .plan-card .mini .standings-wrap,
+.plan-card .mini .seg-heading { display: none; }
+.plan-card .mini .bracket-tree, .plan-card .mini .bracket {
+  transform: scale(.6); transform-origin: top left; }
+.plan-card .mini .round { min-width: 140px; padding-right: 12px; }
+.plan-card .mini .round-title { font-size: 10px; }
+.plan-card .mini .match .side .nm { max-width: 150px; }
+.plan-card .foot { padding: 8px 10px; }
+.badge.fit-ok { background: #e3f4ea; color: var(--ok); }
+.badge.fit-over { background: #fbe3e7; color: var(--err); }
+
+@media print {
+  header.topbar, .tabs, .no-print, button { display: none !important; }
+  body { background: #fff; }
+  .bracket-wrap { overflow: visible; }
+  .print-header { display: flex !important; align-items: center; gap: 12px; margin-bottom: 10px; }
+}
+.print-header { display: none; }

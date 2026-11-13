@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BYU Badminton Tournament</title>
+  <link rel="icon" href="assets/logo.png">
+  <link rel="stylesheet" href="css/fonts.css">
+  <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="css/bracket.css">
+  <style>
+    body { background: var(--navy-dark); }
+    .pub-main { max-width: 1600px; margin: 0 auto; padding: 14px 20px; }
+    .pub-card { background:#fff; border-radius:10px; padding:16px; margin-bottom:16px; }
+    .pub-card h2 { margin:0 0 10px; color:var(--navy); font-size:16px; }
+    .div-tabs { display:flex; flex-wrap:wrap; gap:6px; margin:10px 0; }
+    .div-tabs button { background:#0a3d72; color:#cdd8e6; border:0; padding:8px 14px;
+      border-radius:6px; cursor:pointer; font-size:15px; }
+    .div-tabs button.active { background:#fff; color:var(--navy); font-weight:700; }
+    .refresh-note { color:#9fb4cd; font-size:12px; }
+    .match .side .nm { max-width: 240px; font-size: 15px; }
+    .sched-table td, .sched-table th { padding:6px 10px; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <img class="logo" src="assets/logo.png" alt="BYU Badminton Club">
+    <span class="title" id="tname">Tournament</span>
+    <span class="spacer"></span>
+    <span class="refresh-note" id="refresh">live · updating</span>
+  </header>
+
+  <div class="tabs" id="viewtabs">
+    <button data-view="overview" class="active">Overview</button>
+    <button data-view="bracket">Bracket</button>
+    <button data-view="standings">Standings</button>
+    <button data-view="schedule">Schedule</button>
+  </div>
+
+  <div class="pub-main">
+    <div class="div-tabs" id="divtabs"></div>
+    <div id="content"></div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/bracket.js"></script>
+  <script src="js/public.js"></script>
+</body>
+</html>

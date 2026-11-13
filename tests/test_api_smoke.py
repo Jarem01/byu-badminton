@@ -1,0 +1,149 @@
+"""M5: service-layer end-to-end (import -> validate -> group -> bracket ->
+result), including the finalize-overwrite guard."""
+
+import json
+import os
+import tempfile
+import threading
+import time
+import unittest
+import urllib.request
+
+from tournament.server.app import make_server
+from tournament.server.service import Conflict, TournamentService
+from tournament.store.repository import Repository
+
+FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures", "messy_legacy.csv")
+
+
+class TestGenerateEndpointParams(unittest.TestCase):
+    """The /api/bracket/generate HTTP endpoint must forward num_groups/advance
+    (regression: it dropped them, so every group_knockout used the default)."""
+
+    def test_generate_endpoint_honors_pool_config(self):
+        d = tempfile.mkdtemp()
+        httpd, port = make_server(os.path.join(d, "t.json"), port=0)
+        threading.Thread(target=httpd.serve_forever, daemon=True).start()
+        time.sleep(0.2)
+        base = f"http://127.0.0.1:{httpd.server_address[1]}"
+
+        def post(p, o):
+            req = urllib.request.Request(base + p, data=json.dumps(o).encode(),
+                                         headers={"Content-Type": "application/json"})
+            return json.load(urllib.request.urlopen(req, timeout=20))
+
+        def get(p):
+            return json.load(urllib.request.urlopen(base + p, timeout=10))
+        try:
+            post("/api/import", {"source": "file", "ref": os.path.abspath(
+                os.path.join(os.path.dirname(__file__), "..", "sample_data",
+                             "clean_singles_16.csv"))})
+            post("/api/import/commit", {})
+            post("/api/divisions/build", {"rng_seed": 1})
+            ms = next(x for x in get("/api/divisions")["divisions"]
+                      if x["event"] == "MS")
+            v = post("/api/bracket/generate",
+                     {"division": ms["id"], "format": "group_knockout",
+                      "method": "ranking", "num_groups": 4, "main_draw": 8})
+            self.assertEqual(len(v["standings"]), 4)   # honored 4 pools, not default
+        finally:
+            httpd.shutdown()
+            httpd.server_close()
+
+
+class TestServiceFlow(unittest.TestCase):
+    def setUp(self):
+        self.dir = tempfile.TemporaryDirectory()
+        repo = Repository(os.path.join(self.dir.name, "tournament.json"))
+        self.svc = TournamentService(repo, actor="tester@byu.edu")
+
+    def tearDown(self):
+        self.dir.cleanup()
+
+    def test_import_preview_then_commit(self):
+        prev = self.svc.import_preview("file", FIXTURE, "auto")
+        self.assertEqual(prev["adapter"], "legacy")
+        self.assertGreater(prev["stats"]["registrations"], 15)
+        # Preview must NOT have committed yet.
+        self.assertEqual(len(self.svc.t.players), 0)
+        self.svc.import_commit()
+        self.assertGreater(len(self.svc.t.players), 15)
+
+    def test_inline_fix_during_preview_survives_commit(self):
+        # A gender/skill fix made on the preview must persist through commit
+        # (previously commit overwrote it with the original preview).
+        self.svc.import_preview("file", FIXTURE, "auto")
+        target = next(p for p in self.svc.players() if p["skill"] is None
+                      or p["gender"] == "U")
+        pid = target["id"]
+        self.svc.override(f"player:{pid}", "skill", "6")
+        self.svc.override(f"player:{pid}", "gender", "M")
+        self.svc.import_commit()
+        p = self.svc.t.players[pid]
+        self.assertEqual(p.skill, 6)
+        self.assertEqual(p.gender, "M")
+
+    def test_full_pipeline_and_finalize_guard(self):
+        self.svc.import_preview("file", FIXTURE, "auto")
+        self.svc.import_commit()
+        self.svc.build_divisions(rng_seed=2026)
+        divs = self.svc.divisions()
+        ms = next(d for d in divs if d["event"] == "MS")
+
+        view = self.svc.generate_bracket(ms["id"], "single_elim", "ranking")
+        self.assertTrue(view["exists"])
+        self.assertTrue(view["rounds"])
+
+        # Finalize, then a re-generate without force must 409-style raise.
+        self.svc.finalize(ms["id"])
+        with self.assertRaises(Conflict):
+            self.svc.generate_bracket(ms["id"], "single_elim", "ranking")
+        # With force it succeeds and bumps the version.
+        v2 = self.svc.generate_bracket(ms["id"], "single_elim", "ranking", force=True)
+        self.assertEqual(v2["version"], 2)
+
+    def test_record_result_advances(self):
+        self.svc.import_preview("file", FIXTURE, "auto")
+        self.svc.import_commit()
+        self.svc.build_divisions(rng_seed=1)
+        ms = next(d for d in self.svc.divisions() if d["event"] == "MS")
+        view = self.svc.generate_bracket(ms["id"], "single_elim", "ranking")
+        # Find a ready first-round match and record a result.
+        first_round = view["rounds"][0]["matches"]
+        ready = next(m for m in first_round if m["ready"] and not m["winner"])
+        after = self.svc.record_result(ms["id"], ready["id"], [[21, 10], [21, 12]])
+        done = next(m for m in after["rounds"][0]["matches"] if m["id"] == ready["id"])
+        self.assertIsNotNone(done["winner"])
+
+    def test_build_divisions_blocked_by_finalized(self):
+        self.svc.import_preview("file", FIXTURE, "auto")
+        self.svc.import_commit()
+        self.svc.build_divisions(rng_seed=1)
+        ms = next(d for d in self.svc.divisions() if d["event"] == "MS")
+        self.svc.generate_bracket(ms["id"], "single_elim", "ranking")
+        self.svc.finalize(ms["id"])
+        with self.assertRaises(Conflict):
+            self.svc.build_divisions(rng_seed=2)
+
+    def test_override_persists_and_promotes_stub(self):
+        self.svc.import_preview("file", FIXTURE, "auto")
+        self.svc.import_commit()
+        stub = next(p for p in self.svc.t.players.values() if p.is_stub)
+        self.svc.override(f"player:{stub.id}", "gender", "M")
+        self.svc.override(f"player:{stub.id}", "skill", "6")
+        self.assertFalse(self.svc.t.players[stub.id].is_stub)
+        # Audit log written.
+        self.assertGreaterEqual(len(self.svc.repo.read_audit()), 2)
+
+    def test_public_snapshot(self):
+        self.svc.import_preview("file", FIXTURE, "auto")
+        self.svc.import_commit()
+        self.svc.build_divisions(rng_seed=1)
+        ms = next(d for d in self.svc.divisions() if d["event"] == "MS")
+        self.svc.generate_bracket(ms["id"], "single_elim", "ranking")
+        snap = self.svc.public_snapshot()
+        self.assertTrue(any(d["division"]["event"] == "MS" for d in snap["divisions"]))
+
+
+if __name__ == "__main__":
+    unittest.main()

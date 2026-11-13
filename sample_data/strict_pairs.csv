@@ -1,0 +1,10 @@
+Timestamp,Event,Club,Player 1 First Name,Player 1 Last Name,Player 1 Email,Player 1 Gender,Player 1 Skill,Player 2 First Name,Player 2 Last Name,Player 2 Email,Player 2 Gender,Player 2 Skill
+01/03/2026 12:00:00,Mixed Doubles (XD),BYU Badminton Club,Mia,Chen,mia@example.com,Female,8,Alex,Rivera,alex@example.com,Male,8
+01/03/2026 12:00:00,Mixed Doubles (XD),BYU Badminton Club,Zoe,Park,zoe@example.com,Female,7,Jordan,Kim,jordan@example.com,Male,7
+01/03/2026 12:00:00,Men’s Doubles (MD),BYU Badminton Club,Sam,Okafor,sam@example.com,Male,6,Diego,Santos,diego@example.com,Male,7
+01/03/2026 12:00:00,Men’s Doubles (MD),BYU Badminton Club,Tom,Becker,tom@example.com,Male,6,Luis,Moreno,luis@example.com,Male,5
+01/03/2026 12:00:00,Women’s Doubles (WD),BYU Badminton Club,Ava,Lopez,ava@example.com,Female,6,Ivy,Tran,ivy@example.com,Female,5
+01/03/2026 12:00:00,Men’s Singles (MS),BYU Badminton Club,Alex,Rivera,alex@example.com,Male,8,,,,,
+01/03/2026 12:00:00,Men’s Singles (MS),BYU Badminton Club,Jordan,Kim,jordan@example.com,Male,7,,,,,
+01/03/2026 12:00:00,Women’s Singles (WS),BYU Badminton Club,Mia,Chen,mia@example.com,Female,8,,,,,
+01/03/2026 12:00:00,Women’s Singles (WS),BYU Badminton Club,Zoe,Park,zoe@example.com,Female,7,,,,,

@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BYU Badminton Tournament — Admin</title>
+  <link rel="icon" href="assets/logo.png">
+  <link rel="stylesheet" href="css/fonts.css">
+  <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="css/bracket.css">
+</head>
+<body>
+  <header class="topbar">
+    <img class="logo" src="assets/logo.png" alt="BYU Badminton Club">
+    <span class="title">Tournament Admin</span>
+    <span class="mode-toggle" id="mode-toggle" title="Individual events vs a team competition">
+      <button data-mode="individual" class="active">Individual</button>
+      <button data-mode="team">Team</button>
+    </span>
+    <span class="spacer"></span>
+    <button class="btn ghost" id="btn-help" style="color:#fff;border-color:#fff">? How to run a tournament</button>
+    <a class="btn ghost" href="/public" target="_blank" style="color:#fff;border-color:#fff">Open Public Display</a>
+    <span class="status" id="status">connecting…</span>
+  </header>
+
+  <div class="modal-back" id="help-modal">
+    <div class="modal" style="width:560px">
+      <h3>How to run a tournament</h3>
+      <ol class="help-list" style="font-size:14px;line-height:1.6">
+        <li><b>Import &amp; Validate</b> — paste your published Google Sheet CSV URL (or a local file / pasted CSV), click <b>Preview</b>, review the validation list, fix any gender/skill inline, then <b>Commit</b>.</li>
+        <li><b>Divisions &amp; Brackets</b> — click <b>Build divisions &amp; pairs</b>. Or make a <b>Custom bracket</b> by typing players in. Use <b>Plan</b> on a division to compare formats and time estimates, then approve one. Enter results by clicking a match. <b>Finalize</b> to lock a bracket.</li>
+        <li><b>Schedule &amp; Export</b> — <b>Generate schedule</b> (warm-up/buffer/rest built in, no player double-booked), check for conflicts, and export CSVs.</li>
+        <li><b>Settings</b> — set courts, day start, slot timing, and match format. These feed the scheduler and planner. No code needed.</li>
+        <li>Open the <b>Public Display</b> on a second monitor — it mirrors everything live with Overview / Bracket / Standings / Schedule tabs.</li>
+      </ol>
+      <p class="muted">Tip: import a file from <code>sample_data/</code> to practice with fake data first.</p>
+      <div class="actions"><button class="btn" data-act="close-help">Got it</button></div>
+    </div>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <button data-tab="import" class="active"><span class="dot">1</span> Import &amp; Validate</button>
+    <button data-tab="draw"><span class="dot">2</span> Divisions &amp; Brackets</button>
+    <button data-tab="schedule"><span class="dot">3</span> Schedule &amp; Export</button>
+    <button data-tab="manage"><span class="dot">4</span> Tournament Manager</button>
+    <button data-tab="settings">Settings</button>
+  </div>
+
+  <main>
+    <!-- IMPORT -->
+    <section class="tab-panel active" id="tab-import">
+      <div class="guide" id="guide-import">
+        <div><b>Step 1 — bring in your registrations.</b> Pick a source, click
+        <b>Preview</b> to check the data, fix any issues below, then <b>Commit</b>.
+        <span id="guide-import-status"></span></div></div>
+      <div class="card">
+        <h2>Import registrations</h2>
+        <div class="row">
+          <label class="inline"><input type="radio" name="src" value="file" checked> Local CSV</label>
+          <label class="inline"><input type="radio" name="src" value="url"> Published sheet URL</label>
+          <label class="inline"><input type="radio" name="src" value="text"> Paste CSV</label>
+          <select id="schema">
+            <option value="auto">auto-detect</option>
+            <option value="legacy">legacy form</option>
+            <option value="strict">strict pair form</option>
+          </select>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <input id="ref" style="flex:1;min-width:320px"
+                 placeholder="../Badminton Tournament 2026 (Responses) - Form responses 1.csv">
+          <button class="btn" id="btn-preview">Preview</button>
+          <button class="btn secondary" id="btn-commit" disabled>Commit import</button>
+          <button class="btn danger" id="btn-clear-import" style="margin-left:auto">Clear all data</button>
+        </div>
+        <p class="muted" id="import-stats"></p>
+      </div>
+
+      <div class="card">
+        <h2>Validation <span id="val-counts" class="muted"></span>
+          <button class="btn secondary no-print" id="btn-revalidate" style="float:right">Re-check</button></h2>
+        <div id="issues"></div>
+      </div>
+
+      <div class="card">
+        <h2>Players <span class="muted" id="player-count"></span></h2>
+        <div style="max-height:420px;overflow:auto">
+          <table id="players">
+            <thead><tr><th>Name</th><th>Gender</th><th>Skill</th><th>Events</th>
+              <th>Flags</th><th>Withdrawn</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p class="muted">Edit gender/skill/withdrawn inline — every change is saved with an audit record.</p>
+      </div>
+    </section>
+
+    <!-- DRAW -->
+    <section class="tab-panel" id="tab-draw">
+      <div class="guide" id="guide-draw">
+        <div><b>Step 2 — build divisions and pick a format.</b> Build from imported
+        data or make a <b>Custom bracket</b>. Hit <b>Plan</b> on a division to
+        compare formats + times, approve one, then click matches to enter results.
+        <span id="guide-draw-status"></span></div></div>
+
+      <!-- TEAM MODE: entries kept intact; teams are bags of registrations -->
+      <div id="team-panel" style="display:none">
+        <div class="card">
+          <h2>Team format <span class="muted">(what a team-vs-team tie plays)</span></h2>
+          <div class="row">
+            <label class="inline">Scope
+              <select id="tf-scope">
+                <option value="single">Single event</option>
+                <option value="multi">Multi-event (Sudirman-style)</option>
+              </select></label>
+            <label class="inline" id="tf-single-wrap">Event
+              <select id="tf-event"><option>MS</option><option>WS</option>
+                <option>MD</option><option>WD</option><option selected>XD</option></select></label>
+            <span id="tf-multi-wrap" style="display:none">Events:
+              <label class="inline"><input type="checkbox" class="tf-ev" value="MS">MS</label>
+              <label class="inline"><input type="checkbox" class="tf-ev" value="WS">WS</label>
+              <label class="inline"><input type="checkbox" class="tf-ev" value="MD">MD</label>
+              <label class="inline"><input type="checkbox" class="tf-ev" value="WD">WD</label>
+              <label class="inline"><input type="checkbox" class="tf-ev" value="XD" checked>XD</label>
+            </span>
+          </div>
+          <div class="row" style="margin-top:6px">
+            <label class="inline">Play
+              <select id="tf-play"><option value="sequential">Sequential (shared courts)</option>
+                <option value="concurrent">Concurrent (dual-meet)</option></select></label>
+            <label class="inline">Dead rubbers
+              <select id="tf-dead"><option value="stop">Stop at clinch</option>
+                <option value="all">Play all</option></select></label>
+            <label class="inline">Rank teams by
+              <select id="tf-rank"><option value="tie_wins">Ties won</option>
+                <option value="league_points">League points</option>
+                <option value="rubbers">Rubbers won</option></select></label>
+            <label class="inline" id="tf-draw-wrap"><input type="checkbox" id="tf-draw"> Allow draws</label>
+          </div>
+          <p class="muted">A tie matches each team's entries by event and rank (strongest vs strongest); first to win the majority of rubbers wins. Uneven entry counts just play the matchable ones — the rest are flagged below.</p>
+        </div>
+
+        <div class="card">
+          <h2>Team builder <span class="muted">(split the registrations into teams — pairs stay intact)</span></h2>
+          <div class="row">
+            <label class="inline">Teams <input id="tb-numteams" type="number" min="2" max="32" value="4" style="width:70px"></label>
+            <label class="inline">or entries/team <input id="tb-persize" type="number" min="2" placeholder="opt" style="width:70px"></label>
+            <label class="inline">Method
+              <select id="tb-method">
+                <option value="balanced">Balanced by rating (recommended)</option>
+                <option value="snake">Snake draft by rating</option>
+                <option value="random">Random</option>
+                <option value="by_club">By club / school / company</option>
+              </select></label>
+            <label class="inline">Team type
+              <select id="tb-type">
+                <option value="mixed">Mixed</option>
+                <option value="mens">Men's</option>
+                <option value="womens">Women's</option>
+                <option value="open">Open</option>
+              </select></label>
+            <label class="inline">Shuffle <input id="tb-seed" type="number" value="1" style="width:64px" title="Random shuffle number — same number reproduces the same random split"></label>
+            <button class="btn" id="tb-preview">Preview teams</button>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <label class="inline">Event label <input id="tb-label" value="Team Event" style="width:180px"></label>
+            <label class="inline">Draw format
+              <select id="tb-format"><option>single_elim</option><option>double_elim</option>
+                <option>round_robin</option><option>group_knockout</option></select></label>
+            <button class="btn secondary" id="tb-commit">Create team division</button>
+          </div>
+          <div id="tb-grid"></div>
+          <div id="tb-warnings"></div>
+          <div id="tb-preview-out" class="team-preview"></div>
+        </div>
+      </div>
+
+      <div id="indiv-build">
+      <div class="card">
+        <h2>Build divisions</h2>
+        <div class="row">
+          <label class="inline">Random seed (pairing): <input id="group-seed" type="number" value="2026" style="width:110px"></label>
+          <button class="btn" id="btn-build">Build divisions &amp; pairs</button>
+          <button class="btn danger" id="btn-clear-divisions" style="margin-left:auto">Clear divisions &amp; brackets</button>
+        </div>
+        <div id="group-notes" class="muted" style="margin-top:8px"></div>
+      </div>
+
+      <div class="card">
+        <h2>Custom bracket <span class="muted">(type players in yourself — no import needed)</span></h2>
+        <div class="row">
+          <label class="inline">Name <input id="cb-label" placeholder="e.g. Saturday Open" style="width:180px"></label>
+          <label class="inline">Type
+            <select id="cb-kind">
+              <option value="player">Singles (players)</option>
+              <option value="pair">Doubles (pairs)</option>
+            </select></label>
+          <label class="inline">Event
+            <select id="cb-event"><option>MS</option><option>WS</option>
+              <option>MD</option><option>WD</option><option>XD</option></select></label>
+          <label class="inline">Format
+            <select id="cb-format"><option>single_elim</option><option>double_elim</option>
+              <option>round_robin</option><option>group_knockout</option></select></label>
+        </div>
+        <p class="explainer" id="cb-format-help"></p>
+        <p class="muted" style="margin:8px 0 4px">One entrant per line. Singles: <code>First Last</code> or <code>First Last:skill</code>. Doubles: <code>Player A / Player B</code>.</p>
+        <textarea id="cb-entries" rows="5" style="width:100%;font-family:monospace"
+          placeholder="Alice Ace:8&#10;Bob Best:6&#10;Carol Lin:7&#10;Dan Kim:5"></textarea>
+        <div class="row" style="margin-top:8px"><button class="btn" id="btn-custom">Create custom bracket</button></div>
+      </div>
+      </div><!-- /indiv-build -->
+
+      <div class="card">
+        <h2>Divisions</h2>
+        <table id="divisions">
+          <thead><tr><th>Event</th><th>Entries</th><th>Format</th><th>Seeding</th>
+            <th>Seed #</th><th>Actions</th><th>State</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h2>Compare formats <span class="muted" id="plan-div-label"></span></h2>
+        <p class="muted">Click <b>Plan</b> on a division to preview every format filled with the real entries, with time estimates for your window.</p>
+        <div class="row">
+          <label class="inline">Start <input id="plan-start" type="time" value="17:00"></label>
+          <label class="inline">End <input id="plan-end" type="time" value="21:00"></label>
+          <label class="inline">Courts <input id="plan-courts" type="number" min="1" value="4" style="width:64px"></label>
+          <label class="inline">Pools <input id="plan-pools" type="number" min="1" placeholder="auto" style="width:64px"></label>
+          <button class="btn secondary" id="btn-recompare" disabled>Re-compare</button>
+          <span class="muted" id="plan-meta"></span>
+        </div>
+        <!-- Team-only: finalize the point system; previews below show the rubbers -->
+        <div id="plan-scoring" class="scoring-panel" style="display:none">
+          <h4>Team tie &amp; point system</h4>
+          <div class="row">
+            <label class="inline">Tie format
+              <select id="ps-tie">
+                <option value="position">Position (rank vs rank)</option>
+                <option value="cross">Cross-play (all vs all per event)</option>
+              </select></label>
+            <label class="inline">Match length
+              <select id="ps-length">
+                <option value="full">Full best-of-3 (to 21, cap 30)</option>
+                <option value="quick">Quick single game</option>
+              </select></label>
+            <label class="inline"><input type="checkbox" id="ps-handicap"> Handicap weaker side</label>
+          </div>
+          <div class="row" id="ps-event-rules" style="gap:10px"></div>
+          <div class="row">
+            <label class="inline">Rank teams by
+              <select id="ps-rank"><option value="tie_wins">Ties won</option>
+                <option value="league_points">League points</option>
+                <option value="rubbers">Rubbers won</option>
+                <option value="points">Total points (aggregate)</option></select></label>
+            <label class="inline" id="ps-wp-wrap">Win <input id="ps-wp" type="number" value="2" style="width:52px"></label>
+            <label class="inline" id="ps-dp-wrap">Draw <input id="ps-dp" type="number" value="1" style="width:52px"></label>
+            <label class="inline" id="ps-lp-wrap">Loss <input id="ps-lp" type="number" value="0" style="width:52px"></label>
+            <label class="inline"><input type="checkbox" id="ps-draw"> Allow draws</label>
+            <label class="inline">Rubbers
+              <select id="ps-play"><option value="sequential">Sequential</option>
+                <option value="concurrent">Concurrent</option></select></label>
+            <label class="inline">Dead rubbers
+              <select id="ps-dead"><option value="stop">Stop at clinch</option>
+                <option value="all">Play all</option></select></label>
+          </div>
+          <p class="muted" id="ps-desc"></p>
+        </div>
+        <div id="plan-gallery" class="plan-gallery"></div>
+      </div>
+
+      <div class="card">
+        <div class="print-header"><img src="assets/logo.png" style="height:36px"><b id="print-title"></b></div>
+        <h2>Bracket <span class="muted" id="bracket-title"></span>
+          <button class="btn secondary no-print" id="btn-print" style="float:right">Print</button></h2>
+        <p class="muted no-print">Read-only preview — enter and edit scores in the <b>Tournament Manager</b> tab.</p>
+        <div id="bracket"></div>
+      </div>
+    </section>
+
+    <!-- SCHEDULE -->
+    <section class="tab-panel" id="tab-schedule">
+      <div class="guide" id="guide-schedule">
+        <div><b>Step 3 — schedule and share.</b> Generate the schedule (warm-up,
+        buffer, and rest are built in; no player is double-booked), resolve any
+        conflicts, then export. <span id="guide-schedule-status"></span></div></div>
+      <div class="card">
+        <h2>Best tournament date <span class="muted">(from availability)</span></h2>
+        <div id="best-dates" class="muted">Import data to see availability.</div>
+      </div>
+      <div class="card">
+        <h2>Match schedule</h2>
+        <div class="row">
+          <button class="btn" id="btn-schedule">Generate schedule</button>
+          <span class="muted" id="sched-meta"></span>
+          <button class="btn danger" id="btn-clear-schedule" style="margin-left:auto">Clear schedule</button>
+        </div>
+        <div id="sched-stale"></div>
+        <div id="sched-conflicts"></div>
+        <div style="max-height:460px;overflow:auto;margin-top:8px">
+          <table id="sched-table">
+            <thead><tr><th>Time</th><th>Court</th><th>Division</th><th>Round</th>
+              <th>Match</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Export CSV</h2>
+        <div class="row">
+          <a class="btn secondary" href="/api/export/csv?what=roster">Roster</a>
+          <a class="btn secondary" href="/api/export/csv?what=schedule_time">Schedule (by time)</a>
+          <a class="btn secondary" href="/api/export/csv?what=schedule_court">Schedule (by court)</a>
+          <a class="btn secondary" href="/api/export/csv?what=standings">Standings</a>
+          <a class="btn secondary" href="/api/export/csv?what=results">Results</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="tab-panel" id="tab-settings">
+      <div class="guide">
+        <div><b>Adjust anything here — no code.</b> Courts, day start, slot timing,
+        and match format feed the scheduler and the format planner.</div></div>
+      <div class="card">
+        <h2>Tournament settings <span class="muted">(saved to this tournament — no code needed)</span></h2>
+        <div class="row" style="gap:18px;flex-wrap:wrap">
+          <label class="inline">Courts <input id="set-courts" type="number" min="1" style="width:70px"></label>
+          <label class="inline">Day start <input id="set-daystart" type="time" style="width:120px"></label>
+          <label class="inline">Day end <input id="set-dayend" type="time" style="width:120px"></label>
+          <label class="inline">Rest between matches (min) <input id="set-rest" type="number" min="0" style="width:70px"></label>
+        </div>
+        <h3 style="margin:14px 0 4px;color:var(--navy);font-size:14px">Slot timing (minutes)</h3>
+        <div class="row" style="gap:18px">
+          <label class="inline">Warm-up <input id="set-warmup" type="number" min="0" style="width:70px"></label>
+          <label class="inline">Play <input id="set-play" type="number" min="1" style="width:70px"></label>
+          <label class="inline">Buffer <input id="set-buffer" type="number" min="0" style="width:70px"></label>
+          <span class="muted" id="set-slot"></span>
+        </div>
+        <h3 style="margin:14px 0 4px;color:var(--navy);font-size:14px">Knockout match format (best-of-N)</h3>
+        <div class="row" style="gap:18px">
+          <label class="inline">Best of <input id="set-bestof" type="number" min="1" style="width:70px"></label>
+          <label class="inline">Points to <input id="set-points" type="number" min="1" style="width:70px"></label>
+          <label class="inline">Hard cap <input id="set-cap" type="number" min="1" style="width:70px"></label>
+        </div>
+        <h3 style="margin:14px 0 4px;color:var(--navy);font-size:14px">Pool / round-robin timing <span class="muted" style="font-weight:400">(short single timed games, back-to-back)</span></h3>
+        <div class="row" style="gap:18px">
+          <label class="inline">Warm-up <input id="set-pwarmup" type="number" min="0" style="width:70px"></label>
+          <label class="inline">Play <input id="set-pplay" type="number" min="1" style="width:70px"></label>
+          <label class="inline">Buffer <input id="set-pbuffer" type="number" min="0" style="width:70px"></label>
+          <span class="muted" id="set-pslot"></span>
+        </div>
+        <div class="row" style="margin-top:14px">
+          <button class="btn" id="btn-save-settings">Save settings</button>
+          <span class="muted">These feed the scheduler and the format planner.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- TOURNAMENT MANAGER -->
+    <section class="tab-panel" id="tab-manage">
+      <div class="guide"><div><b>Run the tournament here.</b> Use the
+        <b>Court board</b> to drag ready matches onto courts and score them live,
+        or the <b>Division view</b> to score on the bracket and read standings.</div></div>
+      <div class="tabs" id="msubnav" style="border-radius:8px;margin-bottom:14px">
+        <button data-mv="board" class="active">Court board (live)</button>
+        <button data-mv="division">Division view</button>
+      </div>
+
+      <div id="mview-board">
+        <div class="card">
+          <h2>Court board <span class="muted">— drag a ready match onto a court, enter its score, then click Approve to record it. Knockout (QF/SF/final) only on center courts 2, 3, 6, 7.</span>
+            <button class="btn secondary no-print" id="board-refresh" style="float:right">Refresh</button></h2>
+          <div class="board-layout">
+            <div id="court-grid" class="court-grid"></div>
+            <div class="court-queue-wrap">
+              <h4>All ready matches <span class="muted" id="queue-count"></span> <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0">— or use each court's dropdown for its recommended next match</span></h4>
+              <div id="court-queue" class="court-queue"></div>
+              <h4 style="margin-top:16px">Upcoming knockout <span class="muted" id="upcoming-count"></span> <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0">— fills in automatically as pools finish; becomes draggable once both sides are set</span></h4>
+              <div id="court-upcoming" class="court-queue"></div>
+              <h4 style="margin-top:16px">Completed <span class="muted" id="done-count"></span></h4>
+              <div id="court-completed" class="court-completed"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="mview-division" style="display:none">
+      <div class="card">
+        <div class="row">
+          <label class="inline">Division <select id="mg-div"></select></label>
+          <button class="btn secondary" id="mg-refresh">Refresh</button>
+          <span class="muted" id="mg-meta"></span>
+          <button class="btn danger" id="mg-clear-scores" style="margin-left:auto">Clear scores</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="print-header"><img src="assets/logo.png" style="height:36px"><b id="mg-print-title"></b></div>
+        <h2>Scores <span class="muted">— type in the boxes; results save automatically and advance winners</span>
+          <button class="btn secondary no-print" id="mg-print" style="float:right">Print</button></h2>
+        <div id="mg-bracket"></div>
+      </div>
+      <div class="card" id="mg-standings-card">
+        <h2>Standings</h2>
+        <div id="mg-standings"></div>
+      </div>
+      <div class="card">
+        <h2>Current &amp; up next</h2>
+        <div id="mg-queue"></div>
+      </div>
+      <div class="card">
+        <h2>Schedule</h2>
+        <div id="mg-schedule"></div>
+      </div>
+      </div><!-- /mview-division -->
+    </section>
+  </main>
+
+  <script src="js/api.js"></script>
+  <script src="js/bracket.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>
