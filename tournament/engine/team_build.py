@@ -177,9 +177,7 @@ def _pair_split_warnings(t, split, events) -> list[str]:
     broken: dict[str, list[str]] = defaultdict(list)
     for pid in sorted(t.pairs):
         pr = t.pairs[pid]
-        if pr.event not in events or pr.event in ("MS", "WS"):
-            continue
-        if len(pr.player_ids) != 2:
+        if pr.event not in events or len(pr.player_ids) != 2:
             continue
         a, b = pr.player_ids
         if a in team_of and b in team_of and team_of[a] != team_of[b]:
@@ -192,10 +190,9 @@ def _pair_split_warnings(t, split, events) -> list[str]:
         shown = "; ".join(names[:3])
         if len(names) > 3:
             shown += " (+%d more)" % (len(names) - 3)
-        out.append("%s: %d registered pair(s) were split across teams to reach the "
-                   "team count you asked for and re-formed inside each team - %s. "
-                   "Those partners will not play together in this event."
-                   % (ev, len(names), shown))
+        out.append("%s: to make %d teams, %d registered pair(s) were split and "
+                   "re-paired inside the teams - %s."
+                   % (ev, len(split), len(names), shown))
     return out
 
 
@@ -258,8 +255,7 @@ def build_teams(t, method: str = "balanced", *, num_teams=None, players_per_team
                 if e is None:                  # stale/typo'd key: ignore it
                     continue
                 if k in taken:                 # same entrant on two teams
-                    dupes.append("%s (was on %s, also on %s)"
-                                 % (t.entry_label(e), taken[k], name))
+                    dupes.append("%s (%s, %s)" % (t.entry_label(e), taken[k], name))
                     continue
                 taken[k] = name
                 roster.append(e)
@@ -269,11 +265,11 @@ def build_teams(t, method: str = "balanced", *, num_teams=None, players_per_team
             names.append(name)
             rosters.append(roster)
         if empty:
-            extra_warnings.append("manual: %s matched no entries and was left out."
+            extra_warnings.append("manual: no entries matched %s — dropped."
                                   % ", ".join(empty))
         if dupes:
-            extra_warnings.append("manual: %s was listed on more than one team; kept "
-                                  "on the first one." % "; ".join(dupes))
+            extra_warnings.append("manual: %s listed on two teams, kept the first."
+                                  % "; ".join(dupes))
     elif method == "by_club":
         groups: dict[str, list[EntryRef]] = defaultdict(list)
         for e in entries:

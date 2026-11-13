@@ -7,6 +7,7 @@ written until a human approves it (matches the review-before-action rule).
 
 from __future__ import annotations
 
+import copy
 import threading
 
 from ..config import DEFAULT_SETTINGS
@@ -235,13 +236,15 @@ class TournamentService:
                 return pid
 
             refs: list[EntryRef] = []
+            skipped: list[str] = []
             for line in entries:
                 line = line.strip()
                 if not line:
                     continue
                 if kind == "pair":
                     parts = [p for p in line.replace("/", ",").split(",") if p.strip()]
-                    if len(parts) < 2:
+                    if len(parts) < 2:         # a pair needs two names
+                        skipped.append(line)
                         continue
                     a, b = make_player(parts[0]), make_player(parts[1])
                     pid = ids.make("pair", self.t.players[a].last or a,
@@ -253,12 +256,17 @@ class TournamentService:
                     refs.append(EntryRef("player", make_player(line)))
 
             if len(refs) < 2:
-                raise ValueError("need at least 2 entrants for a bracket")
+                msg = "need at least 2 entrants for a bracket"
+                if skipped:
+                    msg += "; skipped %d line(s) that are not a pair: %s" % (
+                        len(skipped), "; ".join(skipped))
+                raise ValueError(msg)
             div_id = ids.make("div", event, label)
             self.t.divisions[div_id] = Division(id=div_id, event=event, label=label,
                                                 entry_refs=refs, format=fmt)
             self._save(backup=True)
-            return {"id": div_id, "label": label, "entries": len(refs), "format": fmt}
+            return {"id": div_id, "label": label, "entries": len(refs), "format": fmt,
+                    "skipped": skipped}
 
     # --- team tournaments ---------------------------------------------------
     def set_mode(self, mode: str) -> dict:
@@ -305,8 +313,8 @@ class TournamentService:
         asked = opts.get("num_teams")
         # by_club and manual rosters decide the team count themselves, so asking
         # for a number there is not a shortfall worth warning about.
-        if asked and opts.get("method", "balanced") not in ("by_club", "manual") \
-                and len(teams) < int(asked):
+        method = opts.get("method", "balanced")
+        if asked and method not in ("by_club", "manual") and len(teams) < int(asked):
             # A pair can't be split across two teams, so a roster whose partner
             # links join everyone can only make one team. Say so instead of
             # quietly returning fewer teams than were asked for.
@@ -333,14 +341,24 @@ class TournamentService:
         return [{"event": ev, "entries": groups[ev]} for ev in sorted(groups)]
 
     def team_preview(self, opts: dict) -> dict:
-        """Build teams WITHOUT committing, for the live roster preview."""
-        teams, report, fmt = self._build_teams(opts)
-        return {
-            "teams": [{"id": tm.id, "name": tm.name, "size": len(tm.entries),
-                       "color": tm.color, "by_event": self._entry_group_view(tm)}
-                      for tm in teams],
-            "report": report, "events": fmt.events,
-        }
+        """Build teams WITHOUT committing, for the live roster preview.
+
+        Runs on a copy: the builder re-pairs players as it goes, and a preview
+        must not leave those pairs behind (or change the next preview's count).
+        """
+        with self._lock:
+            saved, self.t = self.t, copy.deepcopy(self.t)
+            try:
+                teams, report, fmt = self._build_teams(opts)
+                return {
+                    "teams": [{"id": tm.id, "name": tm.name,
+                               "size": len(tm.entries), "color": tm.color,
+                               "by_event": self._entry_group_view(tm)}
+                              for tm in teams],
+                    "report": report, "events": fmt.events,
+                }
+            finally:
+                self.t = saved
 
     def commit_teams(self, opts: dict) -> dict:
         """Persist teams + a team division (entry_refs = team refs)."""

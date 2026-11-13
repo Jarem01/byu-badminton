@@ -882,6 +882,7 @@ async function loadSchedule() {
 document.getElementById("btn-custom").onclick = async () => {
   const label = document.getElementById("cb-label").value.trim();
   const entries = document.getElementById("cb-entries").value.split("\n").filter(x => x.trim());
+  const note = document.getElementById("cb-note");
   if (!label) { toast("Give the bracket a name", true); return; }
   if (entries.length < 2) { toast("Enter at least 2 entrants", true); return; }
   try {
@@ -890,6 +891,13 @@ document.getElementById("btn-custom").onclick = async () => {
       event: document.getElementById("cb-event").value,
       format: document.getElementById("cb-format").value, entries,
     });
+    // Lines that could not be read as a pair are reported, not dropped silently.
+    const skipped = r.skipped || [];
+    note.textContent = skipped.length
+      ? `Skipped ${skipped.length} line(s) that are not a pair (use "Name / Name"): ` +
+        skipped.slice(0, 5).join("; ") +
+        (skipped.length > 5 ? ` (+${skipped.length - 5} more)` : "")
+      : "";
     toast(`Created "${r.label}" (${r.entries} entrants)`);
     document.getElementById("cb-label").value = "";
     document.getElementById("cb-entries").value = "";

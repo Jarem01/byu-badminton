@@ -74,6 +74,22 @@ class TestCustomDivision(Base):
         with self.assertRaises(ValueError):
             self.svc.create_custom_division("Solo", "player", ["Only One"], "MS")
 
+    def test_pair_lines_that_are_not_pairs_are_reported(self):
+        r = self.svc.create_custom_division(
+            "Odd Doubles", "pair",
+            ["Ann One / Bea Two", "Cid Solo", "Dee Four / Eve Five"], "XD")
+        self.assertEqual(r["entries"], 2)
+        self.assertEqual(r["skipped"], ["Cid Solo"])
+        # the skipped line created nobody
+        self.assertFalse([p for p in self.svc.t.players.values()
+                          if p.first == "Cid"])
+
+    def test_skipped_lines_are_named_when_too_few_remain(self):
+        with self.assertRaises(ValueError) as caught:
+            self.svc.create_custom_division("Odd Doubles", "pair",
+                                            ["Ann One / Bea Two", "Cid Solo"], "XD")
+        self.assertIn("Cid Solo", str(caught.exception))
+
     def test_custom_division_can_be_planned(self):
         r = self.svc.create_custom_division(
             "Open", "player", [f"P{i}:{9-i}" for i in range(8)], "MS")

@@ -271,9 +271,11 @@ function tieCard(m, opts) {
   let grid = "";
   (m.rubbers || []).forEach(r => grid += rubberGridRow(r, c1, c2, opts));
   // Entries left without an opponent (one team fields more pairs in an event).
-  const gaps = (m.gaps || []).map(g =>
-    `${g.event}: ${g.a} vs ${g.b} — ${g.unmatched} entr` +
-    `${g.unmatched === 1 ? "y" : "ies"} with no opponent`).join("<br>");
+  const gaps = (m.gaps || []).map(g => {
+    const rest = g.unmatched === 1 ? "1 entry has no opponent"
+                                   : `${g.unmatched} entries have no opponent`;
+    return `${g.event}: ${g.a} vs ${g.b} — ${rest}`;
+  }).join("<br>");
   card.innerHTML =
     `<div class="tie-head">
        <span class="tside" style="color:${c1}">${w1 ? "▶ " : ""}${n1}</span>

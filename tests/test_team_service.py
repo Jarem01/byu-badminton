@@ -209,3 +209,32 @@ class TestTeamSources(unittest.TestCase):
     def test_empty_event_is_an_error_not_empty_teams(self):
         with self.assertRaises(ValueError):
             self.svc.team_preview(self.opts(template={"events": ["XD"]}))
+
+
+class TestPreviewIsSideEffectFree(unittest.TestCase):
+    """A preview re-pairs players; that must not leak into the tournament."""
+
+    def setUp(self):
+        self.d = tempfile.TemporaryDirectory()
+        self.svc = TournamentService(Repository(os.path.join(self.d.name, "t.json")))
+        t = self.svc.t
+        for i in range(8):
+            t.players[f"p{i}"] = Player(id=f"p{i}", first="Player", last=str(i + 1),
+                                        gender="M", skill=5, events=["MD"])
+        for i in range(7):                    # a chain -> one cluster, so pairs split
+            t.pairs[f"md{i}"] = Pair(id=f"md{i}", event="MD", player_ids=[f"p{i}", f"p{i+1}"])
+        self.opts = {"method": "balanced", "num_teams": 4, "team_type": "open",
+                     "template": {"events": ["MD"]}, "rng_seed": 1}
+
+    def tearDown(self):
+        self.d.cleanup()
+
+    def test_preview_leaves_the_roster_alone(self):
+        before_pairs = sorted(self.svc.t.pairs)
+        first = self.svc.team_preview(self.opts)
+        second = self.svc.team_preview(self.opts)
+        self.assertEqual(sorted(self.svc.t.pairs), before_pairs)
+        self.assertEqual(first["report"]["warnings"], second["report"]["warnings"])
+        self.assertIn("7 registered pair(s)", first["report"]["warnings"][0])
+        self.assertEqual([t["name"] for t in first["teams"]],
+                         [t["name"] for t in second["teams"]])

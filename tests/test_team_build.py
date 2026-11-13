@@ -247,7 +247,7 @@ class TestClubAndManual(unittest.TestCase):
                   "Ghosts": ["player:nobody"]}
         teams, report = team_build.build_teams(t, "manual", manual=manual, events=["MS"])
         self.assertEqual([tm.name for tm in teams], ["Reds", "Blues"])
-        self.assertTrue(any("Ghosts matched no entries" in w for w in report["warnings"]))
+        self.assertTrue(any("no entries matched Ghosts" in w for w in report["warnings"]))
 
     def test_manual_never_puts_one_entrant_on_two_teams(self):
         t = self.roster()
@@ -257,4 +257,4 @@ class TestClubAndManual(unittest.TestCase):
         rostered = [p for tm in teams for p in tm.player_ids]
         self.assertEqual(rostered.count("a1"), 1)
         self.assertEqual([tm.name for tm in teams], ["Reds", "Blues"])
-        self.assertTrue(any("more than one team" in w for w in report["warnings"]))
+        self.assertTrue(any("listed on two teams" in w for w in report["warnings"]))

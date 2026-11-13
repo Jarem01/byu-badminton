@@ -26,19 +26,23 @@ async function poll() {
   }
 }
 
+// Title printed at the top of the sheet (the on-screen header is hidden in print).
+function setPrintTitle(div) {
+  document.getElementById("pub-print-title").textContent =
+    (snapshot.name || "Tournament") + (div ? " — " + div.division.label : "");
+}
+
 function divTabs(divs) {
   const tabs = document.getElementById("divtabs");
   tabs.innerHTML = "";
   if (view === "schedule") {                        // schedule spans all divisions
-    document.getElementById("pub-print-title").textContent = snapshot.name || "Tournament";
+    setPrintTitle(null);
     return;
   }
   if (!selected || !divs.find(d => d.division.id === selected)) {
     selected = divs.length ? divs[0].division.id : null;
   }
-  const current = divs.find(d => d.division.id === selected);   // print header
-  document.getElementById("pub-print-title").textContent =
-    (snapshot.name || "Tournament") + (current ? " — " + current.division.label : "");
+  setPrintTitle(divs.find(d => d.division.id === selected));
   divs.forEach(d => {
     const b = document.createElement("button");
     b.textContent = d.division.label + (d.champion ? " — Champion" : "");
