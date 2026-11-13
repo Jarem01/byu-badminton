@@ -270,6 +270,10 @@ function tieCard(m, opts) {
   const tally = m.tally ? `${m.tally[0]}–${m.tally[1]}` : "vs";
   let grid = "";
   (m.rubbers || []).forEach(r => grid += rubberGridRow(r, c1, c2, opts));
+  // Entries left without an opponent (one team fields more pairs in an event).
+  const gaps = (m.gaps || []).map(g =>
+    `${g.event}: ${g.a} vs ${g.b} — ${g.unmatched} entr` +
+    `${g.unmatched === 1 ? "y" : "ies"} with no opponent`).join("<br>");
   card.innerHTML =
     `<div class="tie-head">
        <span class="tside" style="color:${c1}">${w1 ? "▶ " : ""}${n1}</span>
@@ -277,7 +281,8 @@ function tieCard(m, opts) {
        <span class="tside" style="color:${c2}">${n2}${w2 ? " ◀" : ""}</span></div>` +
     (grid ? `<div class="tie-grid" style="--c1:${c1};--c2:${c2}">
        <div class="tg-h"></div><div class="tg-h" style="color:${c1}">${n1}</div>
-       <div class="tg-h" style="color:${c2}">${n2}</div>${grid}</div>` : "");
+       <div class="tg-h" style="color:${c2}">${n2}</div>${grid}</div>` : "") +
+    (gaps ? `<div class="tie-gap">${gaps}</div>` : "");
   if (opts.editable) {
     card.addEventListener("change", (ev) => {
       const inp = ev.target;

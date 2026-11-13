@@ -15,8 +15,8 @@ from tournament.server.service import TournamentService
 from tournament.store.repository import Repository
 
 
-def messy_service():
-    svc = TournamentService(Repository(os.path.join(tempfile.mkdtemp(), "t.json")))
+def messy_service(path=None):
+    svc = TournamentService(Repository(path or os.path.join(tempfile.mkdtemp(), "t.json")))
     t = svc.t
     for i in range(12):                       # 12 XD pairs
         m, w = f"xm{i}", f"xw{i}"
@@ -78,7 +78,11 @@ class TestMessyMix(unittest.TestCase):
 
 class TestHttpSmoke(unittest.TestCase):
     def test_team_endpoints(self):
-        httpd, _ = make_server(os.path.join(tempfile.mkdtemp(), "t.json"), port=0)
+        path = os.path.join(tempfile.mkdtemp(), "t.json")
+        svc = messy_service(path)
+        svc.t.mode = "team"
+        svc._save()                     # the server reads the file
+        httpd, _ = make_server(path, port=0)
         threading.Thread(target=httpd.serve_forever, daemon=True).start()
         time.sleep(0.2)
         base = f"http://127.0.0.1:{httpd.server_address[1]}"

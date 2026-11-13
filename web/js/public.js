@@ -29,10 +29,16 @@ async function poll() {
 function divTabs(divs) {
   const tabs = document.getElementById("divtabs");
   tabs.innerHTML = "";
-  if (view === "schedule") return;                 // schedule spans all divisions
+  if (view === "schedule") {                        // schedule spans all divisions
+    document.getElementById("pub-print-title").textContent = snapshot.name || "Tournament";
+    return;
+  }
   if (!selected || !divs.find(d => d.division.id === selected)) {
     selected = divs.length ? divs[0].division.id : null;
   }
+  const current = divs.find(d => d.division.id === selected);   // print header
+  document.getElementById("pub-print-title").textContent =
+    (snapshot.name || "Tournament") + (current ? " — " + current.division.label : "");
   divs.forEach(d => {
     const b = document.createElement("button");
     b.textContent = d.division.label + (d.champion ? " — Champion" : "");

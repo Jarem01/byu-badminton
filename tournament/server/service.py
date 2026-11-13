@@ -303,7 +303,10 @@ class TournamentService:
             events=fmt.events, team_type=team_type,
             rng_seed=opts.get("rng_seed", 0), manual=opts.get("manual"))
         asked = opts.get("num_teams")
-        if asked and len(teams) < int(asked):
+        # by_club and manual rosters decide the team count themselves, so asking
+        # for a number there is not a shortfall worth warning about.
+        if asked and opts.get("method", "balanced") not in ("by_club", "manual") \
+                and len(teams) < int(asked):
             # A pair can't be split across two teams, so a roster whose partner
             # links join everyone can only make one team. Say so instead of
             # quietly returning fewer teams than were asked for.

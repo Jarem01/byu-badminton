@@ -125,9 +125,22 @@
 .badge.fit-over { background: #fbe3e7; color: var(--err); }
 
 @media print {
+  @page { size: landscape; margin: 10mm; }
   header.topbar, .tabs, .no-print, button { display: none !important; }
-  body { background: #fff; }
+  .refresh-note, .div-tabs, .guide { display: none !important; }
+  body { background: #fff !important; color: #000; }
+  .pub-main { padding: 0 !important; max-width: none !important; }
+  .card, .pub-card { box-shadow: none; }
   .bracket-wrap { overflow: visible; }
+  /* Squeeze the draw onto the sheet: rounds share the page width. */
+  .bracket { min-width: 0; width: 100%; }
+  .round { min-width: 0; flex: 1 1 0; padding: 0 10px 0 0; }
   .print-header { display: flex !important; align-items: center; gap: 12px; margin-bottom: 10px; }
 }
 .print-header { display: none; }
+
+/* Note under a team tie when one side fields more entries than the other. */
+.tie-gap {
+  font-size: 12px; color: var(--warn); line-height: 1.35;
+  padding: 6px 9px 8px; border-top: 1px dashed var(--line); background: #fffdf6;
+}

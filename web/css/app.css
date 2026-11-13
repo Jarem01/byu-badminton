@@ -295,3 +295,22 @@ tr:hover td { background: #f7fafd; }
 }
 .toast.show { opacity: 1; }
 .toast.err { background: var(--err); }
+
+/* Phones: keep the header, step tabs and cards inside the viewport. */
+@media (max-width: 760px) {
+  header.topbar { padding: 8px 10px; gap: 10px; flex-wrap: wrap; }
+  header.topbar .spacer { display: none; }
+  header.topbar img.logo { height: 30px; }
+  header.topbar a.btn { padding: 6px 10px; font-size: 12px; }
+  header.topbar .title {
+    font-size: 14px; min-width: 0; overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap;
+  }
+  header.topbar .status { display: none; }
+  .tabs { padding: 0 6px; overflow-x: auto; }
+  .tabs button { padding: 9px 10px; font-size: 13px; white-space: nowrap; }
+  main { padding: 12px 10px; }
+  .card { padding: 12px; }
+  .row { gap: 8px; flex-wrap: wrap; }
+  body { font-size: 14px; }
+}

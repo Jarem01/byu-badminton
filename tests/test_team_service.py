@@ -170,3 +170,42 @@ class TestTeamService(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestTeamSources(unittest.TestCase):
+    """by_club and manual rosters: the team count comes from the roster."""
+
+    def setUp(self):
+        self.d = tempfile.TemporaryDirectory()
+        self.svc = TournamentService(Repository(os.path.join(self.d.name, "t.json")))
+        t = self.svc.t
+        for club in ("Alpha", "Beta"):
+            for i in range(4):
+                pid = "%s%d" % (club[0].lower(), i)
+                t.players[pid] = Player(id=pid, first=club, last=str(i), gender="M",
+                                        skill=5, events=["MS"], club=club)
+
+    def tearDown(self):
+        self.d.cleanup()
+
+    def opts(self, **kw):
+        o = {"team_type": "open", "num_teams": 4, "rng_seed": 1,
+             "template": {"events": ["MS"]}, "label": "Clubs"}
+        o.update(kw)
+        return o
+
+    def test_by_club_does_not_report_a_team_count_shortfall(self):
+        pv = self.svc.team_preview(self.opts(method="by_club"))
+        self.assertEqual([t["name"] for t in pv["teams"]], ["Alpha", "Beta"])
+        self.assertFalse([w for w in pv["report"]["warnings"] if "can be formed" in w])
+
+    def test_manual_does_not_report_a_team_count_shortfall(self):
+        pv = self.svc.team_preview(self.opts(
+            method="manual", manual={"Reds": ["player:a0", "player:a1"],
+                                     "Blues": ["player:b0", "player:b1"]}))
+        self.assertEqual([t["name"] for t in pv["teams"]], ["Reds", "Blues"])
+        self.assertFalse([w for w in pv["report"]["warnings"] if "can be formed" in w])
+
+    def test_empty_event_is_an_error_not_empty_teams(self):
+        with self.assertRaises(ValueError):
+            self.svc.team_preview(self.opts(template={"events": ["XD"]}))

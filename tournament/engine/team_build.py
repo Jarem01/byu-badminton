@@ -166,6 +166,39 @@ def _pair_within(t, pool, ev, team_no, warnings) -> list[str]:
     return made
 
 
+def _pair_split_warnings(t, split, events) -> list[str]:
+    """Name the registered pairs the fallback had to break. Their partners
+    landed on different teams, so each team re-formed its own pairings -- the
+    organizer should know those pairs will not play together in this event."""
+    team_of: dict[str, int] = {}
+    for i, pids in enumerate(split):
+        for pid in pids:
+            team_of[pid] = i
+    broken: dict[str, list[str]] = defaultdict(list)
+    for pid in sorted(t.pairs):
+        pr = t.pairs[pid]
+        if pr.event not in events or pr.event in ("MS", "WS"):
+            continue
+        if len(pr.player_ids) != 2:
+            continue
+        a, b = pr.player_ids
+        if a in team_of and b in team_of and team_of[a] != team_of[b]:
+            broken[pr.event].append(t.entry_label(EntryRef("pair", pid)))
+    out: list[str] = []
+    for ev in events:
+        names = broken.get(ev)
+        if not names:
+            continue
+        shown = "; ".join(names[:3])
+        if len(names) > 3:
+            shown += " (+%d more)" % (len(names) - 3)
+        out.append("%s: %d registered pair(s) were split across teams to reach the "
+                   "team count you asked for and re-formed inside each team - %s. "
+                   "Those partners will not play together in this event."
+                   % (ev, len(names), shown))
+    return out
+
+
 def _team_entries(t, pids, events, team_no, warnings) -> list[EntryRef]:
     """Entries one team can field: singles as registered, doubles from the
     players' existing pairs when both partners are on this team, and otherwise
@@ -206,12 +239,41 @@ def build_teams(t, method: str = "balanced", *, num_teams=None, players_per_team
     are kept intact, a player's entries stay together, nobody is dropped."""
     events = events or TYPE_EVENTS.get(team_type, list(ALL_EVENTS))
     entries = build_entries(t, events)
+    if not entries:
+        raise ValueError("no entries for %s: nobody is registered for that event"
+                         % "/".join(events))
     extra_warnings: list[str] = []
 
     if method == "manual" and manual:      # {team_name: [entry_key,...]}
         idx = {e.key(): e for e in entries}
-        rosters = [[idx[k] for k in ks if k in idx] for ks in manual.values()]
-        names = list(manual.keys())
+        rosters: list[list[EntryRef]] = []
+        names: list[str] = []
+        taken: dict[str, str] = {}
+        empty: list[str] = []
+        dupes: list[str] = []
+        for name, keys in manual.items():
+            roster: list[EntryRef] = []
+            for k in keys:
+                e = idx.get(k)
+                if e is None:                  # stale/typo'd key: ignore it
+                    continue
+                if k in taken:                 # same entrant on two teams
+                    dupes.append("%s (was on %s, also on %s)"
+                                 % (t.entry_label(e), taken[k], name))
+                    continue
+                taken[k] = name
+                roster.append(e)
+            if not roster:
+                empty.append(name)
+                continue
+            names.append(name)
+            rosters.append(roster)
+        if empty:
+            extra_warnings.append("manual: %s matched no entries and was left out."
+                                  % ", ".join(empty))
+        if dupes:
+            extra_warnings.append("manual: %s was listed on more than one team; kept "
+                                  "on the first one." % "; ".join(dupes))
     elif method == "by_club":
         groups: dict[str, list[EntryRef]] = defaultdict(list)
         for e in entries:
@@ -232,7 +294,7 @@ def build_teams(t, method: str = "balanced", *, num_teams=None, players_per_team
             pair_warnings: list[str] = []
             rosters = [_team_entries(t, pids, events, i + 1, pair_warnings)
                        for i, pids in enumerate(split)]
-            extra_warnings = pair_warnings
+            extra_warnings = _pair_split_warnings(t, split, events) + pair_warnings
         else:
             rosters = _distribute_by_event(t, clusters, wanted if wanted <= len(clusters)
                                            else len(clusters), events, method, rng_seed)

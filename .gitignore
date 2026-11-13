@@ -12,3 +12,6 @@ data/tournament.json
 data/tournament.json.bak
 data/tournament.json.tmp
 data/audit.log
+
+# Local screenshots / scratch output from UI checks
+artifacts/
