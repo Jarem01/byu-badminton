@@ -113,6 +113,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json({"mode": svc.t.mode})
             if path == "/api/players":
                 return self._json({"players": svc.players()})
+            if path == "/api/pairs":
+                return self._json(svc.pairs_view())
             if path == "/api/divisions":
                 return self._json({"divisions": svc.divisions()})
             if path == "/api/validation":
@@ -166,6 +168,12 @@ class Handler(BaseHTTPRequestHandler):
                     body.get("reason", "")))
             if path == "/api/divisions/build":
                 return self._json(svc.build_divisions(body.get("rng_seed")))
+            if path == "/api/pairs/set":
+                return self._json(svc.pairs_set(body["event"], body.get("groups", [])))
+            if path == "/api/pairs/shuffle":
+                return self._json(svc.pairs_shuffle(body["event"], body.get("rng_seed")))
+            if path == "/api/pairs/auto":
+                return self._json(svc.pairs_auto(body["event"], body.get("rng_seed")))
             if path == "/api/division/format":
                 return self._json(svc.set_format(body["division"], body["format"]))
             if path == "/api/bracket/generate":

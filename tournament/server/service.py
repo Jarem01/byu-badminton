@@ -8,6 +8,7 @@ written until a human approves it (matches the review-before-action rule).
 from __future__ import annotations
 
 import copy
+import random
 import threading
 
 from ..config import DEFAULT_SETTINGS
@@ -29,6 +30,23 @@ from ..config import Settings
 from ..model.entities import Bracket, EntryRef, Tournament
 from ..schedule.timeslots import parse_clock
 from ..store.repository import Repository
+
+DOUBLES = ("MD", "WD", "XD")
+_GENDER_RULE = {"MD": ("M", "M"), "WD": ("F", "F"), "XD": ("M", "F")}
+_GENDER_TEXT = {"MD": "two men", "WD": "two women",
+                "XD": "one man and one woman"}
+
+
+def _pair_gender_issue(t, pair) -> str:
+    """The gender-rule note for a pair, worded like the validation warnings."""
+    rule = _GENDER_RULE.get(pair.event)
+    if not rule:
+        return ""
+    genders = [t.players[p].gender if p in t.players else "U"
+               for p in pair.player_ids]
+    if sorted(genders) == sorted(rule):
+        return ""
+    return "should be %s (got %s)" % (_GENDER_TEXT[pair.event], "/".join(genders))
 from ..validate.dashboard import validate
 from ..validate.overrides import apply_override
 
@@ -475,14 +493,149 @@ class TournamentService:
             if finalized:
                 raise Conflict(f"{len(finalized)} finalized bracket(s) exist; "
                                "un-finalize before rebuilding divisions.")
-            self.t.divisions.clear()
-            self.t.pairs.clear()
-            self.t.brackets.clear()
+            self._clear_divisions()
             res = build_divisions(self.t, rng_seed=rng_seed)
             self._save(backup=True)
             return {"divisions": self.divisions(),
                     "auto_paired": res.auto_paired,
                     "unpaired": res.unpaired_labels}
+
+    # --- pairs (check and rearrange who plays with whom) --------------------
+    def pairs_view(self) -> dict:
+        """Every doubles event with its pairs, its unpaired players and any
+        gender-rule notes, so the pairings can be checked before drawing."""
+        t = self.t
+        locked = any(t.brackets.get(d) for d in t.divisions)
+        events = []
+        for ev in DOUBLES:
+            players = [p for p in t.players.values()
+                       if ev in p.events and not p.withdrawn and not p.is_stub]
+            if not players:
+                continue
+            by_id = {p.id: p for p in players}
+            used: set[str] = set()
+            pairs = []
+            for pr in sorted(t.pairs.values(), key=lambda x: x.id):
+                if pr.event != ev or not all(p in by_id for p in pr.player_ids):
+                    continue
+                used.update(pr.player_ids)
+                pairs.append({
+                    "id": pr.id, "origin": pr.origin,
+                    "label": t.entry_label(EntryRef("pair", pr.id)),
+                    "players": [{"id": p, "name": by_id[p].full,
+                                 "gender": by_id[p].gender} for p in pr.player_ids],
+                    "issue": _pair_gender_issue(t, pr)})
+            unpaired = [{"id": p.id, "name": p.full, "gender": p.gender,
+                         "skill": p.skill,
+                         "why": "" if p.willing_random else "no random partner wanted"}
+                        for p in sorted(players, key=lambda x: x.full) if p.id not in used]
+            events.append({"event": ev, "players": len(players), "pairs": pairs,
+                           "unpaired": unpaired})
+        return {"editable": not locked,
+                "reason": "" if not locked else
+                          "A bracket has been drawn — clear divisions & brackets "
+                          "before changing pairs.",
+                "events": events}
+
+    def pairs_set(self, event: str, groups: list[list[str]]) -> dict:
+        """Replace one event's pairings with ``groups`` (each a list of player
+        ids; a single id means that player is left unpaired)."""
+        with self._lock:
+            self._require_pairs_editable()
+            self._replace_pairs(event, groups)
+            return self._finish_pair_edit()
+
+    def pairs_shuffle(self, event: str, rng_seed: int | None = None) -> dict:
+        """Re-pair an event at random, obeying its gender rule."""
+        with self._lock:
+            self._require_pairs_editable()
+            rng = random.Random(rng_seed or 0)
+            players = [p for p in self.t.players.values()
+                       if event in p.events and not p.withdrawn and not p.is_stub]
+            men = [p.id for p in players if p.gender == "M"]
+            women = [p.id for p in players if p.gender == "F"]
+            rng.shuffle(men)
+            rng.shuffle(women)
+            if event == "XD":
+                groups = [[a, b] for a, b in zip(men, women)]
+            else:
+                pool = men if event == "MD" else women
+                groups = [[pool[i], pool[i + 1]] for i in range(0, len(pool) - 1, 2)]
+            self._replace_pairs(event, groups)
+            return self._finish_pair_edit()
+
+    def pairs_auto(self, event: str, rng_seed: int | None = None) -> dict:
+        """Re-pair an event from the registrations: requested partners first,
+        then willing players randomly (the same rule the build button uses)."""
+        from ..engine.grouping import GroupingResult, _id_factory, form_pairs_for_event
+        with self._lock:
+            self._require_pairs_editable()
+            for pr in [pr for pr in self.t.pairs.values() if pr.event == event]:
+                del self.t.pairs[pr.id]
+            res = GroupingResult()
+            form_pairs_for_event(self.t, event, _id_factory(self.t),
+                                 random.Random(rng_seed or 0), res)
+            out = self._finish_pair_edit()
+            out["auto_paired"] = res.auto_paired
+            return out
+
+    def _require_pairs_editable(self) -> None:
+        if any(self.t.brackets.get(d) for d in self.t.divisions):
+            raise Conflict("a bracket has been drawn — clear divisions & brackets "
+                           "before changing pairs")
+
+    def _replace_pairs(self, event: str, groups: list[list[str]]) -> None:
+        from ..engine.grouping import _id_factory
+        from ..model.entities import Pair
+        players = {p.id: p for p in self.t.players.values()
+                   if event in p.events and not p.withdrawn and not p.is_stub}
+        seen: set[str] = set()
+        wanted: list[tuple[str, str]] = []
+        for group in groups:
+            ids = [pid for pid in group if pid]
+            if not ids:
+                continue
+            if len(ids) == 1:
+                continue                       # one name left alone = unpaired
+            if len(ids) != 2:
+                raise ValueError("a pair is exactly two players")
+            for pid in ids:
+                if pid not in players:
+                    raise ValueError("%s is not entered in %s" % (pid, event))
+                if pid in seen:
+                    raise ValueError("the same player appears in two pairs")
+                seen.add(pid)
+            wanted.append((ids[0], ids[1]))
+        for pr in [pr for pr in self.t.pairs.values() if pr.event == event]:
+            del self.t.pairs[pr.id]
+        ids = _id_factory(self.t)
+        for a, b in wanted:
+            pid = ids.make("pair", players[a].last or a, players[b].last or b)
+            self.t.pairs[pid] = Pair(id=pid, player_ids=[a, b], event=event,
+                                     origin="manual")
+
+    def _finish_pair_edit(self) -> dict:
+        """Persist a pair change, rebuilding any divisions that used the old
+        pairs (they are derived from pairs and would otherwise point at nothing)."""
+        rebuilt = bool(self.t.divisions)
+        if rebuilt:
+            # Keep every pair exactly as set (no auto-pairing), so players the
+            # organizer left off stay off.
+            self.t.divisions.clear()
+            self.t.brackets.clear()
+            build_divisions(self.t, auto_pair=False)
+        self._save(backup=True)
+        return {"rebuilt": rebuilt, "view": self.pairs_view()}
+
+    def _clear_divisions(self) -> None:
+        """Drop divisions, brackets and generated pairs, keeping the hand-made
+        pairs so a rebuild groups exactly the pairings on screen."""
+        manual = {pid: pr for pid, pr in self.t.pairs.items()
+                  if pr.origin == "manual"}
+        self.t.divisions.clear()
+        self.t.pairs.clear()
+        self.t.pairs.update(manual)
+        self.t.brackets.clear()
 
     def set_format(self, division_id: str, fmt: str) -> dict:
         with self._lock:

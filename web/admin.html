@@ -185,6 +185,19 @@
         <div id="group-notes" class="muted" style="margin-top:8px"></div>
       </div>
 
+      <div class="card" id="pairs-card">
+        <h2>Pairs <span class="muted">(check who plays with whom — move players, shuffle, re-pair)</span></h2>
+        <div class="row">
+          <label class="inline">Event <select id="pairs-event"></select></label>
+          <label class="inline">Shuffle <input id="pairs-seed" type="number" value="1" style="width:70px" title="Same number reproduces the same shuffle"></label>
+          <button class="btn secondary" id="pairs-shuffle">Shuffle this event</button>
+          <button class="btn secondary" id="pairs-auto">Re-pair from registrations</button>
+          <span class="muted" id="pairs-meta"></span>
+        </div>
+        <p class="explainer" id="pairs-note"></p>
+        <div id="pairs-body"></div>
+      </div>
+
       <div class="card">
         <h2>Custom bracket <span class="muted">(type players in yourself — no import needed)</span></h2>
         <div class="row">

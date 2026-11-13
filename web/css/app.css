@@ -314,3 +314,13 @@ tr:hover td { background: #f7fafd; }
   .row { flex-wrap: wrap; }
   body { font-size: 14px; }
 }
+
+/* Pairs editor */
+.pair-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 4px 0; }
+.pair-row select { min-width: 185px; }
+.pair-row.locked select { opacity: .72; }
+.pair-x { color: var(--muted); font-weight: 700; }
+.pair-issue { color: var(--warn); font-size: 12.5px; }
+.pair-unpaired { margin-top: 10px; font-size: 13.5px; }
+.pair-chip { display: inline-block; background: #eef4fb; border: 1px solid var(--line);
+  border-radius: 12px; padding: 2px 9px; margin: 3px 4px 0 0; font-size: 13px; }

@@ -84,11 +84,21 @@ def _shared_club(t: Tournament, a: str, b: str) -> str:
 
 
 def form_pairs_for_event(t: Tournament, event: str, ids: IdFactory,
-                         rng: random.Random, result: GroupingResult) -> list[EntryRef]:
+                         rng: random.Random, result: GroupingResult,
+                         auto_pair: bool = True) -> list[EntryRef]:
     entered = _active_players_in(t, event)
     entered_set = set(entered)
     paired: set[str] = set()
     entries: list[EntryRef] = []
+
+    # Pairs already on the roster (hand-made in the pairs editor) are kept: only
+    # the players still on their own get paired below.
+    for pr in sorted(t.pairs.values(), key=lambda x: x.id):
+        if (pr.event == event and len(pr.player_ids) == 2
+                and all(p in entered_set and p not in paired
+                        for p in pr.player_ids)):
+            entries.append(EntryRef("pair", pr.id))
+            paired.update(pr.player_ids)
 
     def make_pair(a: str, b: str, origin: str) -> None:
         pid = ids.make("pair", t.players[a].last or a, t.players[b].last or b)
@@ -98,7 +108,7 @@ def form_pairs_for_event(t: Tournament, event: str, ids: IdFactory,
         paired.add(b)
 
     # 1. Explicit partner requests.
-    for pid in entered:
+    for pid in entered if auto_pair else ():
         if pid in paired:
             continue
         partner = _partner_for_event(t, pid, event)
@@ -107,7 +117,8 @@ def form_pairs_for_event(t: Tournament, event: str, ids: IdFactory,
             make_pair(pid, partner, "requested")
 
     # 2. Auto-pair remaining willing players.
-    leftover = [p for p in entered if p not in paired and t.players[p].willing_random]
+    leftover = ([p for p in entered if p not in paired and t.players[p].willing_random]
+                if auto_pair else [])
     if event == "XD":
         men = [p for p in leftover if t.players[p].gender == "M"]
         women = [p for p in leftover if t.players[p].gender == "F"]
@@ -150,7 +161,8 @@ def ensure_pairs(t: Tournament, events: list[str], rng_seed: int = 0) -> "Groupi
 
 
 def build_divisions(t: Tournament, events: list[str] | None = None,
-                    rng_seed: int | None = None) -> GroupingResult:
+                    rng_seed: int | None = None,
+                    auto_pair: bool = True) -> GroupingResult:
     """Create one division per event and populate its entries.
 
     Mutates ``t.pairs`` (adds formed pairs) and ``t.divisions``.
@@ -165,7 +177,8 @@ def build_divisions(t: Tournament, events: list[str] | None = None,
             entries = [EntryRef("player", p.id) for p in t.players.values()
                        if event in p.events and not p.withdrawn]
         elif event in DOUBLES_EVENTS:
-            entries = form_pairs_for_event(t, event, ids, rng, result)
+            entries = form_pairs_for_event(t, event, ids, rng, result,
+                                           auto_pair=auto_pair)
         else:
             continue
         if not entries:
