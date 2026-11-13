@@ -117,6 +117,22 @@ class TestPairChanges(unittest.TestCase):
         with self.assertRaises(Conflict):
             self.svc.pairs_set("MD", [["m0", "m1"]])
 
+    def test_a_custom_division_survives_a_pair_rebuild(self):
+        custom = self.svc.create_custom_division(
+            "Friday Social", "player", ["Zed One", "Yan Two", "Xia Three"], "MS")
+        self.svc.build_divisions()
+        r = self.svc.pairs_set("MD", [["m0", "m1"]])
+        self.assertTrue(r["rebuilt"])
+        ids = [d["id"] for d in self.svc.divisions()]
+        self.assertIn(custom["id"], ids)             # hand-made bracket kept
+        self.assertIn("div-md", ids)                 # built one re-created
+
+    def test_building_divisions_keeps_a_custom_division(self):
+        custom = self.svc.create_custom_division(
+            "Friday Social", "player", ["Zed One", "Yan Two"], "MS")
+        self.svc.build_divisions()
+        self.assertIn(custom["id"], [d["id"] for d in self.svc.divisions()])
+
     def test_auto_pairs_willing_players_from_registrations(self):
         r = self.svc.pairs_auto("MD")
         md = next(e for e in r["view"]["events"] if e["event"] == "MD")

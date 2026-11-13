@@ -617,25 +617,32 @@ class TournamentService:
     def _finish_pair_edit(self) -> dict:
         """Persist a pair change, rebuilding any divisions that used the old
         pairs (they are derived from pairs and would otherwise point at nothing)."""
-        rebuilt = bool(self.t.divisions)
+        rebuilt = self._generated_divisions()
         if rebuilt:
             # Keep every pair exactly as set (no auto-pairing), so players the
             # organizer left off stay off.
-            self.t.divisions.clear()
-            self.t.brackets.clear()
+            self._clear_divisions()
             build_divisions(self.t, auto_pair=False)
         self._save(backup=True)
-        return {"rebuilt": rebuilt, "view": self.pairs_view()}
+        return {"rebuilt": bool(rebuilt), "view": self.pairs_view()}
+
+    def _generated_divisions(self) -> list[str]:
+        """Divisions that came from the pair build (``div-md``); hand-made and
+        team divisions (``div-xd-social-doubles``) are left alone by a rebuild."""
+        return [did for did in self.t.divisions if did.count("-") == 1]
 
     def _clear_divisions(self) -> None:
-        """Drop divisions, brackets and generated pairs, keeping the hand-made
-        pairs so a rebuild groups exactly the pairings on screen."""
+        """Drop the built divisions, braces and generated pairs, keeping the
+        hand-made pairs (so a rebuild groups exactly the pairings on screen)
+        and any custom or team divisions the organizer made by hand."""
+        drop = set(self._generated_divisions())
         manual = {pid: pr for pid, pr in self.t.pairs.items()
                   if pr.origin == "manual"}
-        self.t.divisions.clear()
+        for did in drop:
+            self.t.divisions.pop(did, None)
+            self.t.brackets.pop(did, None)
         self.t.pairs.clear()
         self.t.pairs.update(manual)
-        self.t.brackets.clear()
 
     def set_format(self, division_id: str, fmt: str) -> dict:
         with self._lock:
