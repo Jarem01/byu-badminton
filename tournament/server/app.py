@@ -41,14 +41,44 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def _read_body(self) -> dict:
-        length = int(self.headers.get("Content-Length") or 0)
-        if not length:
+        """Parse the JSON request body.
+
+        Handles both Content-Length and chunked bodies. A reverse proxy or an
+        HTTP/2 -> HTTP/1.1 bridge can forward a POST without Content-Length, and
+        treating that as an empty body made every action fail with a confusing
+        "No such file or directory: ''".
+        """
+        if "chunked" in (self.headers.get("Transfer-Encoding") or "").lower():
+            raw = self._read_chunked()
+        else:
+            try:
+                length = int(self.headers.get("Content-Length") or 0)
+            except ValueError:
+                length = 0
+            raw = self.rfile.read(length) if length > 0 else b""
+        if not raw:
             return {}
-        raw = self.rfile.read(length)
         try:
             return json.loads(raw.decode("utf-8"))
         except (json.JSONDecodeError, UnicodeDecodeError):
             return {}
+
+    def _read_chunked(self) -> bytes:
+        chunks: list[bytes] = []
+        while True:
+            line = self.rfile.readline(65536).strip()
+            if not line:
+                break
+            try:
+                size = int(line.split(b";")[0], 16)
+            except ValueError:
+                break
+            if size == 0:
+                self.rfile.readline(65536)      # CRLF after the last chunk
+                break
+            chunks.append(self.rfile.read(size))
+            self.rfile.read(2)                  # CRLF ending this chunk
+        return b"".join(chunks)
 
     def _static(self, url_path: str):
         if url_path in ("/", ""):

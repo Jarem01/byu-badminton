@@ -69,6 +69,20 @@ class TestServiceFlow(unittest.TestCase):
         self.svc.import_commit()
         self.assertGreater(len(self.svc.t.players), 15)
 
+    def test_import_commit_keeps_settings_and_mode(self):
+        # Re-importing replaces the roster, never the organizer's configuration
+        # (previously commit swapped in a fresh doc with DEFAULT_SETTINGS).
+        self.svc.update_settings({"court_count": 6, "day_start": "09:00",
+                                  "play_min": 45})
+        self.svc.set_mode("team")
+        self.svc.import_preview("file", FIXTURE, "auto")
+        self.svc.import_commit()
+        s = self.svc.get_settings()
+        self.assertEqual(s["court_count"], 6)
+        self.assertEqual(s["day_start"], "09:00")
+        self.assertEqual(s["play_min"], 45)
+        self.assertEqual(self.svc.t.mode, "team")
+
     def test_inline_fix_during_preview_survives_commit(self):
         # A gender/skill fix made on the preview must persist through commit
         # (previously commit overwrote it with the original preview).

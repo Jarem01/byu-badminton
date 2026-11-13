@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from ..config import Settings
 from ..model.entities import Court, Match, ScheduleBlock, Tournament
+from .courtplan import center_court_numbers, is_center_court_match
 
 
 def match_player_ids(t: Tournament, m: Match) -> set[str]:
@@ -116,7 +117,9 @@ def generate_schedule(t: Tournament, settings: Settings,
                     tie_of[m.id] = m.parent_id
                     tie_rubbers.setdefault(m.parent_id, []).append(m.id)
             else:
-                knockout_of[m.id] = m.bracket_part != "pool"
+                # Shared rule: only knockout QF/SF/final matches need a center
+                # court (see schedule/courtplan.py).
+                knockout_of[m.id] = is_center_court_match(br, m)
             matches[m.id] = m
 
     # For concurrent ties: players and court demand of each whole tie block.
@@ -178,13 +181,13 @@ def generate_schedule(t: Tournament, settings: Settings,
             return settings.pool_timing
         return settings.timing
 
-    # Knockout matches (QF/SF/final of any format; the "main" stage of a
-    # group_knockout) may only run on the unobstructed center courts. Pools use
-    # any court. If no center court exists within the configured count, we fall
-    # back to all courts rather than refuse to schedule.
+    # QF/SF/final matches may only run on the unobstructed center courts; earlier
+    # knockout rounds and pools use any court. Which courts count as center (and
+    # the "fewer than two -> don't restrict" fallback) is decided by the shared
+    # rule in schedule/courtplan.py -- the same one the court board uses.
     def court_num(c) -> int:
         return int(c.id.rsplit("-", 1)[1])
-    center = set(settings.center_courts)
+    center = set(center_court_numbers(settings, [court_num(c) for c in courts]))
     center_courts = [c for c in courts if court_num(c) in center]
 
     def courts_for(m: Match):

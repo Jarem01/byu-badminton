@@ -18,6 +18,7 @@ from ..engine.grouping import build_divisions
 from ..engine.seeding import seed_entries
 from ..engine.standings import all_standings
 from ..schedule.best_date import availability_report
+from ..schedule.courtplan import center_court_numbers, is_center_court_match
 from ..schedule.scheduler import generate_schedule, match_player_ids, player_conflicts
 from ..schedule.timeslots import minutes_to_clock
 from ..ingest.importer import build_tournament
@@ -33,6 +34,16 @@ from ..validate.overrides import apply_override
 
 class Conflict(Exception):
     """Raised when an action would overwrite finalized/protected state."""
+
+
+# Entry kinds that represent a real, decided side. "slot" (a group qualifier /
+# wildcard placeholder) and "bye" are not playable: scoring a match between them
+# would record a fake result (e.g. a champion named "Winner Pool A").
+PLAYABLE_SIDE_KINDS = ("player", "pair", "team")
+
+
+def _playable_side(ref) -> bool:
+    return ref is not None and ref.kind in PLAYABLE_SIDE_KINDS
 
 
 class TournamentService:
@@ -135,7 +146,14 @@ class TournamentService:
         with self._lock:
             if self._preview is None:
                 raise ValueError("no import to commit; preview first")
-            self.t = self._preview.tournament  # type: ignore[attr-defined]
+            tournament = self._preview.tournament  # type: ignore[attr-defined]
+            # An import replaces the roster (and everything drawn from it), but
+            # never the organizer's configuration: keep the saved settings, mode
+            # and event date instead of silently reverting to the defaults.
+            tournament.settings = self.t.settings
+            tournament.mode = self.t.mode
+            tournament.date = self.t.date
+            self.t = tournament
             self._preview = None
             self._save(backup=True)
             return {"players": len(self.t.players),
@@ -433,8 +451,7 @@ class TournamentService:
             self._save(backup=True)
             return {"divisions": self.divisions(),
                     "auto_paired": res.auto_paired,
-                    "unpaired": [self.t.players[p].full for p in res.unpaired
-                                 if p in self.t.players]}
+                    "unpaired": res.unpaired_labels}
 
     def set_format(self, division_id: str, fmt: str) -> dict:
         with self._lock:
@@ -495,6 +512,10 @@ class TournamentService:
             br = self.t.brackets[division_id]
             div = self.t.divisions[division_id]
             m = br.matches[match_id]
+            if not _playable_side(m.side1) or not _playable_side(m.side2):
+                raise ValueError(
+                    "that match isn't ready to play: one or both sides are still "
+                    "undecided (pool qualifiers or a pending feeder match)")
             if div.team_format and m.parent_id:
                 # A team rubber: decide with any handicap, then re-decide its tie
                 # and advance the draw.
@@ -513,8 +534,31 @@ class TournamentService:
     # --- live court board (manual drag-and-drop, global across divisions) ----
     CENTER_COURTS = {2, 3, 6, 7}   # default; real value comes from settings
 
+    def _court_count(self) -> int:
+        """How many courts this tournament actually has."""
+        return max(1, int(self.t.settings.court_count or 1))
+
+    @staticmethod
+    def _court_num(court_id: str) -> int | None:
+        try:
+            return int(str(court_id).rsplit("-", 1)[1])
+        except (IndexError, ValueError):
+            return None
+
+    def _check_court(self, court_num) -> int:
+        """Validate a court number against the configured court count."""
+        n = int(court_num)
+        count = self._court_count()
+        if not 1 <= n <= count:
+            raise ValueError(f"court {court_num} does not exist "
+                             f"(this tournament has courts 1-{count})")
+        return n
+
     def _center(self) -> set:
-        return set(self.t.settings.center_courts or self.CENTER_COURTS)
+        """Center courts that exist and are enforced (shared rule; see
+        schedule/courtplan.py). Empty => any court may host a knockout match."""
+        return set(center_court_numbers(
+            self.t.settings, range(1, self._court_count() + 1)))
 
     def _match_index(self):
         idx = {}
@@ -524,12 +568,10 @@ class TournamentService:
         return idx
 
     def _is_knockout(self, div_id, m) -> bool:
-        """Whether a match must use a center court. The center-court rule is for
-        individual knockout finals; team rubbers may use any court (a tie needs
-        several courts at once, more than the center set)."""
-        if m.bracket_part == "rubber":
-            return False
-        return m.bracket_part != "pool"
+        """Whether a match must use a center court (shared rule; see
+        schedule/courtplan.py): a knockout QF/SF/final only."""
+        br = self.t.brackets.get(div_id)
+        return bool(br and is_center_court_match(br, m))
 
     def _board_match_view(self, div_id, m) -> dict:
         return {
@@ -554,10 +596,16 @@ class TournamentService:
 
     def board_view(self) -> dict:
         idx = self._match_index()
-        # Prune stale assignments (completed or vanished matches free their court).
-        for cid, mid in list(self.t.court_board.items()):
-            if mid not in idx or idx[mid][1].result is not None:
-                del self.t.court_board[cid]
+        count = self._court_count()
+        # Prune stale assignments: a completed or vanished match frees its court,
+        # and so does an assignment to a court number that no longer exists
+        # (e.g. after the court count was lowered in Settings).
+        with self._lock:
+            for cid, mid in list(self.t.court_board.items()):
+                num = self._court_num(cid)
+                if (num is None or not 1 <= num <= count
+                        or mid not in idx or idx[mid][1].result is not None):
+                    del self.t.court_board[cid]
         assigned = dict(self.t.court_board)
         assigned_ids = set(assigned.values())
 
@@ -584,9 +632,9 @@ class TournamentService:
         center = self._center()
 
         def court_ok(num, d, m):
-            # Knockout (QF/SF/final, and knockout-tie rubbers) only on the center
-            # courts; pool matches (and pool-tie rubbers) anywhere.
-            return not self._is_knockout(d, m) or num in center
+            # QF/SF/final matches use the center courts when at least two of them
+            # exist; every other match may use any court.
+            return not self._is_knockout(d, m) or not center or num in center
 
         def is_ready(m):
             return not (match_player_ids(self.t, m) & playing)
@@ -596,7 +644,7 @@ class TournamentService:
         # open court always surfaces something playable; center courts then
         # prefer knockout; ties fall back to the schedule/seq order.
         courts = []
-        for num in range(1, 9):
+        for num in range(1, count + 1):
             cid = f"court-{num}"
             mid = assigned.get(cid)
             elig = [(d, m) for d, m in ready if court_ok(num, d, m)]
@@ -643,6 +691,7 @@ class TournamentService:
 
     def board_assign(self, court_num: int, match_id: str) -> dict:
         with self._lock:
+            court_num = self._check_court(court_num)
             idx = self._match_index()
             if match_id not in idx:
                 raise ValueError("no such match")
@@ -650,7 +699,7 @@ class TournamentService:
             if not self._playable(m):
                 raise ValueError("that match isn't ready to play")
             center = self._center()
-            if self._is_knockout(div_id, m) and court_num not in center:
+            if self._is_knockout(div_id, m) and center and court_num not in center:
                 allowed = ", ".join(str(c) for c in sorted(center))
                 raise Conflict("knockout matches (QF/SF/final) can only go on the "
                                f"center courts {allowed}")
@@ -676,12 +725,14 @@ class TournamentService:
 
     def board_clear(self, court_num: int) -> dict:
         with self._lock:
+            court_num = self._check_court(court_num)
             self.t.court_board.pop(f"court-{court_num}", None)
             self._save()
             return self.board_view()
 
     def board_result(self, court_num: int, games: list[list[int]]) -> dict:
         with self._lock:
+            court_num = self._check_court(court_num)
             cid = f"court-{court_num}"
             mid = self.t.court_board.get(cid)
             if not mid:
@@ -1094,6 +1145,10 @@ class TournamentService:
         rubber_max = (1 if (div.team_format and div.team_format.match_length == "quick")
                       else best_of)
 
+        def is_playable(mm) -> bool:
+            """Both sides are real entrants (not pool/wildcard placeholders)."""
+            return _playable_side(mm.side1) and _playable_side(mm.side2)
+
         def rubber_view(rid):
             r = br.matches[rid]
             label = r.round_name.split("·")[-1].strip() if "·" in r.round_name else r.round_name
@@ -1103,7 +1158,7 @@ class TournamentService:
                                if r.result and r.result.winner else None),
                     "games": r.result.games if r.result else [],
                     "walkover": r.result.walkover if r.result else False,
-                    "ready": r.is_ready(), "max_games": rubber_max}
+                    "ready": is_playable(r), "max_games": rubber_max}
 
         rounds = []
         for rnd in br.rounds:
@@ -1120,7 +1175,7 @@ class TournamentService:
                     # Only a resolved walkover is a true "Bye"; a single-sided
                     # match with no result is TBD (opponent not yet decided).
                     "is_bye": bool(m.result and m.result.walkover),
-                    "ready": m.is_ready(),
+                    "ready": is_playable(m),
                     # Only a standalone round-robin is a single timed game (1
                     # box). Group-stage pools and knockouts are best-of-N.
                     "max_games": 1 if br.format == "round_robin" else best_of,
@@ -1168,7 +1223,7 @@ class TournamentService:
             # it belongs in "upcoming".
             if (mm.result and mm.result.walkover) or is_done(mm):
                 continue
-            if mm.side1 and mm.side2:
+            if is_playable(mm):
                 ready.append(mm)
             else:
                 fs = feeders.get(mm.id, [])

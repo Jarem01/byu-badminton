@@ -73,10 +73,24 @@ def build_tournament(headers: list[str], rows: list[dict], schema: str = "auto",
                     f"Row {reg.row_index}: partner '{hint.raw_name}' not found. "
                     f"Did you mean '{res.suggestion}'? ({res.confidence:.0%})",
                     target=f"row:{reg.row_index}", suggestion=res.suggestion))
+            elif hint.event_hint and hint.event_hint not in players[reg.player_id].events:
+                # Partner block for an event this player did not enter: it is
+                # filler (often the other discipline's block filled in by habit),
+                # so don't invent a roster entry from it.
+                continue
             elif looks_like_name(hint.raw_name):
                 # Genuinely new person only mentioned as a partner -> stub.
                 key = name_key(hint.raw_name)
                 sid = stub_by_name.get(key)
+                if sid and (hint.event_hint
+                            and hint.event_hint in players[reg.player_id].events):
+                    # The same placeholder can legitimately be named for more
+                    # than one event; merge it. A block for an event the naming
+                    # player is not entered in is filler and must not add one.
+                    order = ("MS", "WS", "MD", "WD", "XD")
+                    stub = players[sid]
+                    stub.events = [e for e in order
+                                   if e in set(stub.events) | {hint.event_hint}]
                 if not sid:
                     parts = hint.raw_name.split()
                     sid = ids.make("player", *parts)

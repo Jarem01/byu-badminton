@@ -36,8 +36,15 @@ function gameInputs(match, idx) {
   return `<span class="games">${html}</span>`;
 }
 
+// Real, decided sides only. A "slot" side is a group qualifier/wildcard
+// placeholder ("Winner Pool A"), so a match between placeholders must not be
+// scorable -- otherwise a fake result (and a fake champion) gets recorded.
+const PLAYABLE_SIDE_KINDS = ["player", "pair", "team"];
+
 function scoreable(match) {
-  return match.side1 && match.side2 && !match.is_bye;
+  return !!(match.side1 && match.side2 && !match.is_bye
+    && PLAYABLE_SIDE_KINDS.includes(match.side1.kind)
+    && PLAYABLE_SIDE_KINDS.includes(match.side2.kind));
 }
 
 function sideEl(match, side, idx, editing) {

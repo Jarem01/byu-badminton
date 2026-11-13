@@ -55,9 +55,11 @@ def _hint_from_text(text: str) -> str | None:
 def looks_like_name(text: str) -> bool:
     """Heuristic: 1-4 alphabetic words, no prose markers, has a letter."""
     t = text.strip()
-    if not t or not re.search(r"[A-Za-z]", t):
-        return False
-    low = t.lower()
+    if not t or not any(c.isalpha() for c in t):
+        return False          # allows non-Latin names (e.g. "李佳矟")
+    # Curly apostrophes are common in pasted form answers; normalise before the
+    # prose checks so "I don't have one" is recognised however it was typed.
+    low = t.lower().replace("’", "'").replace("ʼ", "'")
     if any(phrase in low for phrase in _PROSE_PHRASES):
         return False
     if set(re.findall(r"[a-z']+", low)) & _PROSE_TOKENS:
@@ -71,7 +73,7 @@ def looks_like_name(text: str) -> bool:
 
 
 def _emit(name: str, hint: str | None, out: list[PartnerHint]) -> None:
-    clean = normalize_name(name)
+    clean = normalize_name(name).replace("’", "'").replace("ʼ", "'")
     # Strip a trailing " or ..." (e.g. "Simon or anyone else" -> "Simon").
     clean = re.split(r"\bor\b", clean, maxsplit=1, flags=re.IGNORECASE)[0].strip()
     if clean and looks_like_name(clean):

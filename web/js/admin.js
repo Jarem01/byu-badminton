@@ -668,7 +668,11 @@ function renderCourtGrid(courts) {
   courts.forEach(c => {
     const el = document.createElement("div");
     el.className = "court-tile" + (c.center ? " center" : "");
-    const canPlace = sel && !c.match && (!sel.knockout || c.center);
+    // Center courts only gate knockout matches when the server enforces them
+    // (it doesn't when fewer than two center courts exist).
+    const centerEnforced = (boardData.center_courts || []).length > 0;
+    const canPlace = sel && !c.match
+      && (!sel.knockout || !centerEnforced || c.center);
     if (canPlace) {
       el.classList.add("valid-target");
       el.addEventListener("click", () => boardAssign(c.num, sel.id));

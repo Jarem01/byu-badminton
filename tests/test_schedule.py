@@ -160,6 +160,28 @@ class TestScheduling(unittest.TestCase):
                 self.assertIn(num, center,
                               f"knockout match on non-center court {num}")
 
+    def test_early_knockout_rounds_use_all_courts(self):
+        # 16-draw single elim on 4 courts: the round of 16 may use the outer
+        # courts; only QF/SF/final are pinned to the center courts. Regression:
+        # every knockout match used to sit on the two center courts, which
+        # stretched a 16-draw to 6:25 PM instead of ~5:05 PM.
+        t = Tournament()
+        single_elim_division(t, "ms", "MS", 16)
+        s = Settings(court_count=4)
+        blocks = generate_schedule(t, s, ["ms"])
+        br = t.brackets["ms"]
+        court_of = {b.match_id: int(b.court_id.rsplit("-", 1)[1]) for b in blocks}
+        r16 = next(r for r in br.rounds if len(r.match_ids) == 8)
+        used = {court_of[mid] for mid in r16.match_ids}
+        self.assertTrue(used - set(s.center_courts),
+                        f"round of 16 should use outer courts, used {used}")
+        qf = next(r for r in br.rounds if len(r.match_ids) == 4)
+        for mid in qf.match_ids:
+            self.assertIn(court_of[mid], set(s.center_courts))
+        # And the round of 16 now fits in two slots, not four.
+        self.assertLessEqual(max(b.start_min for b in blocks
+                                 if b.match_id in r16.match_ids), 40)
+
     def test_pools_play_concurrently(self):
         # Different pools should run at the same time (so players rest between
         # their own pool matches while other pools play).
@@ -212,3 +234,49 @@ class TestScheduling(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestSharedCenterCourtRule(unittest.TestCase):
+    """The auto-scheduler and the live court board must not drift apart: both
+    call the single implementation in ``schedule/courtplan.py``."""
+
+    def test_both_callers_use_the_same_functions(self):
+        from tournament.schedule import courtplan, scheduler
+        from tournament.server import service
+        self.assertIs(scheduler.is_center_court_match,
+                      courtplan.is_center_court_match)
+        self.assertIs(scheduler.center_court_numbers,
+                      courtplan.center_court_numbers)
+        self.assertIs(service.is_center_court_match,
+                      courtplan.is_center_court_match)
+        self.assertIs(service.center_court_numbers,
+                      courtplan.center_court_numbers)
+
+    def test_rule_is_dropped_below_two_usable_center_courts(self):
+        from tournament.schedule.courtplan import center_court_numbers
+        four = Settings(center_courts=(2, 3), court_count=4)
+        self.assertEqual(center_court_numbers(four, [1, 2, 3, 4]), [2, 3])
+        # Only one of the configured center courts exists at this venue, so
+        # reserving it would starve the rest -> the rule is dropped entirely.
+        self.assertEqual(center_court_numbers(four, [1, 2]), [])
+        self.assertEqual(
+            center_court_numbers(Settings(center_courts=(2,), court_count=4),
+                                 [1, 2, 3, 4]), [])
+
+    def test_only_finals_stage_knockouts_are_protected(self):
+        from tournament.schedule.courtplan import is_center_court_match
+        t = Tournament()
+        single_elim_division(t, "big", "MD", 16)
+        single_elim_division(t, "small", "MD", 8)
+
+        def protected(div_id):
+            br = t.brackets[div_id]
+            return [m for m in br.matches.values()
+                    if is_center_court_match(br, m)]
+
+        # 16 draw: the round of 16 is unrestricted; QF + SF + final are not.
+        self.assertEqual((len(t.brackets["big"].matches), len(protected("big"))),
+                         (15, 7))
+        # 8 draw: its first round already is the quarterfinal.
+        self.assertEqual((len(t.brackets["small"].matches),
+                          len(protected("small"))), (7, 7))

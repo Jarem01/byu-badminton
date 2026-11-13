@@ -22,14 +22,52 @@ from .partner_parse import parse_partners
 
 
 def _find_header(headers: list[str], *needles: str) -> str | None:
-    """Return the first header containing any needle (case-insensitive)."""
+    """Return the matching header (case-insensitive).
+
+    An exact match wins over a substring match, so ``"Gender"`` resolves to the
+    player's own Gender column rather than ``"Partner's Gender"``.
+    """
     low = [(h, h.lower()) for h in headers]
+    for needle in needles:
+        n = needle.lower()
+        for original, lowered in low:
+            if lowered == n:
+                return original
     for needle in needles:
         n = needle.lower()
         for original, lowered in low:
             if n in lowered:
                 return original
     return None
+
+
+def _find_header_nth(headers: list[str], needle: str, n: int = 1) -> str | None:
+    """The nth header containing ``needle`` (1-based). The real form repeats a
+    whole question block (MD/WD partner, then XD partner), so the two columns
+    are addressed by position."""
+    hits = [h for h in headers if needle.lower() in h.lower()]
+    return hits[n - 1] if len(hits) >= n else None
+
+
+def _parse_gender(raw: str) -> str:
+    """'Male'/'Female'/... -> M/F; anything else (incl. 'Prefer not to say') -> U."""
+    s = (raw or "").strip().lower()
+    if s.startswith("m"):
+        return "M"
+    if s.startswith("f") or s.startswith("w"):
+        return "F"
+    return "U"
+
+
+def _either_yes(*values: str) -> bool:
+    """True if any 'willing to be assigned a random partner' answer is yes.
+
+    The form asks the question once per discipline; a blank answer (the other
+    block) leaves the default, which is the historical behaviour (True).
+    """
+    answers = [N.parse_yes_no(v, default=None) for v in values]
+    known = [a for a in answers if a is not None]
+    return True if not known else any(known)
 
 
 class SchemaAdapter(ABC):
@@ -54,17 +92,23 @@ class LegacyFormAdapter(SchemaAdapter):
         )
 
     def build(self, rows, ids):
-        h = lambda *n: _find_header(list(rows[0].keys()), *n) if rows else None
+        keys = list(rows[0].keys()) if rows else []
+        h = lambda *n: _find_header(keys, *n)
         c_first = h("First Name")
         c_last = h("Last Name")
         c_email = h("Email")
+        c_gender = h("Gender")        # exact "Gender", not "Partner's Gender"
         c_weekend = h("weekends")
         c_weekday = h("evenings", "weekday")
         c_skill = h("Skill Level", "skill")
         c_events = h("What event", "event(s)", "event")
         c_haspartner = h("already have a partner")
-        c_partner = h("full name")   # "...your partner's full name?"
-        c_willing = h("willing to be assigned", "random partner")
+        # The form repeats the partner block -- once for MD/WD, once for XD --
+        # under identical question text (see source_csv's duplicate-header note).
+        c_partner = _find_header_nth(keys, "full name", 1)
+        c_partner_xd = _find_header_nth(keys, "full name", 2)
+        c_willing = _find_header_nth(keys, "willing to be assigned", 1)
+        c_willing_xd = _find_header_nth(keys, "willing to be assigned", 2)
 
         players: dict[str, Player] = {}
         regs: list[RegistrationEntry] = []
@@ -74,25 +118,51 @@ class LegacyFormAdapter(SchemaAdapter):
             if not first and not last:
                 continue  # blank row
             events = N.parse_events(row.get(c_events, ""))
+            # Trust the gender the player stated; fall back to the gender implied
+            # by their events when the answer is "Prefer not to say"/blank.
             gender, _conflict = N.infer_gender_from_events(events)
+            declared = _parse_gender(row.get(c_gender, "")) if c_gender else "U"
+            if declared != "U":
+                gender = declared
             pid = ids.make("player", first, last)
+            md_wd_event = next((e for e in ("MD", "WD") if e in events), None)
+            # A player entered in a single doubles event who filled the first
+            # partner block meant that event (XD-only players often answer there).
+            default_ev = md_wd_event or (events[0] if len(events) == 1
+                                         and events[0] in ("MD", "WD", "XD")
+                                         else None)
+            # Hints keep their column's meaning: the first block only names a
+            # partner for MD/WD, the second only for XD. Both are kept even when
+            # the player is not entered in that event -- a partner who named them
+            # back is how a "forgot to tick the box" mismatch is detected (see
+            # grouping._partner_confirmed).
+            hints: list[PartnerHint] = []
+            for hint in parse_partners(row.get(c_partner, "") if c_partner else ""):
+                hint.event_hint = default_ev or hint.event_hint
+                hints.append(hint)
+            for hint in parse_partners(row.get(c_partner_xd, "") if c_partner_xd else ""):
+                hint.event_hint = hint.event_hint or "XD"
+                hints.append(hint)
             players[pid] = Player(
                 id=pid, first=first, last=last,
                 email=N.normalize_name(row.get(c_email, "")),
                 gender=gender,
                 skill=N.parse_skill(row.get(c_skill, "")),
                 events=events,
-                willing_random=bool(N.parse_yes_no(row.get(c_willing, ""), default=True)),
+                willing_random=_either_yes(
+                    row.get(c_willing, "") if c_willing else "",
+                    row.get(c_willing_xd, "") if c_willing_xd else ""),
                 weekend_avail=N.split_multi(row.get(c_weekend, "")),
                 weekday_avail=N.split_multi(row.get(c_weekday, "")),
                 source_row=i + 2,  # +2: header row is 1, data starts at 2
             )
-            hints = parse_partners(row.get(c_partner, "") if c_partner else "")
             regs.append(RegistrationEntry(
                 row_index=i + 2, player_id=pid, partner_hints=hints,
                 raw={
                     "has_partner": row.get(c_haspartner, "") if c_haspartner else "",
                     "partner_raw": row.get(c_partner, "") if c_partner else "",
+                    "partner_xd_raw": (row.get(c_partner_xd, "")
+                                       if c_partner_xd else ""),
                 },
             ))
         return players, regs

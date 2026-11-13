@@ -251,6 +251,22 @@ class Bracket:
     # fill the draw per-pool as each pool completes.
     ko_plan: list = field(default_factory=list)
 
+    # A round with at most this many matches is a QF (4), SF (2) or final (1):
+    # the stage that must be played on unobstructed "center" courts.
+    FINALS_ROUND_MAX_MATCHES = 4
+
+    def is_finals_stage(self, match_id: str) -> bool:
+        """True if ``match_id`` sits in a QF/SF/final round of this bracket.
+
+        Early knockout rounds (round of 16 and larger) are NOT finals stage, so
+        they may use any court -- otherwise a 4-court venue would run its entire
+        first round on the two configured center courts.
+        """
+        for rnd in self.rounds:
+            if match_id in rnd.match_ids:
+                return len(rnd.match_ids) <= self.FINALS_ROUND_MAX_MATCHES
+        return False
+
 
 @dataclass(slots=True)
 class Court:

@@ -21,6 +21,7 @@ class GroupingResult:
     divisions: dict[str, Division] = field(default_factory=dict)
     auto_paired: list[str] = field(default_factory=list)   # human-readable notes
     unpaired: list[str] = field(default_factory=list)      # player ids left over
+    unpaired_labels: list[str] = field(default_factory=list)  # "Name (EV)"
 
 
 def _id_factory(t: Tournament) -> IdFactory:
@@ -47,6 +48,36 @@ def _partner_for_event(t: Tournament, player_id: str, event: str) -> str | None:
     return None
 
 
+def _requests(t: Tournament, player_id: str, partner_id: str, event: str) -> bool:
+    """True if ``player_id`` named ``partner_id`` as their partner for ``event``."""
+    for r in t.registrations:
+        if r.player_id != player_id:
+            continue
+        for h in r.partner_hints:
+            if (h.resolved_player_id == partner_id
+                    and (h.event_hint == event or not h.event_hint)):
+                return True
+    return False
+
+
+def partner_confirmed(t: Tournament, pid: str, partner: str, event: str,
+                      entered: set[str] | None = None) -> bool:
+    """Whether a requested partner may be paired for ``event``.
+
+    Normally the partner must be entered in the event. The exception is a mutual
+    request: a partner who named this player back (e.g. someone who forgot to
+    tick XD but wrote the partner's name in the XD column). A one-sided request
+    to an unregistered player is refused, so nobody is silently dragged into an
+    event they never signed up for.
+
+    Shared with the validation rules so "this request will not be honoured" is
+    reported consistently everywhere.
+    """
+    if entered is None:
+        entered = set(_active_players_in(t, event))
+    return partner in entered or _requests(t, partner, pid, event)
+
+
 def _shared_club(t: Tournament, a: str, b: str) -> str:
     ca, cb = t.players[a].club, t.players[b].club
     return ca if ca and ca == cb else ""
@@ -71,7 +102,8 @@ def form_pairs_for_event(t: Tournament, event: str, ids: IdFactory,
         if pid in paired:
             continue
         partner = _partner_for_event(t, pid, event)
-        if partner and partner != pid and partner not in paired:
+        if (partner and partner != pid and partner not in paired
+                and partner_confirmed(t, pid, partner, event, entered_set)):
             make_pair(pid, partner, "requested")
 
     # 2. Auto-pair remaining willing players.
@@ -97,6 +129,7 @@ def form_pairs_for_event(t: Tournament, event: str, ids: IdFactory,
     for pid in entered:
         if pid not in paired:
             result.unpaired.append(pid)
+            result.unpaired_labels.append(f"{t.players[pid].full} ({event})")
 
     return entries
 

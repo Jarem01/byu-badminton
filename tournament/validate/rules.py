@@ -5,6 +5,7 @@ Issues, so rules are independently testable and easy to extend.
 from __future__ import annotations
 
 from ..config import DOUBLES_EVENTS
+from ..engine.grouping import partner_confirmed
 from ..ingest.normalize import infer_gender_from_events, name_key
 from ..model.entities import Tournament
 from .issues import Issue
@@ -79,21 +80,36 @@ def _resolved_partner_edges(t: Tournament):
 def check_partners(t: Tournament) -> list[Issue]:
     out = []
     reg_by_player = {r.player_id: r for r in t.registrations}
+    # A partner named by someone else counts too: the pairing step honours the
+    # request from either side, so "X needs a partner" would be wrong for a
+    # player who is about to be paired because their partner named them.
+    inbound = {(h.resolved_player_id, h.event_hint)
+               for r in t.registrations for h in r.partner_hints
+               if h.resolved_player_id and h.event_hint
+               and partner_confirmed(t, r.player_id, h.resolved_player_id,
+                                     h.event_hint)}
 
     for r in t.registrations:
         p = t.players.get(r.player_id)
         if not p:
             continue
+        paired_events = {pr.event for pr in t.pairs.values()
+                        if p.id in pr.player_ids}
         resolved_events = set()
         has_generic = False
         for h in r.partner_hints:
-            if h.resolved_player_id:
-                if h.event_hint:
-                    resolved_events.add(h.event_hint)
-                else:
-                    has_generic = True
+            if not h.resolved_player_id:
+                continue
+            if not h.event_hint:
+                has_generic = True
+            elif partner_confirmed(t, p.id, h.resolved_player_id, h.event_hint):
+                # A request the pairing step refuses (partner not entered, not
+                # mutual) must not hide the fact that this player still needs
+                # a partner.
+                resolved_events.add(h.event_hint)
         for ev in [e for e in p.events if e in DOUBLES_EVENTS]:
-            if ev in resolved_events or has_generic:
+            if (ev in resolved_events or has_generic or ev in paired_events
+                    or (p.id, ev) in inbound):
                 continue
             if p.willing_random:
                 out.append(Issue("info", "needs_random_partner",
@@ -121,6 +137,56 @@ def check_partners(t: Tournament) -> list[Issue]:
                              f"{t.players[a].full} lists {t.players[b].full} as a "
                              f"partner{f' for {ev}' if ev else ''}, but not vice "
                              f"versa.", target=f"player:{a}"))
+    return out
+
+
+def check_partner_events(t: Tournament) -> list[Issue]:
+    """A named partner must be entered in that event -- or have named the player
+    back. The form asks for the MD/WD partner and the XD partner separately, so
+    naming someone who only signed up for the other discipline is a common
+    mistake. Surface it instead of silently seating them in the wrong bracket.
+    """
+    out, seen = [], set()
+    for r in t.registrations:
+        p = t.players.get(r.player_id)
+        if not p:
+            continue
+        for h in r.partner_hints:
+            if not h.resolved_player_id or h.event_hint not in DOUBLES_EVENTS:
+                continue
+            partner = t.players.get(h.resolved_player_id)
+            if not partner or partner.withdrawn:
+                continue
+            ev = h.event_hint
+            if ev not in p.events:
+                continue          # player isn't in this event: nothing to check
+            if ev in partner.events:
+                continue                      # properly registered
+            key = (p.id, partner.id, ev)
+            if key in seen:
+                continue
+            seen.add(key)
+            mutual = any(
+                hh.resolved_player_id == p.id
+                and (hh.event_hint == ev or not hh.event_hint)
+                for rr in t.registrations if rr.player_id == partner.id
+                for hh in rr.partner_hints)
+            theirs = ", ".join(partner.events) or "no events"
+            if mutual:
+                out.append(Issue(
+                    "info", "partner_event_mismatch",
+                    f"{partner.full} is not registered for {ev} (entered: {theirs}), "
+                    f"but {p.full} named them and they named {p.full} back, so they "
+                    f"are paired -- confirm {partner.full} is playing {ev}.",
+                    target=f"player:{partner.id}"))
+            else:
+                out.append(Issue(
+                    "warning", "partner_not_entered",
+                    f"{p.full} lists {partner.full} as a partner for {ev}, but "
+                    f"{partner.full} is registered for {theirs} -- they were not "
+                    f"paired. Add {ev} to {partner.full}'s events, or assign "
+                    f"{p.full} a different partner.",
+                    target=f"player:{p.id}"))
     return out
 
 
@@ -156,6 +222,8 @@ def check_pair_genders(t: Tournament) -> list[Issue]:
                              target=f"player:{a}"))
 
     for a, b, ev in set(_resolved_partner_edges(t)):
+        if ev and not partner_confirmed(t, a, b, ev):
+            continue          # refused request; check_partner_events explains it
         consider(a, b, ev)
     for pair in t.pairs.values():                      # materialized team pairs
         if len(pair.player_ids) == 2:
@@ -164,4 +232,4 @@ def check_pair_genders(t: Tournament) -> list[Issue]:
 
 
 ALL_RULES = [check_skill, check_gender, check_duplicates, check_partners,
-             check_pair_genders]
+             check_partner_events, check_pair_genders]

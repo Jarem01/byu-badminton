@@ -20,6 +20,11 @@ class TestBoard(unittest.TestCase):
         self.svc.build_divisions(rng_seed=1)
         self.ms = next(x for x in self.svc.divisions() if x["event"] == "MS")
         self.svc.generate_bracket(self.ms["id"], "single_elim", "ranking")
+        # An 8-draw knockout whose first round IS the quarterfinals, so the
+        # center-court rule always has a ready QF to exercise.
+        self.small = self.svc.create_custom_division(
+            "Small Eight", "player", [f"S{i}:{9 - i}" for i in range(8)], "MS")["id"]
+        self.svc.generate_bracket(self.small, "single_elim", "ranking")
 
     def tearDown(self):
         self.d.cleanup()
@@ -27,11 +32,17 @@ class TestBoard(unittest.TestCase):
     def _a_ready_knockout(self):
         return next(m for m in self.svc.board_view()["queue"] if m["knockout"])
 
-    def test_board_has_eight_courts_center_marked(self):
+    def test_board_courts_follow_court_count(self):
+        # The board shows exactly the courts this tournament has (4 by default),
+        # not a hardcoded 8, and marks only the center courts that exist.
+        v = self.svc.board_view()
+        self.assertEqual([c["num"] for c in v["courts"]], [1, 2, 3, 4])
+        self.assertEqual({c["num"] for c in v["courts"] if c["center"]}, {2, 3})
+        # Raise the court count -> the extra courts appear, centers included.
+        self.svc.update_settings({"court_count": 8})
         v = self.svc.board_view()
         self.assertEqual(len(v["courts"]), 8)
-        centers = {c["num"] for c in v["courts"] if c["center"]}
-        self.assertEqual(centers, {2, 3, 6, 7})
+        self.assertEqual({c["num"] for c in v["courts"] if c["center"]}, {2, 3, 6, 7})
 
     def test_knockout_only_on_center_courts(self):
         m = self._a_ready_knockout()
@@ -48,8 +59,8 @@ class TestBoard(unittest.TestCase):
         self.svc.board_assign(2, m["id"])
         v = self.svc.board_result(2, [[21, 10], [21, 12]])
         self.assertIsNone(next(c for c in v["courts"] if c["num"] == 2)["match"])
-        # Winner advanced (its match now carries a result in the bracket).
-        done = self.svc.t.brackets[self.ms["id"]].matches[m["id"]]
+        # Winner advanced (its match now carries a result in its bracket).
+        done = self.svc.t.brackets[m["division"]].matches[m["id"]]
         self.assertIsNotNone(done.result)
 
     def test_clear_returns_match_to_queue(self):
@@ -90,7 +101,7 @@ class TestBoard(unittest.TestCase):
         r = self.svc.create_custom_division("RR", "player",
                                             [f"Q{i}:{6-i}" for i in range(5)], "MS")
         self.svc.generate_bracket(r["id"], "round_robin", "ranking")
-        q = [m for m in self.svc.board_view()["queue"] if not m["knockout"]]
+        q = [m for m in self.svc.board_view()["queue"] if m["division"] == r["id"]]
         self.svc.board_assign(1, q[0]["id"])
         busy = {q[0]["side1"]["key"], q[0]["side2"]["key"]}
         v = self.svc.board_view()
@@ -110,7 +121,7 @@ class TestBoard(unittest.TestCase):
         r = self.svc.create_custom_division("RR", "player",
                                             [f"Q{i}:{6-i}" for i in range(5)], "MS")
         self.svc.generate_bracket(r["id"], "round_robin", "ranking")
-        pools = [q for q in self.svc.board_view()["queue"] if not q["knockout"]]
+        pools = [q for q in self.svc.board_view()["queue"] if q["division"] == r["id"]]
         self.svc.board_assign(1, pools[0]["id"])       # some players now busy
         v = self.svc.board_view()
         for c in v["courts"]:
@@ -168,7 +179,7 @@ class TestBoard(unittest.TestCase):
         r = self.svc.create_custom_division("RR", "player",
                                             [f"Q{i}:{6-i}" for i in range(5)], "MS")
         self.svc.generate_bracket(r["id"], "round_robin", "ranking")
-        pools = [q for q in self.svc.board_view()["queue"] if not q["knockout"]]
+        pools = [q for q in self.svc.board_view()["queue"] if q["division"] == r["id"]]
         m1 = pools[0]
         self.svc.board_assign(1, m1["id"])
         busy = {m1["side1"]["key"], m1["side2"]["key"]}
@@ -177,12 +188,44 @@ class TestBoard(unittest.TestCase):
         with self.assertRaises(Conflict):
             self.svc.board_assign(4, m2["id"])       # shares a player -> blocked
 
+    def test_early_knockout_rounds_use_outer_courts(self):
+        # A 16-draw's first round is the round of 16 (8 matches), not a
+        # QF/SF/final, so any court may host it. Regression: every knockout
+        # match was pinned to the two center courts, so courts 1 and 4 idled.
+        m = next(q for q in self.svc.board_view()["queue"]
+                 if q["division"] == self.ms["id"] and q["part"] == "main")
+        self.assertFalse(m["knockout"])
+        v = self.svc.board_assign(1, m["id"])
+        self.assertEqual(next(c for c in v["courts"] if c["num"] == 1)["match"]["id"],
+                         m["id"])
+
+    def test_court_out_of_range_rejected(self):
+        m = self._a_ready_knockout()
+        with self.assertRaises(ValueError):
+            self.svc.board_assign(7, m["id"])     # only 4 courts configured
+
+    def test_placeholder_match_is_not_scoreable(self):
+        # Group->knockout: the knockout skeleton exists before the pools finish
+        # and must not accept a score. Regression: scoring "Winner Pool A vs
+        # Runner-up Pool B" propagated a slot ref and crowned "Winner Pool A".
+        r = self.svc.create_custom_division(
+            "GK", "player", [f"G{i}:{16 - i}" for i in range(16)], "MS")
+        self.svc.generate_bracket(r["id"], "group_knockout", "ranking",
+                                  num_groups=4, main_draw=8)
+        view = self.svc.bracket_view(r["id"])
+        ko = next(x for x in view["rounds"] if x["part"] == "main")["matches"][0]
+        self.assertFalse(ko["ready"])
+        self.assertNotIn(ko["id"], [q["id"] for q in view["queue"]["ready"]])
+        with self.assertRaises(ValueError):
+            self.svc.record_result(r["id"], ko["id"], [[21, 10]])
+
     def test_pool_match_allowed_on_outer_court(self):
         # A round-robin division's matches are pool matches -> any court is fine.
         r = self.svc.create_custom_division("RR", "player",
                                             [f"Q{i}:{6-i}" for i in range(5)], "MS")
         self.svc.generate_bracket(r["id"], "round_robin", "ranking")
-        pool = next(m for m in self.svc.board_view()["queue"] if not m["knockout"])
+        pool = next(m for m in self.svc.board_view()["queue"]
+                    if m["division"] == r["id"])
         v = self.svc.board_assign(1, pool["id"])        # outer court allowed
         self.assertEqual(next(c for c in v["courts"] if c["num"] == 1)["match"]["id"],
                          pool["id"])
