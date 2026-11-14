@@ -314,6 +314,10 @@ class PairChange:
     kind: str                            # manual | clear | shuffle | from_forms | undo
     pairs: list[list[str]] = field(default_factory=list)   # player ids, after
     note: str = ""
+    # [player_id, event] pairs this change added to someone's entry list (a
+    # partner named for an event they had not entered), so undo can take the
+    # entry back off.
+    added_events: list[list[str]] = field(default_factory=list)
 
 
 @dataclass(slots=True)

@@ -620,7 +620,7 @@ class TournamentService:
         ids; a single id means that player is left unpaired)."""
         with self._lock:
             self._require_pairs_editable()
-            self._replace_pairs(event, groups)
+            self._replace_pairs(event, groups, t=self._active())
             return self._finish_pair_edit()
 
     def pairs_shuffle(self, event: str, rng_seed: int | None = None) -> dict:
@@ -628,7 +628,8 @@ class TournamentService:
         with self._lock:
             self._require_pairs_editable()
             rng = random.Random(rng_seed or 0)
-            players = [p for p in self.t.players.values()
+            t = self._active()
+            players = [p for p in t.players.values()
                        if event in p.events and not p.withdrawn and not p.is_stub]
             men = [p.id for p in players if p.gender == "M"]
             women = [p.id for p in players if p.gender == "F"]
@@ -639,7 +640,7 @@ class TournamentService:
             else:
                 pool = men if event == "MD" else women
                 groups = [[pool[i], pool[i + 1]] for i in range(0, len(pool) - 1, 2)]
-            self._replace_pairs(event, groups, kind="shuffle")
+            self._replace_pairs(event, groups, kind="shuffle", t=t)
             return self._finish_pair_edit()
 
     def pairs_auto(self, event: str, rng_seed: int | None = None) -> dict:
@@ -648,12 +649,13 @@ class TournamentService:
         from ..engine.grouping import GroupingResult, _id_factory, form_pairs_for_event
         with self._lock:
             self._require_pairs_editable()
-            for pr in [pr for pr in self.t.pairs.values() if pr.event == event]:
-                del self.t.pairs[pr.id]
+            t = self._active()
+            for pr in [pr for pr in t.pairs.values() if pr.event == event]:
+                del t.pairs[pr.id]
             res = GroupingResult()
-            form_pairs_for_event(self.t, event, _id_factory(self.t),
+            form_pairs_for_event(t, event, _id_factory(t),
                                  random.Random(rng_seed or 0), res)
-            self._record_pair_change(event, "from_forms")
+            self._record_pair_change(event, "from_forms", t=t)
             out = self._finish_pair_edit()
             out["auto_paired"] = res.auto_paired
             return out
@@ -668,41 +670,69 @@ class TournamentService:
         from ..engine.grouping import GroupingResult, _id_factory, form_pairs_for_event
         with self._lock:
             self._require_pairs_editable()
-            history = [c for c in self.t.pair_changes if c.event == event]
+            t = self._active()
+            history = [c for c in t.pair_changes if c.event == event]
             if not history:
                 raise ValueError("there is no pair change to undo")
+            undone = history[-1]
             current = [list(pr.player_ids) for pr in
-                       sorted(self.t.pairs.values(), key=lambda x: x.id)
+                       sorted(t.pairs.values(), key=lambda x: x.id)
                        if pr.event == event]
-            self.t.pair_changes.remove(history[-1])
-            for pr in [pr for pr in self.t.pairs.values() if pr.event == event]:
-                del self.t.pairs[pr.id]
-            earlier = [c for c in self.t.pair_changes if c.event == event]
+            t.pair_changes.remove(undone)
+            for pr in [pr for pr in t.pairs.values() if pr.event == event]:
+                del t.pairs[pr.id]
+            earlier = [c for c in t.pair_changes if c.event == event]
+            # A pairing may have put someone into an event they had not entered.
+            # Undo takes that back too -- before the form answers are re-formed,
+            # otherwise a random pair there would keep them in the event.
             if earlier:
-                self._restore_pairs(event, earlier[-1].pairs)
+                self._restore_pairs(event, earlier[-1].pairs, t)
+                dropped = self._revert_added_events(t, undone)
                 note = "restored the previous pairs"
             else:
-                form_pairs_for_event(self.t, event, _id_factory(self.t),
+                dropped = self._revert_added_events(t, undone)
+                form_pairs_for_event(t, event, _id_factory(t),
                                      random.Random(0), GroupingResult())
                 note = "back to the form answers"
             restored = [list(pr.player_ids) for pr in
-                        sorted(self.t.pairs.values(), key=lambda x: x.id)
+                        sorted(t.pairs.values(), key=lambda x: x.id)
                         if pr.event == event]
-            self._audit_pairs(event, current, restored, "undo — " + note)
+            self._audit_pairs(event, current, restored, "undo — " + note, t)
             out = self._finish_pair_edit()
-            out["notes"] = [note]
+            out["notes"] = [note] + dropped
             return out
 
+    def _revert_added_events(self, t, change) -> list[str]:
+        """Take back the events a pair change added to someone's entry list."""
+        dropped = []
+        for pid, ev in change.added_events:
+            player = t.players.get(pid)
+            if player is None or ev not in player.events:
+                continue
+            if any(ev == pr.event and pid in pr.player_ids
+                   for pr in t.pairs.values()):
+                continue                    # still playing it: keep the entry
+            before = ", ".join(player.events)
+            player.events = [e for e in player.events if e != ev]
+            self._audit(player, "events", before, ", ".join(player.events),
+                        "undo of a pairing that added %s" % ev)
+            dropped.append("removed %s from %s's events" % (ev, player.full))
+        return dropped
+
     def _require_pairs_editable(self) -> None:
-        if any(self.t.brackets.get(d) for d in self.t.divisions):
+        # While an import preview is open the edits land in the preview only, so
+        # an already-drawn bracket in the committed data does not block them.
+        if self._preview is None and any(self.t.brackets.get(d)
+                                         for d in self.t.divisions):
             raise Conflict("a bracket has been drawn — clear divisions & brackets "
                            "before changing pairs")
 
     def _replace_pairs(self, event: str, groups: list[list[str]],
-                       kind: str = "manual") -> None:
+                       kind: str = "manual", t=None) -> None:
         from ..engine.grouping import _id_factory
         from ..model.entities import Pair
-        players = {p.id: p for p in self.t.players.values()
+        t = t or self.t
+        players = {p.id: p for p in t.players.values()
                    if event in p.events and not p.withdrawn and not p.is_stub}
         seen: set[str] = set()
         wanted: list[tuple[str, str]] = []
@@ -721,18 +751,20 @@ class TournamentService:
                     raise ValueError("the same player appears in two pairs")
                 seen.add(pid)
             wanted.append((ids[0], ids[1]))
-        for pr in [pr for pr in self.t.pairs.values() if pr.event == event]:
-            del self.t.pairs[pr.id]
-        ids = _id_factory(self.t)
+        for pr in [pr for pr in t.pairs.values() if pr.event == event]:
+            del t.pairs[pr.id]
+        ids = _id_factory(t)
         for a, b in wanted:
             pid = ids.make("pair", players[a].last or a, players[b].last or b)
-            self.t.pairs[pid] = Pair(id=pid, player_ids=[a, b], event=event,
-                                     origin="manual")
-        self._record_pair_change(event, kind)
+            t.pairs[pid] = Pair(id=pid, player_ids=[a, b], event=event,
+                                origin="manual")
+        self._record_pair_change(event, kind, t=t)
 
     def _finish_pair_edit(self) -> dict:
         """Persist a pair change, rebuilding any divisions that used the old
         pairs (they are derived from pairs and would otherwise point at nothing)."""
+        if self._preview is not None:
+            return {"rebuilt": False, "view": self.partnerships_view()}
         rebuilt = self._generated_divisions()
         if rebuilt:
             # Keep every pair exactly as set (no auto-pairing), so players the
@@ -756,7 +788,9 @@ class TournamentService:
         """
         from ..engine.grouping import _partner_for_event
         t = self._active()
-        locked = any(self.t.brackets.get(d) for d in self.t.divisions)
+        # a pending preview has no brackets yet, so its pairs stay editable even
+        # when the committed data already has a bracket drawn
+        locked = any(t.brackets.get(d) for d in t.divisions)
         events = []
         for ev in DOUBLES:
             in_event = sorted((p for p in t.players.values()
@@ -836,8 +870,10 @@ class TournamentService:
                 for other in pr.player_ids:
                     if other not in (p.id, q.id) and other in t.players:
                         notes.append("unpaired %s" % t.players[other].full)
+            added = []
             if event not in q.events:
                 q.events.append(event)
+                added.append([q.id, event])
                 notes.append("added %s to %s's events" % (event, q.full))
                 self._audit(q, "events", ", ".join(q.events[:-1]),
                             ", ".join(q.events), "partner named for %s" % event)
@@ -849,7 +885,8 @@ class TournamentService:
             self._audit(q, "partner_%s" % event, "", p.full,
                         "paired by hand on the import page")
             self._record_pair_change(event, "manual", t=t,
-                                     note=notes[0] if notes else "")
+                                     note=notes[0] if notes else "",
+                                     added_events=added)
             return self._finish_partnership_edit(notes)
 
     def partnership_clear(self, event: str, player_id: str) -> dict:
@@ -877,18 +914,18 @@ class TournamentService:
                                      note=notes[0] if notes else "")
             return self._finish_partnership_edit(notes)
 
-    def _restore_pairs(self, event: str, pairs: list[list[str]]) -> None:
+    def _restore_pairs(self, event: str, pairs: list[list[str]], t=None) -> None:
         """Put an event's pairs back exactly as they were (undo)."""
         from ..engine.grouping import _id_factory
         from ..model.entities import Pair
-        ids = _id_factory(self.t)
+        t = t or self.t
+        ids = _id_factory(t)
         for a, b in pairs:
-            if a not in self.t.players or b not in self.t.players:
+            if a not in t.players or b not in t.players:
                 continue
-            pid = ids.make("pair", self.t.players[a].last or a,
-                           self.t.players[b].last or b)
-            self.t.pairs[pid] = Pair(id=pid, player_ids=[a, b], event=event,
-                                     origin="manual")
+            pid = ids.make("pair", t.players[a].last or a, t.players[b].last or b)
+            t.pairs[pid] = Pair(id=pid, player_ids=[a, b], event=event,
+                                origin="manual")
 
     def _pairs_label(self, pairs: list[list[str]], t=None) -> str:
         t = t or self.t
@@ -897,7 +934,7 @@ class TournamentService:
             for pr in pairs)
 
     def _record_pair_change(self, event: str, kind: str, note: str = "",
-                            t=None) -> None:
+                            t=None, added_events=None) -> None:
         """Log one pair decision: a snapshot of the event's pairs after it (for
         undo) plus an append-only audit line with the before/after pairings.
         The registrations -- the form answers -- are never rewritten here."""
@@ -907,7 +944,8 @@ class TournamentService:
         earlier = [c for c in t.pair_changes if c.event == event]
         t.pair_changes.append(PairChange(
             ts=datetime.now(timezone.utc).isoformat(), actor=self.actor,
-            event=event, kind=kind, pairs=pairs, note=note))
+            event=event, kind=kind, pairs=pairs, note=note,
+            added_events=[list(x) for x in (added_events or [])]))
         self._audit_pairs(event, earlier[-1].pairs if earlier else [], pairs,
                           ("%s (%s)" % (note, kind)) if note else kind, t)
 

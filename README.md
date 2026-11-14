@@ -175,7 +175,9 @@ Bulk actions sit in each event's header in the same table:
   the registration form asked for, then fills the leftovers at random. This is
   the reset button: the form answers are never modified, so it always works.
 - **Undo last change** steps back one decision at a time, back to the previous
-  arrangement and finally back to the form answers.
+  arrangement and finally back to the form answers. If the change you undo had
+  added an event to a partner who hadn't entered it, that entry is taken back off
+  too (unless they are still paired in it).
 - Players left out simply aren't entered in that event — supported, not an error.
 
 The form answers are kept exactly as submitted. Every pairing you make, shuffle,
@@ -184,7 +186,9 @@ line in `data/audit.log` recording who changed what, before and after, so you ca
 play with pairings and always get back to where you were. Any pair change
 rebuilds the divisions for the affected events; your format and seeding choices
 are remembered and reapplied. Partnerships are editable until a bracket is drawn
-— after that, un-finalize or clear divisions first.
+— after that, un-finalize or clear divisions first. During an import preview
+they stay editable whatever state the committed data is in, and every pair
+change made there — undo included — affects the preview only until you commit it.
 
 ### Step 3 — Divisions & Brackets
 

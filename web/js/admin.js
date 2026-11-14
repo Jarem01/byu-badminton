@@ -346,6 +346,7 @@ async function onPartnerUndo(e) {
   try {
     const r = await API.post("/api/pairs/undo", { event: ev });
     await loadPartnerships();
+    loadPlayers();      // an undo can take an event back off a partner's entry
     loadValidation();
     if (r.rebuilt) loadDivisions();
     toast((r.notes && r.notes[0]) || `${ev} pair change undone`);

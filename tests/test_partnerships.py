@@ -358,6 +358,98 @@ class TestPlayWithPairings(unittest.TestCase):
                                 if pr.event == "MD"), original)
 
 
+class TestUndoGaps(unittest.TestCase):
+    """Undo has to work on a pending import preview, and has to take back the
+    event a pairing added to a partner who had not entered it."""
+
+    def setUp(self):
+        self.d, self.svc = make_service()
+        self.t = self.svc.t
+        add_player(self.t, "m0", "Ann", "Alpha", "F", ["MD", "XD"], 6)
+        add_player(self.t, "m1", "Bea", "Beta", "M", ["MD", "XD"], 7)
+        add_player(self.t, "m2", "Cal", "Gamma", "M", ["XD"], 8)   # XD only
+
+    def tearDown(self):
+        self.d.cleanup()
+
+    def pairs(self, code):
+        return sorted(tuple(sorted(pr.player_ids))
+                      for pr in self.t.pairs.values() if pr.event == code)
+
+    def test_undo_takes_back_an_event_added_to_a_partner(self):
+        self.assertNotIn("MD", self.t.players["m2"].events)
+        self.svc.partnership_assign("MD", "m0", "m2")   # m2 had not entered MD
+        self.assertIn("MD", self.t.players["m2"].events)
+        self.assertEqual(self.pairs("MD"), [("m0", "m2")])
+
+        out = self.svc.pairs_undo("MD")
+
+        self.assertNotIn("MD", self.t.players["m2"].events)
+        self.assertEqual(self.t.players["m2"].events, ["XD"])
+        # and they are not in an MD pair any more
+        self.assertFalse(any("m2" in pr.player_ids for pr in self.t.pairs.values()
+                             if pr.event == "MD"))
+        self.assertTrue(any("removed MD from Cal Gamma's events" in n
+                            for n in out["notes"]))
+        # and the whole trip is audited
+        lines = [r for r in self.svc.repo.read_audit()
+                 if r["target"] == "player:m2" and r["field_name"] == "events"]
+        self.assertEqual([r["new_value"] for r in lines], ["XD, MD", "XD"])
+
+    def test_undo_keeps_an_event_the_player_is_still_paired_in(self):
+        self.svc.partnership_assign("MD", "m0", "m2")     # adds MD to m2, pairs
+        self.svc.partnership_assign("MD", "m2", "m1")     # m2 pairs with m1
+        self.svc.pairs_undo("MD")                        # back to m0 + m2
+        self.assertIn("MD", self.t.players["m2"].events)
+        self.assertEqual(self.pairs("MD"), [("m0", "m2")])
+        self.svc.pairs_undo("MD")                        # now nothing in MD
+        self.assertNotIn("MD", self.t.players["m2"].events)
+
+    def test_undo_works_while_an_import_preview_is_open(self):
+        path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..",
+                                            "sample_data", "legacy_mixed.csv"))
+        self.svc.import_preview("file", path)
+        view = self.svc.partnerships_view()
+        code = view["events"][0]["event"]
+        self.svc.pairs_auto(code)                 # what the forms ask for, here
+        form_pairs = {frozenset(pr.player_ids) for pr in self.svc._preview.tournament.pairs.values()
+                      if pr.event == code}
+        people = [r["player"]["id"] for r in event(self.svc.partnerships_view(),
+                                                   code)["rows"]]
+        pair = next({a, b} for i, a in enumerate(people) for b in people[i + 1:]
+                    if frozenset({a, b}) not in form_pairs)
+        first, second = sorted(pair)
+
+        self.svc.partnership_assign(code, first, second)
+        self.assertIn(frozenset(pair),
+                      {frozenset(pr.player_ids) for pr in self.svc._preview.tournament.pairs.values()
+                       if pr.event == code})
+        self.assertEqual(row(self.svc.partnerships_view(), code, first)["status"],
+                         "paired")
+
+        out = self.svc.pairs_undo(code)
+
+        self.assertNotIn(frozenset(pair),
+                         {frozenset(pr.player_ids) for pr in self.svc._preview.tournament.pairs.values()
+                          if pr.event == code})
+        # the committed tournament was never touched by either edit
+        self.assertEqual(len(self.svc.repo.load().players), 0)
+        self.assertEqual(self.svc.repo.load().pair_changes, [])
+        self.assertTrue(out["view"]["events"])
+
+    def test_shuffle_and_re_pair_also_stay_in_the_preview(self):
+        path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..",
+                                            "sample_data", "legacy_mixed.csv"))
+        self.svc.import_preview("file", path)
+        code = self.svc.partnerships_view()["events"][0]["event"]
+        self.svc.pairs_shuffle(code, 2)
+        self.svc.pairs_auto(code)
+        self.svc.pairs_undo(code)
+        self.assertEqual(self.svc.repo.load().pairs, {})
+        self.assertEqual(self.svc.repo.load().pair_changes, [])
+        self.assertIsNotNone(self.svc._preview)     # still previewing
+
+
 class TestPreviewEdits(unittest.TestCase):
     def test_partnership_edits_work_on_an_open_import_preview(self):
         d, svc = make_service()
