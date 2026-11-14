@@ -264,6 +264,7 @@ class TournamentService:
             "pool_buffer_min": s.pool_timing.buffer_min,
             "pool_slot_min": s.pool_timing.slot_min,
             "pool_single_game": s.pool_single_game,
+            "schedule_mode": s.schedule_mode,
             "best_of": s.match_format.best_of, "points_to": s.match_format.points_to,
             "win_by": s.match_format.win_by, "hard_cap": s.match_format.hard_cap,
             "tiebreak_order": list(s.tiebreak_order),
@@ -289,6 +290,11 @@ class TournamentService:
                     setattr(s.pool_timing, attr, max(0, int(patch[k])))
             if "pool_single_game" in patch:
                 s.pool_single_game = bool(patch["pool_single_game"])
+            if "schedule_mode" in patch:
+                mode = str(patch["schedule_mode"])
+                if mode not in ("integrated", "separated"):
+                    raise ValueError("schedule_mode must be 'integrated' or 'separated'")
+                s.schedule_mode = mode
             for k in ("best_of", "points_to", "win_by", "hard_cap"):
                 if k in patch:
                     setattr(s.match_format, k, max(1, int(patch[k])))
@@ -1742,7 +1748,7 @@ class TournamentService:
         brackets = "|".join(
             f"{d}:{b.format}:{b.version}:{len(b.matches)}"
             for d, b in sorted(self.t.brackets.items()))
-        return (f"c{s.court_count}|d{s.day_start}|r{s.rest_min}|x{cc}"
+        return (f"c{s.court_count}|d{s.day_start}|r{s.rest_min}|x{cc}|m{s.schedule_mode}"
                 f"|k{t.warmup_min},{t.play_min},{t.buffer_min}"
                 f"|p{p.warmup_min},{p.play_min},{p.buffer_min}"
                 f"|B{brackets}")
@@ -1965,8 +1971,13 @@ class TournamentService:
             """Human summary of how a group->knockout draw is filled (no byes):
             top-`base` per pool guaranteed, rest by best-remaining points."""
             if g == 1 and m == 2:
-                return (f"One pool: all {n} play each other once, then the top 2 "
+                note = (f"One pool: all {n} play each other once, then the top 2 "
                         f"on points play the final.")
+                if n >= 7:
+                    note += (f" That is {n * (n - 1) // 2} pool matches over "
+                             f"{n - 1} rounds — more pools make the day much "
+                             f"shorter.")
+                return note
             if g == 1:
                 return (f"One pool: all {n} play each other once -> clean "
                         f"{m}-draw (no byes).")

@@ -1224,6 +1224,7 @@ async function loadSettings() {
   try {
     const s = await API.get("/api/settings");
     for (const [id, key] of Object.entries(SET_FIELDS)) document.getElementById(id).value = s[key];
+    document.getElementById("set-mode").value = s.schedule_mode || "integrated";
     showSlotMeta(s);
   } catch (e) {}
 }
@@ -1233,6 +1234,7 @@ document.getElementById("btn-save-settings").onclick = async () => {
     const el = document.getElementById(id);
     patch[key] = el.type === "time" ? el.value : parseInt(el.value, 10);
   }
+  patch.schedule_mode = document.getElementById("set-mode").value;
   try {
     const s = await API.post("/api/settings", patch);
     showSlotMeta(s);

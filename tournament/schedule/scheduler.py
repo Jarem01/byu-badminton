@@ -196,13 +196,21 @@ def generate_schedule(t: Tournament, settings: Settings,
     div_rank = {did: rank for rank, (_, did) in enumerate(ranked)}
 
     depth = _depths(matches, feeders)
-    # Run order first, so an event placed earlier in the order claims the courts
-    # and finishes before the next event starts in earnest; depth still orders a
-    # division against itself (round 2 after round 1, final last).
-    order = sorted(matches.values(),
-                   key=lambda m: (div_rank.get(m.division_id, len(div_rank)),
-                                  depth[m.id], pool_round_ord.get(m.id, 0),
-                                  m.seq))
+    separated = settings.schedule_mode == "separated"
+
+    def rank_of(m: Match) -> int:
+        return div_rank.get(m.division_id, len(div_rank))
+
+    # Integrated: every event's round 1 together, then every round 2, so the
+    # courts fill from all events. Separated: one event at a time in the run
+    # order, and no match of the next event starts until the first is finished
+    # (rank_end below), even if that leaves a court idle.
+    def sort_key(m: Match):
+        if separated:
+            return (rank_of(m), depth[m.id], pool_round_ord.get(m.id, 0), m.seq)
+        return (depth[m.id], pool_round_ord.get(m.id, 0), rank_of(m), m.seq)
+
+    order = sorted(matches.values(), key=sort_key)
 
     def timing_for(m: Match):
         # Team rubbers use FULL timing unless the team format is 'quick' -- the
@@ -230,15 +238,12 @@ def generate_schedule(t: Tournament, settings: Settings,
         return int(c.id.rsplit("-", 1)[1])
     center = set(center_court_numbers(settings, [court_num(c) for c in courts]))
     center_courts = [c for c in courts if court_num(c) in center]
-    side_courts = [c for c in courts if court_num(c) not in center]
 
     def courts_for(m: Match):
-        if knockout_of.get(m.id) and center_courts:
-            return center_courts
-        # Pool play may use any court, so keep it off the center courts where
-        # possible: a pool game parked on a center court delays the knockout
-        # that can only be played there.
-        return side_courts + center_courts
+        # Knockout QF/SF/final need a center court; everything else may use any
+        # court, and does -- holding pool games off the center courts left them
+        # idle on a wide venue.
+        return center_courts if (knockout_of.get(m.id) and center_courts) else courts
 
     court_intervals: dict[str, list[tuple[int, int]]] = {c.id: [] for c in courts}
     player_windows: dict[str, list[tuple[int, int]]] = {}
@@ -293,6 +298,8 @@ def generate_schedule(t: Tournament, settings: Settings,
                 return T
         return floor_t
 
+    rank_end: dict[int, int] = {}          # separated mode: when each event ends
+
     for m in order:
         tm = timing_for(m)
         dur = tm.slot_min
@@ -300,6 +307,13 @@ def generate_schedule(t: Tournament, settings: Settings,
         pids = match_player_ids(t, m)
         allowed = courts_for(m)
         allowed_ids = {c.id for c in allowed}
+        mrank = rank_of(m)
+        if separated:
+            # A later event waits for every earlier one to finish, even if that
+            # means an idle court.
+            min_start = max(min_start,
+                            max((rank_end.get(r, 0) for r in range(mrank)),
+                                default=0))
 
         # Concurrent tie: all its rubbers start together. Fix the shared start
         # (whole-tie block fit) when the first rubber is placed.
@@ -327,14 +341,16 @@ def generate_schedule(t: Tournament, settings: Settings,
                 for (_ps, pe) in player_windows.get(pid, ()):
                     cand.add(pe + settings.rest_min)
 
-        # Among feasible starts within one slot of the earliest, prefer the one
-        # that gives players the MOST rest -- this minimizes back-to-back games
-        # without materially lengthening the day.
+        # Earliest feasible start wins (a compact day is the point); among starts
+        # within a few minutes of it, prefer the one that leaves players the most
+        # rest. Widening this window to a whole slot used to push matches a full
+        # half hour later just to add a little rest, leaving courts empty.
+        SPREAD_MIN = 5
         chosen_t = chosen_court = None
         best_sep = -1.0
         earliest = None
         for T in sorted(x for x in cand if x >= min_start):
-            if earliest is not None and T > earliest + dur:
+            if earliest is not None and T > earliest + min(SPREAD_MIN, dur):
                 break
             play_start, play_end = T + tm.warmup_min, T + tm.warmup_min + tm.play_min
             if not players_free(pids, play_start, play_end):
@@ -359,6 +375,7 @@ def generate_schedule(t: Tournament, settings: Settings,
         for pid in pids:
             player_windows.setdefault(pid, []).append((ps, ps + tm.play_min))
         end_of[m.id] = chosen_t + dur
+        rank_end[mrank] = max(rank_end.get(mrank, 0), chosen_t + dur)
         blocks.append(ScheduleBlock(
             match_id=m.id, court_id=chosen_court.id, start_min=chosen_t,
             warmup_min=tm.warmup_min, play_min=tm.play_min, buffer_min=tm.buffer_min))

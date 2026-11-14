@@ -101,6 +101,10 @@ class Settings:
     day_start: str = "13:45"          # HH:MM, matches the March event start
     day_end: str = "18:05"            # HH:MM target finish (planner fit window)
     rest_min: int = 10                # minimum rest between a player's matches
+    # How the events share the day. "integrated" fills every court with whatever
+    # is ready (quickest finish); "separated" plays one event at a time, in the
+    # run order set on the Divisions tab, leaving courts idle between events.
+    schedule_mode: str = "integrated"
     # Courts free of hoops/obstructions -- the only ones knockout (QF/SF/final)
     # matches may use. 1-based court numbers; applies to both the auto-scheduler
     # and the live court board. Pools may use any court.

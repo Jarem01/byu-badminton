@@ -161,12 +161,73 @@ class TestScheduling(unittest.TestCase):
 
         add("second", "B", 1)
         add("first", "A", 0)
-        generate_schedule(t, Settings(court_count=1), ["first", "second"])
+        generate_schedule(t, Settings(court_count=1, schedule_mode="separated"),
+                          ["first", "second"])
         div_of = {mid: did for did, br in t.brackets.items() for mid in br.matches}
         first_starts = [b.start_min for b in t.schedule if div_of[b.match_id] == "first"]
         second_starts = [b.start_min for b in t.schedule if div_of[b.match_id] == "second"]
         self.assertTrue(first_starts and second_starts)
         self.assertLess(max(first_starts), min(second_starts))
+
+    def _two_divisions(self):
+        from tournament.engine import bracket_rr as RR
+        t = Tournament()
+
+        def add(div_id, tag, sort_no):
+            refs = []
+            for i in range(4):
+                pid = f"{tag}{i}"
+                t.players[pid] = Player(id=pid, first=tag, last=str(i), skill=4 - i)
+                refs.append(EntryRef("player", pid))
+            div = Division(id=div_id, event="MS", label=div_id, entry_refs=refs,
+                           format="round_robin", sort_no=sort_no)
+            t.divisions[div_id] = div
+            t.brackets[div_id] = RR.generate(div, seed_entries(t, div, "ranking"))
+
+        add("first", "A", 0)
+        add("second", "B", 1)
+        return t
+
+    def test_separated_mode_finishes_one_event_before_the_next(self):
+        t = self._two_divisions()
+        generate_schedule(t, Settings(court_count=4, schedule_mode="separated"),
+                          ["first", "second"])
+        div_of = {mid: did for did, br in t.brackets.items() for mid in br.matches}
+        first_end = max(b.end_min for b in t.schedule if div_of[b.match_id] == "first")
+        second_start = min(b.start_min for b in t.schedule
+                           if div_of[b.match_id] == "second")
+        self.assertGreaterEqual(second_start, first_end)
+
+    def test_integrated_mode_shares_the_courts(self):
+        t = self._two_divisions()
+        generate_schedule(t, Settings(court_count=4, schedule_mode="integrated"),
+                          ["first", "second"])
+        div_of = {mid: did for did, br in t.brackets.items() for mid in br.matches}
+        first_end = max(b.end_min for b in t.schedule if div_of[b.match_id] == "first")
+        second_start = min(b.start_min for b in t.schedule
+                           if div_of[b.match_id] == "second")
+        self.assertLess(second_start, first_end)      # they overlap
+
+    def test_pool_games_may_use_every_court(self):
+        # With 7 courts and only 3 side courts, holding pool play off the center
+        # courts left them idle. Pools may use any court again, so a busy round
+        # spills onto the center courts instead of queueing for court 1.
+        from tournament.engine import bracket_rr as RR
+        t = Tournament()
+        for k, tag in enumerate(("A", "B", "C")):
+            refs = []
+            for i in range(4):
+                pid = f"{tag}{i}"
+                t.players[pid] = Player(id=pid, first=tag, last=str(i), skill=4 - i)
+                refs.append(EntryRef("player", pid))
+            div = Division(id=tag, event="MS", label=tag, entry_refs=refs,
+                           format="round_robin", sort_no=k)
+            t.divisions[tag] = div
+            t.brackets[tag] = RR.generate(div, seed_entries(t, div, "ranking"))
+        generate_schedule(t, Settings(court_count=7), list(t.divisions))
+        used = {b.court_id for b in t.schedule}
+        self.assertTrue({"court-2", "court-3", "court-6", "court-7"} & used,
+                        used)          # a center court took pool play
 
     def test_pool_stage_scheduled_before_knockout(self):
         from tournament.engine import bracket_groups as GK
