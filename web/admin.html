@@ -17,12 +17,16 @@
       <button data-mode="individual" class="active">Individual</button>
       <button data-mode="team">Team</button>
     </span>
-    <span class="spacer"></span>
-    <button class="btn ghost" id="btn-help" style="color:#fff;border-color:#fff">? How to run a tournament</button>
-    <a class="btn ghost" href="/public" target="_blank" style="color:#fff;border-color:#fff">Open Public Display</a>
-    <button class="btn ghost" id="btn-publish" style="color:#fff;border-color:#fff"
-            title="Re-export the public snapshot, commit it and push it — GitHub Pages redeploys in about a minute">Publish public display</button>
-    <span class="status" id="status">connecting…</span>
+    <span class="topbar-right">
+      <button class="btn ghost" id="btn-help" style="color:#fff;border-color:#fff">? How to run a tournament</button>
+      <a class="btn ghost" href="/public" target="_blank" style="color:#fff;border-color:#fff">Open Public Display</a>
+      <span class="publish-group">
+        <span class="publish-stamp" id="publish-stamp" hidden></span>
+        <button class="btn ghost" id="btn-publish" style="color:#fff;border-color:#fff"
+                title="Re-export the public snapshot, commit it and push it — GitHub Pages redeploys in about a minute">Publish public display</button>
+      </span>
+      <span class="status" id="status">connecting…</span>
+    </span>
   </header>
 
   <div class="modal-back" id="help-modal">
@@ -33,7 +37,7 @@
         <li><b>Divisions &amp; Brackets</b> — click <b>Build divisions &amp; pairs</b>. Or make a <b>Custom bracket</b> by typing players in. Use <b>Plan</b> on a division to compare formats and time estimates, then approve one. Enter results by clicking a match. <b>Finalize</b> to lock a bracket.</li>
         <li><b>Schedule &amp; Export</b> — <b>Generate schedule</b> (warm-up/buffer/rest built in, no player double-booked), check for conflicts, and export CSVs.</li>
         <li><b>Settings</b> — set courts, day start, slot timing, and match format. These feed the scheduler and planner. No code needed.</li>
-        <li><b>Publish public display</b> (top right) — refreshes and pushes the GitHub Pages snapshot from here; no terminal, no stopping the server.</li>
+        <li><b>Publish public display</b> (top right) — refreshes and pushes the GitHub Pages snapshot from here; no terminal, no stopping the server. The note beside it says when <code>site/</code> last reached the remote. Pages rebuilds a minute after a push; if the public page still looks old, hard-refresh it (<b>Ctrl+F5</b> / <b>Cmd+Shift+R</b>), then check the repo's <b>Actions</b> tab for a failed Pages run — the public page itself re-checks for a new snapshot every 60 seconds.</li>
         <li>Open the <b>Public Display</b> on a second monitor — it mirrors everything live with Overview / Bracket / Standings / Schedule tabs.</li>
       </ol>
       <p class="muted">Tip: import a file from <code>sample_data/</code> to practice with fake data first.</p>

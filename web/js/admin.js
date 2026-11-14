@@ -49,9 +49,50 @@ document.getElementById("btn-publish").onclick = async () => {
   try {
     const r = await API.post("/api/publish", {});
     toast(r.detail || "Published", !r.ok);
+    loadPublishStamp();
   } catch (e) { toast(e.message, true); }
   finally { btn.disabled = false; btn.textContent = label; }
 };
+
+// When site/ last reached the remote, so "did Pages pick it up?" has an answer.
+const PUBLISH_HELP = "Pages rebuilds about a minute after a push. If the public " +
+  "page still looks old, hard-refresh it (Ctrl+F5 / Cmd+Shift+R) and check the " +
+  "repo's Actions tab for a failed Pages run; the page re-checks every 60 seconds.";
+
+function agoText(iso) {
+  const ms = Date.now() - new Date(iso).getTime();
+  if (!isFinite(ms)) return "";
+  const min = Math.round(ms / 60000);
+  if (min < 1) return "just now";
+  if (min < 60) return `${min} min ago`;
+  const hours = Math.round(min / 60);
+  if (hours < 24) return `${hours} h ago`;
+  return `${Math.round(hours / 24)} d ago`;
+}
+
+async function loadPublishStamp() {
+  const el = document.getElementById("publish-stamp");
+  try {
+    const s = await API.get("/api/publish/status");
+    if (!s.last_commit) {
+      el.textContent = "not published yet";
+      el.dataset.state = "none";
+      el.title = s.detail ? `${PUBLISH_HELP}\n${s.detail}` : PUBLISH_HELP;
+    } else {
+      const when = new Date(s.last_time);
+      const stamp = isFinite(when.getTime())
+        ? when.toLocaleString([], { month: "short", day: "numeric",
+                                    hour: "numeric", minute: "2-digit" })
+        : s.last_time;
+      const pending = s.pushed === false ? " · not pushed" : "";
+      el.textContent = `site/ published ${stamp} (${agoText(s.last_time)})${pending}`;
+      el.dataset.state = s.pushed === false ? "pending" : "ok";
+      el.title = `${PUBLISH_HELP}\nLast: ${s.last_commit} ${s.last_subject}` +
+                 (s.detail ? `\n${s.detail}` : "");
+    }
+    el.hidden = false;
+  } catch (e) { el.hidden = true; }
+}
 
 // --- format explainers ------------------------------------------------------
 const FORMAT_HELP = {
@@ -1119,8 +1160,28 @@ function renderCompleted(list) {
     row.className = "done-row";
     row.innerHTML = `<span class="dr-div">${m.division_label} · ${m.round}</span>` +
       `<b>${m.winner_label}</b> def. ${loser || ""} <span class="muted">${m.score}</span>`;
+    // A score typed wrong has to be removable, or the match is stuck as done.
+    const undo = document.createElement("button");
+    undo.type = "button";
+    undo.className = "done-undo";
+    undo.textContent = "undo";
+    undo.title = "Delete this result so the match goes back to All ready matches";
+    undo.onclick = () => undoCompleted(m);
+    row.appendChild(undo);
     box.appendChild(row);
   });
+}
+
+async function undoCompleted(m) {
+  const sides = `${(m.side1 && m.side1.label) || "?"} vs ${(m.side2 && m.side2.label) || "?"}`;
+  if (!confirm(`Delete this result?\n\n${sides} — ${m.score}\n\n` +
+               "The match goes back to All ready matches, and anything its winner " +
+               "filled in further down the draw is reopened.")) return;
+  try {
+    await API.post("/api/result/clear", { division: m.division, match: m.id });
+    toast("Result deleted — the match is back in All ready matches");
+    loadBoard();
+  } catch (e) { toast(e.message, true); }
 }
 
 async function boardAssign(court, mid) {
@@ -1368,5 +1429,7 @@ function refreshAll() {
 }
 API.get("/api/mode").then(r => applyMode(r.mode)).catch(() => {});
 loadPlanWindow();
+loadPublishStamp();
+setInterval(loadPublishStamp, 60000);
 ping(); refreshAll();
 setInterval(ping, 8000);

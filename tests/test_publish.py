@@ -89,6 +89,19 @@ class TestPublish(unittest.TestCase):
         self.assertFalse(report["ok"])
         self.assertIn("push failed", report["detail"])
 
+    def test_status_says_when_site_last_changed_and_whether_it_was_pushed(self):
+        svc = TournamentService(Repository(self.data))
+        self.assertIsNone(svc.publish_status(cwd=self.root)["last_commit"])
+        svc.publish(out_dir=os.path.join(self.root, "site"), cwd=self.root)
+        status = svc.publish_status(cwd=self.root)
+        self.assertTrue(status["last_commit"])
+        self.assertIn("Refresh the published snapshot", status["last_subject"])
+        self.assertTrue(status["last_time"])
+        # No upstream branch in this scratch repo, so it says so instead of
+        # claiming the snapshot reached a remote.
+        self.assertIsNone(status["pushed"])
+        self.assertIn("no upstream", status["detail"])
+
     def test_outside_a_git_checkout_the_files_are_still_written(self):
         with tempfile.TemporaryDirectory() as bare:
             report = publish_snapshot(self.data, os.path.join(bare, "site"),

@@ -75,6 +75,12 @@ class TestPublishEndpoint(unittest.TestCase):
             self.assertTrue(body["pushed"])
             self.assertIn("redeploys", body["detail"])
             self.assertTrue(pub.called)
+
+            # The badge beside the button reads this; it only inspects git.
+            status = json.load(urllib.request.urlopen(
+                base + "/api/publish/status", timeout=20))
+            for key in ("last_commit", "last_time", "last_subject", "pushed"):
+                self.assertIn(key, status)
         finally:
             httpd.shutdown()
             httpd.server_close()

@@ -139,6 +139,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(svc.best_dates())
             if path == "/api/settings":
                 return self._json(svc.get_settings())
+            if path == "/api/publish/status":
+                return self._json(svc.publish_status())
             if path == "/api/export/csv":
                 fname, text = svc.export_csv(q.get("what", ["roster"])[0])
                 body = ("﻿" + text).encode("utf-8")  # BOM for Excel

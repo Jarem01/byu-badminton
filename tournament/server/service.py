@@ -2116,6 +2116,40 @@ class TournamentService:
         # board and the scorekeeping requests that share this service.
         return publish_snapshot(self.repo.path, out, push=True, cwd=root)
 
+    def publish_status(self, cwd: str | None = None) -> dict:
+        """When ``site/`` last changed and whether that commit reached the remote.
+
+        Answers "did Pages get the new version?" from git itself, so the badge
+        next to the Publish button never guesses.
+        """
+        from ..publish import _git      # the one place that shells out to git
+
+        root = cwd or os.path.normpath(
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+        out = {"last_commit": None, "last_time": None, "last_subject": "",
+               "pushed": None, "upstream": "", "detail": ""}
+        log = _git(["log", "-1", "--format=%h%x1f%cI%x1f%s", "--", "site"], root)
+        if log.returncode:
+            out["detail"] = ("not a git checkout — publishing writes the files "
+                             "but cannot push them")
+            return out
+        fields = log.stdout.strip().split("\x1f")
+        if len(fields) == 3 and fields[0]:
+            out["last_commit"], out["last_time"], out["last_subject"] = fields
+        if not out["last_commit"]:
+            return out
+        upstream = _git(["rev-parse", "--abbrev-ref", "--symbolic-full-name",
+                         "@{u}"], root)
+        if upstream.returncode:
+            out["detail"] = ("this branch has no upstream — publishing commits "
+                             "but has nothing to push to")
+            return out
+        out["upstream"] = upstream.stdout.strip()
+        contained = _git(["merge-base", "--is-ancestor", out["last_commit"],
+                          "@{u}"], root)
+        out["pushed"] = contained.returncode == 0
+        return out
+
     def export_csv(self, what: str) -> tuple[str, str]:
         from ..export.csv_out import rows_to_csv
 
