@@ -124,10 +124,16 @@ def check_partners(t: Tournament) -> list[Issue]:
 
     # One-sided requests (expected on the legacy form; informational).
     edges = {(a, b, ev) for a, b, ev in _resolved_partner_edges(t)}
+    # The organizer's pair list settles an event even when the form answers
+    # disagree: the request is not something to fix any more.
+    paired = {(pid, pr.event) for pr in t.pairs.values()
+              for pid in pr.player_ids}
     for a, b, ev in edges:
         if t.players.get(b) and t.players[b].is_stub:
             continue
         if b not in reg_by_player:
+            continue
+        if (a, ev) in paired or (b, ev) in paired:
             continue
         reciprocated = any(
             (h.resolved_player_id == a and (h.event_hint == ev or not h.event_hint or not ev))

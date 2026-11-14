@@ -171,15 +171,20 @@ Bulk actions sit in each event's header in the same table:
 
 - **Shuffle this event** re-pairs everyone at random (the seed number makes it
   repeatable; mixed doubles still pairs one man with one woman).
-- **Re-pair from forms** throws away hand-picked pairs and pairs from what the
-  registration form asked for, then fills the leftovers at random.
+- **Re-pair from forms** throws away every hand-picked pair and pairs from what
+  the registration form asked for, then fills the leftovers at random. This is
+  the reset button: the form answers are never modified, so it always works.
+- **Undo last change** steps back one decision at a time, back to the previous
+  arrangement and finally back to the form answers.
 - Players left out simply aren't entered in that event — supported, not an error.
 
-Both write through the same path as a manual pick, so the roster pairs and the
-partner requests always agree. Any pair change rebuilds the divisions for the
-affected events; your format and seeding choices are remembered and reapplied.
-Partnerships are editable until a bracket is drawn — after that, un-finalize or
-clear divisions first.
+The form answers are kept exactly as submitted. Every pairing you make, shuffle,
+re-pair or clear is stored beside them (never in place of them) with an audit
+line in `data/audit.log` recording who changed what, before and after, so you can
+play with pairings and always get back to where you were. Any pair change
+rebuilds the divisions for the affected events; your format and seeding choices
+are remembered and reapplied. Partnerships are editable until a bracket is drawn
+— after that, un-finalize or clear divisions first.
 
 ### Step 3 — Divisions & Brackets
 

@@ -28,8 +28,8 @@ from ..ingest.importer import build_tournament
 from ..ingest.source_csv import read_rows, read_rows_from_text
 from ..ingest.source_gsheet import fetch_rows
 from ..config import Settings
-from ..model.entities import (Bracket, EntryRef, Override, PartnerHint,
-                              RegistrationEntry, Tournament)
+from ..model.entities import (Bracket, EntryRef, Override, PairChange,
+                              Tournament)
 from ..schedule.timeslots import parse_clock
 from ..store.repository import Repository
 
@@ -639,7 +639,7 @@ class TournamentService:
             else:
                 pool = men if event == "MD" else women
                 groups = [[pool[i], pool[i + 1]] for i in range(0, len(pool) - 1, 2)]
-            self._replace_pairs(event, groups)
+            self._replace_pairs(event, groups, kind="shuffle")
             return self._finish_pair_edit()
 
     def pairs_auto(self, event: str, rng_seed: int | None = None) -> dict:
@@ -653,9 +653,44 @@ class TournamentService:
             res = GroupingResult()
             form_pairs_for_event(self.t, event, _id_factory(self.t),
                                  random.Random(rng_seed or 0), res)
-            self._sync_hints(event)
+            self._record_pair_change(event, "from_forms")
             out = self._finish_pair_edit()
             out["auto_paired"] = res.auto_paired
+            return out
+
+    def pairs_undo(self, event: str) -> dict:
+        """Step back one partnership change for one event.
+
+        The form answers are untouched by every edit, so undo simply puts the
+        previous arrangement back -- or, when the change being undone was the
+        first one, re-forms the event from the registrations.
+        """
+        from ..engine.grouping import GroupingResult, _id_factory, form_pairs_for_event
+        with self._lock:
+            self._require_pairs_editable()
+            history = [c for c in self.t.pair_changes if c.event == event]
+            if not history:
+                raise ValueError("there is no pair change to undo")
+            current = [list(pr.player_ids) for pr in
+                       sorted(self.t.pairs.values(), key=lambda x: x.id)
+                       if pr.event == event]
+            self.t.pair_changes.remove(history[-1])
+            for pr in [pr for pr in self.t.pairs.values() if pr.event == event]:
+                del self.t.pairs[pr.id]
+            earlier = [c for c in self.t.pair_changes if c.event == event]
+            if earlier:
+                self._restore_pairs(event, earlier[-1].pairs)
+                note = "restored the previous pairs"
+            else:
+                form_pairs_for_event(self.t, event, _id_factory(self.t),
+                                     random.Random(0), GroupingResult())
+                note = "back to the form answers"
+            restored = [list(pr.player_ids) for pr in
+                        sorted(self.t.pairs.values(), key=lambda x: x.id)
+                        if pr.event == event]
+            self._audit_pairs(event, current, restored, "undo — " + note)
+            out = self._finish_pair_edit()
+            out["notes"] = [note]
             return out
 
     def _require_pairs_editable(self) -> None:
@@ -663,7 +698,8 @@ class TournamentService:
             raise Conflict("a bracket has been drawn — clear divisions & brackets "
                            "before changing pairs")
 
-    def _replace_pairs(self, event: str, groups: list[list[str]]) -> None:
+    def _replace_pairs(self, event: str, groups: list[list[str]],
+                       kind: str = "manual") -> None:
         from ..engine.grouping import _id_factory
         from ..model.entities import Pair
         players = {p.id: p for p in self.t.players.values()
@@ -692,7 +728,7 @@ class TournamentService:
             pid = ids.make("pair", players[a].last or a, players[b].last or b)
             self.t.pairs[pid] = Pair(id=pid, player_ids=[a, b], event=event,
                                      origin="manual")
-        self._sync_hints(event)
+        self._record_pair_change(event, kind)
 
     def _finish_pair_edit(self) -> dict:
         """Persist a pair change, rebuilding any divisions that used the old
@@ -793,39 +829,33 @@ class TournamentService:
                     raise ValueError("%s is only a placeholder from someone "
                                      "else's form" % who.full)
             notes = []
-            freed = []
             for pr in [pr for pr in t.pairs.values()
                        if pr.event == event
                        and set(pr.player_ids) & {p.id, q.id}]:
                 del t.pairs[pr.id]
                 for other in pr.player_ids:
                     if other not in (p.id, q.id) and other in t.players:
-                        freed.append(other)
                         notes.append("unpaired %s" % t.players[other].full)
-            # Whoever lost their partner must not still be recorded as asking
-            # for one of these two, or the pairing step would undo the change.
-            for other in freed:
-                self._drop_hints(t, other, event, {p.id, q.id})
             if event not in q.events:
                 q.events.append(event)
                 notes.append("added %s to %s's events" % (event, q.full))
                 self._audit(q, "events", ", ".join(q.events[:-1]),
                             ", ".join(q.events), "partner named for %s" % event)
-            old_p = self._set_partner_hint(t, p.id, event, q.id)
-            old_q = self._set_partner_hint(t, q.id, event, p.id)
-            self._audit(p, "partner_%s" % event, old_p, q.full,
-                        "paired by hand on the import page")
-            self._audit(q, "partner_%s" % event, old_q, p.full,
-                        "paired by hand on the import page")
             pid = _id_factory(t).make("pair", p.last or p.id, q.last or q.id)
             t.pairs[pid] = Pair(id=pid, player_ids=[p.id, q.id], event=event,
                                 origin="manual")
+            self._audit(p, "partner_%s" % event, "", q.full,
+                        "paired by hand on the import page")
+            self._audit(q, "partner_%s" % event, "", p.full,
+                        "paired by hand on the import page")
+            self._record_pair_change(event, "manual", t=t,
+                                     note=notes[0] if notes else "")
             return self._finish_partnership_edit(notes)
 
     def partnership_clear(self, event: str, player_id: str) -> dict:
-        """Unpair a player in ``event``: drop the pair, their own request, and
-        anyone else's request naming them -- otherwise the build would pair
-        them straight back up."""
+        """Unpair a player in ``event``. Only the roster pairs are touched; the
+        form answers stay as submitted, so "Re-pair from forms" can put the
+        original arrangement back."""
         with self._lock:
             t = self._active()
             self._require_pairs_editable()
@@ -833,89 +863,62 @@ class TournamentService:
             if not p:
                 raise ValueError("unknown player")
             notes = []
+            freed = []
             for pr in [pr for pr in t.pairs.values()
                        if pr.event == event and p.id in pr.player_ids]:
                 del t.pairs[pr.id]
                 for other in pr.player_ids:
                     if other != p.id and other in t.players:
+                        freed.append(t.players[other].full)
                         notes.append("unpaired %s" % t.players[other].full)
-            dropped = []
-            for reg in t.registrations:
-                kept = []
-                for h in reg.partner_hints:
-                    if h.event_hint in (event, None) and (
-                            reg.player_id == p.id
-                            or h.resolved_player_id == p.id):
-                        if h.resolved_player_id in t.players:
-                            dropped.append((reg.player_id,
-                                            t.players[h.resolved_player_id].full))
-                        continue
-                    kept.append(h)
-                reg.partner_hints = kept
-            for who, _name in dropped:
-                if who in t.players:
-                    self._audit(t.players[who], "partner_%s" % event,
-                                _name if who != p.id else "", "",
-                                "partnership cleared on the import page")
+            self._audit(p, "partner_%s" % event, ", ".join(freed), "",
+                        "unpaired by hand on the import page")
+            self._record_pair_change(event, "clear", t=t,
+                                     note=notes[0] if notes else "")
             return self._finish_partnership_edit(notes)
 
-    def _sync_hints(self, event: str) -> None:
-        """Make the registrations tell the same story as the pairs on the roster.
-
-        Every write path (the partnerships table, the pair list, a shuffle, a
-        re-pair) ends here, so a pair on the roster is always also recorded as a
-        mutual partner request, and a player left off is recorded as having no
-        request in that event. Without this the two views could disagree -- a
-        player still shown as "waiting on" someone they are not with.
-        """
-        t = self.t
-        entered = [p for p in t.players.values()
-                   if event in p.events and not p.withdrawn and not p.is_stub]
-        paired: set[str] = set()
-        for pr in sorted(t.pairs.values(), key=lambda x: x.id):
-            if pr.event != event or len(pr.player_ids) != 2:
+    def _restore_pairs(self, event: str, pairs: list[list[str]]) -> None:
+        """Put an event's pairs back exactly as they were (undo)."""
+        from ..engine.grouping import _id_factory
+        from ..model.entities import Pair
+        ids = _id_factory(self.t)
+        for a, b in pairs:
+            if a not in self.t.players or b not in self.t.players:
                 continue
-            a, b = pr.player_ids
-            if a not in t.players or b not in t.players:
-                continue
-            self._set_partner_hint(t, a, event, b)
-            self._set_partner_hint(t, b, event, a)
-            paired.update([a, b])
-        for p in entered:
-            if p.id not in paired:
-                self._drop_hints(t, p.id, event)
+            pid = ids.make("pair", self.t.players[a].last or a,
+                           self.t.players[b].last or b)
+            self.t.pairs[pid] = Pair(id=pid, player_ids=[a, b], event=event,
+                                     origin="manual")
 
-    def _drop_hints(self, t, player_id: str, event: str,
-                    targets: set[str] | None = None) -> None:
-        """Remove a player's partner hints for one event -- all of them, or only
-        those naming one of ``targets``."""
-        for reg in t.registrations:
-            if reg.player_id != player_id:
-                continue
-            reg.partner_hints = [
-                h for h in reg.partner_hints
-                if not (h.event_hint in (event, None)
-                        and (targets is None
-                             or h.resolved_player_id in targets))]
+    def _pairs_label(self, pairs: list[list[str]], t=None) -> str:
+        t = t or self.t
+        return ", ".join(
+            " / ".join(t.players[i].full for i in pr if i in t.players)
+            for pr in pairs)
 
-    def _set_partner_hint(self, t, player_id: str, event: str,
-                          partner_id: str) -> str:
-        """Record ``partner_id`` as this player's chosen partner for ``event``,
-        replacing whatever they had asked for there. Returns the old name."""
-        reg = next((r for r in t.registrations if r.player_id == player_id), None)
-        if reg is None:
-            reg = RegistrationEntry(row_index=-1, player_id=player_id)
-            t.registrations.append(reg)
-        old_ids = [h.resolved_player_id for h in reg.partner_hints
-                   if h.event_hint in (event, None)]
-        reg.partner_hints = [h for h in reg.partner_hints
-                             if h.event_hint not in (event, None)]
-        partner = t.players[partner_id]
-        reg.partner_hints.append(PartnerHint(raw_name=partner.full,
-                                             event_hint=event,
-                                             resolved_player_id=partner_id,
-                                             confidence=1.0))
-        return ", ".join(t.players[i].full for i in old_ids if i in t.players)
+    def _record_pair_change(self, event: str, kind: str, note: str = "",
+                            t=None) -> None:
+        """Log one pair decision: a snapshot of the event's pairs after it (for
+        undo) plus an append-only audit line with the before/after pairings.
+        The registrations -- the form answers -- are never rewritten here."""
+        t = t or self.t
+        pairs = [list(pr.player_ids) for pr in
+                 sorted(t.pairs.values(), key=lambda x: x.id) if pr.event == event]
+        earlier = [c for c in t.pair_changes if c.event == event]
+        t.pair_changes.append(PairChange(
+            ts=datetime.now(timezone.utc).isoformat(), actor=self.actor,
+            event=event, kind=kind, pairs=pairs, note=note))
+        self._audit_pairs(event, earlier[-1].pairs if earlier else [], pairs,
+                          ("%s (%s)" % (note, kind)) if note else kind, t)
+
+    def _audit_pairs(self, event: str, old: list[list[str]],
+                     new: list[list[str]], reason: str, t=None) -> None:
+        """Append one before/after pairing line to the audit log."""
+        self.repo.append_audit(Override(
+            ts=datetime.now(timezone.utc).isoformat(), actor=self.actor,
+            target="pair:%s" % event, field_name="pairs",
+            old_value=self._pairs_label(old, t),
+            new_value=self._pairs_label(new, t), reason=reason))
 
     def _audit(self, player, field_name: str, old: str, new: str,
                reason: str) -> None:

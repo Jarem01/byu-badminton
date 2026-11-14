@@ -176,6 +176,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(svc.pairs_shuffle(body["event"], body.get("rng_seed")))
             if path == "/api/pairs/auto":
                 return self._json(svc.pairs_auto(body["event"], body.get("rng_seed")))
+            if path == "/api/pairs/undo":
+                return self._json(svc.pairs_undo(body["event"]))
             if path == "/api/partnership/assign":
                 return self._json(svc.partnership_assign(
                     body["event"], body["player"], body["partner"]))

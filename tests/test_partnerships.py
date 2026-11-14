@@ -38,6 +38,13 @@ def asks(t, player_id, partner_id, event):
                                          confidence=1.0))
 
 
+def form_answers(t):
+    """Every partner answer exactly as submitted (the registrations)."""
+    return [(r.player_id, h.raw_name, h.event_hint, h.resolved_player_id,
+             h.confidence)
+            for r in t.registrations for h in r.partner_hints]
+
+
 def roster(t):
     add_player(t, "m0", "Ann", "Alpha", "F", ["MD", "XD"], 6)
     add_player(t, "m1", "Bea", "Beta", "F", ["MD", "XD"], 7)
@@ -121,14 +128,15 @@ class TestAssign(unittest.TestCase):
     def tearDown(self):
         self.d.cleanup()
 
-    def test_assign_pairs_both_and_settles_the_paperwork(self):
-        asks(self.svc.t, "m0", "m1", "MD")       # one-sided before the fix
+    def test_assign_pairs_both_without_touching_the_form_answers(self):
+        asks(self.svc.t, "m0", "m1", "MD")       # one-sided on the form
+        before = form_answers(self.svc.t)
         r = self.svc.partnership_assign("MD", "m0", "m1")
-        md = event(r["view"], "MD")
-        self.assertEqual(md["paired"], 1)
-        self.assertEqual(row(r["view"], "MD", "m0")["status"], "paired")
+        self.assertEqual(event(r["view"], "MD")["paired"], 1)
         self.assertEqual(row(r["view"], "MD", "m1")["partner"]["id"], "m0")
-        # every note and request about the pair is quiet now
+        # the submitted answers are untouched...
+        self.assertEqual(form_answers(self.svc.t), before)
+        # ...and the note about the one-sided request is settled by the pair
         codes = [i["code"] for i in self.svc.validation()["issues"]]
         self.assertNotIn("one_sided_partner", codes)
         # the choice survives a rebuild
@@ -186,24 +194,23 @@ class TestClear(unittest.TestCase):
     def tearDown(self):
         self.d.cleanup()
 
-    def test_clear_removes_the_pair_and_both_requests(self):
+    def test_clear_drops_the_pair_and_keeps_the_form_answers(self):
+        before = form_answers(self.svc.t)
         self.svc.partnership_assign("MD", "m0", "m1")
         r = self.svc.partnership_clear("MD", "m0")
         self.assertEqual(event(r["view"], "MD")["paired"], 0)
-        self.assertEqual(row(r["view"], "MD", "m1")["status"], "open")
-        # nothing left that would pair them again at build time
-        codes = [i["code"] for i in self.svc.validation()["issues"]]
-        self.assertNotIn("one_sided_partner", codes)
         self.assertEqual(self.svc.t.pairs, {})
-        # no request is left that would pair them again at build time
-        self.assertEqual([h for r in self.svc.t.registrations
-                          for h in r.partner_hints if h.event_hint == "MD"], [])
+        self.assertEqual(form_answers(self.svc.t), before)
+        # and the form pair can be brought back
+        self.svc.pairs_auto("MD")
+        self.assertEqual(self.svc.t.pair_changes[-1].kind, "from_forms")
+        self.svc.pairs_undo("MD")
+        self.assertEqual(event(self.svc.partnerships_view(), "MD")["paired"], 0)
 
-    def test_clear_drops_a_one_sided_request(self):
+    def test_clear_leaves_the_request_visible(self):
         asks(self.svc.t, "m0", "m1", "MD")
         r = self.svc.partnership_clear("MD", "m0")
-        self.assertEqual(row(r["view"], "MD", "m0")["status"], "open")
-        self.assertEqual(row(r["view"], "MD", "m1")["status"], "open")
+        self.assertEqual(row(r["view"], "MD", "m0")["status"], "waiting")
 
 
 class TestOnePairEditor(unittest.TestCase):
@@ -229,20 +236,21 @@ class TestOnePairEditor(unittest.TestCase):
                          sorted(r["player"]["id"] for r in part["rows"]
                                 if r["status"] != "paired"))
 
-    def test_setting_pairs_records_them_both_ways(self):
+    def test_setting_pairs_shows_up_in_both_views(self):
+        before = form_answers(self.svc.t)
         self.svc.pairs_set("MD", [["m0", "m1"]])
         view = self.svc.partnerships_view()
         self.assertEqual(row(view, "MD", "m0")["status"], "paired")
         self.assertEqual(row(view, "MD", "m2")["status"], "open")
-        self.assertNotIn("waiting", {r["status"] for r in event(view, "MD")["rows"]})
+        self.assertEqual(form_answers(self.svc.t), before)
         self.assert_views_agree("MD")
 
-    def test_a_shuffle_does_not_leave_a_stale_request_behind(self):
-        asks(self.svc.t, "m0", "m1", "MD")      # will not survive the shuffle
+    def test_a_shuffle_leaves_the_form_answers_alone(self):
+        asks(self.svc.t, "m0", "m1", "MD")
+        before = form_answers(self.svc.t)
         self.svc.pairs_shuffle("MD", 3)
-        view = self.svc.partnerships_view()
-        self.assertNotIn("waiting", {r["status"] for r in event(view, "MD")["rows"]})
-        self.assertEqual(event(view, "MD")["paired"], 1)   # the three men
+        self.assertEqual(form_answers(self.svc.t), before)
+        self.assertEqual(self.svc.t.pair_changes[-1].kind, "shuffle")
         self.assert_views_agree("MD")
 
     def test_re_pair_from_forms_matches_what_the_table_shows(self):
@@ -260,6 +268,94 @@ class TestOnePairEditor(unittest.TestCase):
         pairs = event(self.svc.pairs_view(), "MD")
         self.assertEqual(pairs["pairs"], [])
         self.assert_views_agree("MD")
+
+
+class TestPlayWithPairings(unittest.TestCase):
+    """Shuffling is for experimenting. The form answers stay as submitted, so
+    the original request pairs can always be restored, every change is audited,
+    and one step at a time can be undone."""
+
+    def setUp(self):
+        self.d, self.svc = make_service()
+        t = self.svc.t
+        for i in range(6):
+            add_player(t, f"p{i}", "Player", str(i), "M", ["MD"], 5)
+        for a, b in (("p0", "p1"), ("p2", "p3"), ("p4", "p5")):
+            asks(t, a, b, "MD")
+            asks(t, b, a, "MD")
+
+    def tearDown(self):
+        self.d.cleanup()
+
+    def pairs(self, code="MD"):
+        return sorted(tuple(sorted(pr.player_ids))
+                      for pr in self.svc.t.pairs.values() if pr.event == code)
+
+    def test_shuffle_then_re_pair_from_forms_restores_the_original_pairs(self):
+        self.svc.pairs_auto("MD")                 # what the forms asked for
+        original = self.pairs()
+        self.assertEqual(original, [("p0", "p1"), ("p2", "p3"), ("p4", "p5")])
+
+        self.svc.pairs_shuffle("MD", 4)           # playing around
+        self.assertNotEqual(self.pairs(), original)
+        # the submissions are untouched by the shuffle
+        self.assertEqual(len([h for r in self.svc.t.registrations
+                              for h in r.partner_hints if h.event_hint == "MD"]), 6)
+
+        self.svc.pairs_auto("MD")                 # "Re-pair from forms"
+        self.assertEqual(self.pairs(), original)
+
+    def test_the_last_change_can_be_undone(self):
+        self.svc.pairs_auto("MD")
+        original = self.pairs()
+        self.svc.pairs_shuffle("MD", 4)
+        shuffled = self.pairs()
+        out = self.svc.pairs_undo("MD")
+        self.assertEqual(self.pairs(), original)
+        self.assertEqual(len(self.svc.t.pair_changes), 1)   # only the from_forms step
+        self.assertIn("previous pairs", out["notes"][0])
+        # and the shuffle is really gone: the next undo goes back to the forms
+        self.svc.pairs_undo("MD")
+        self.assertEqual(self.pairs(), original)
+        self.assertEqual(self.svc.t.pair_changes, [])
+        del shuffled
+
+    def test_undo_of_the_first_change_returns_to_the_form_pairs(self):
+        self.assertEqual(self.pairs(), [])
+        self.svc.partnership_assign("MD", "p0", "p2")
+        self.assertEqual(self.pairs(), [("p0", "p2")])
+        out = self.svc.pairs_undo("MD")
+        self.assertIn("form answers", out["notes"][0])
+        self.assertEqual(self.pairs(),
+                         [("p0", "p1"), ("p2", "p3"), ("p4", "p5")])
+
+    def test_undo_with_nothing_to_undo_is_refused(self):
+        with self.assertRaises(ValueError):
+            self.svc.pairs_undo("MD")
+
+    def test_every_change_writes_an_audit_line(self):
+        self.svc.pairs_auto("MD")
+        self.svc.pairs_shuffle("MD", 4)
+        lines = [r for r in self.svc.repo.read_audit()
+                 if r["target"] == "pair:MD"]
+        self.assertEqual([r["reason"] for r in lines], ["from_forms", "shuffle"])
+        self.assertTrue(lines[-1]["old_value"])     # what it was before
+        self.assertTrue(lines[-1]["new_value"])     # and after
+        self.assertNotEqual(lines[-1]["old_value"], lines[-1]["new_value"])
+
+    def test_the_form_answers_survive_a_reload(self):
+        self.svc.pairs_auto("MD")
+        original = self.pairs()
+        self.svc.pairs_shuffle("MD", 4)
+        # a fresh service reads the same document back
+        again = TournamentService(Repository(self.svc.repo.path))
+        self.assertEqual(len([h for r in again.t.registrations
+                              for h in r.partner_hints if h.event_hint == "MD"]), 6)
+        self.assertEqual(again.t.pair_changes[-1].kind, "shuffle")
+        again.pairs_auto("MD")
+        self.assertEqual(sorted(tuple(sorted(pr.player_ids))
+                                for pr in again.t.pairs.values()
+                                if pr.event == "MD"), original)
 
 
 class TestPreviewEdits(unittest.TestCase):

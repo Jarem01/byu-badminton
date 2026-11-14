@@ -223,6 +223,7 @@ function renderPartnerships() {
       `<input type="number" value="1" data-seed="${ev.event}" style="width:64px" ${locked ? "disabled" : ""}></label>` +
       `<button class="btn secondary" data-shuffle="${ev.event}" ${locked ? "disabled" : ""}>Shuffle this event</button>` +
       `<button class="btn secondary" data-repair="${ev.event}" ${locked ? "disabled" : ""}>Re-pair from forms</button>` +
+      `<button class="btn ghost" data-undo="${ev.event}" ${locked ? "disabled" : ""}>Undo last change</button>` +
       `</span></div>`;
     const rows = ev.rows.map(r => partnerRow(ev, r, locked)).join("");
     return `<div class="partner-event">${head}<div class="partner-scroll">` +
@@ -235,6 +236,7 @@ function renderPartnerships() {
   box.querySelectorAll("button[data-confirm]").forEach(b => { b.onclick = onPartnerConfirm; });
   box.querySelectorAll("button[data-shuffle]").forEach(b => { b.onclick = onPartnerShuffle; });
   box.querySelectorAll("button[data-repair]").forEach(b => { b.onclick = onPartnerRepair; });
+  box.querySelectorAll("button[data-undo]").forEach(b => { b.onclick = onPartnerUndo; });
 }
 
 function partnerRow(ev, r, locked) {
@@ -335,6 +337,18 @@ async function onPartnerRepair(e) {
     if (r.rebuilt) loadDivisions();
     const made = (r.auto_paired || []).length;
     toast(made ? `${ev} re-paired (${made} auto pair(s))` : `${ev} re-paired from forms`);
+  } catch (err) { toast(err.message, true); }
+}
+
+async function onPartnerUndo(e) {
+  const b = e.target;
+  const ev = b.dataset.undo;
+  try {
+    const r = await API.post("/api/pairs/undo", { event: ev });
+    await loadPartnerships();
+    loadValidation();
+    if (r.rebuilt) loadDivisions();
+    toast((r.notes && r.notes[0]) || `${ev} pair change undone`);
   } catch (err) { toast(err.message, true); }
 }
 

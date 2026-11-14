@@ -298,6 +298,25 @@ class ScheduleBlock:
 
 
 @dataclass(slots=True)
+class PairChange:
+    """One organizer decision about who plays with whom, kept apart from the
+    form answers.
+
+    ``RegistrationEntry.partner_hints`` is what people submitted and is never
+    rewritten by the pair editor; a manual pairing, a shuffle, a re-pair or a
+    clear is recorded here instead, with a snapshot of the event's pairs after
+    the change so the previous arrangement can be restored. The log is also
+    written to the append-only audit file (who, when, before, after).
+    """
+    ts: str
+    actor: str
+    event: str
+    kind: str                            # manual | clear | shuffle | from_forms | undo
+    pairs: list[list[str]] = field(default_factory=list)   # player ids, after
+    note: str = ""
+
+
+@dataclass(slots=True)
 class Override:
     """Append-only audit record for every manual data change."""
     ts: str
@@ -333,6 +352,8 @@ class Tournament:
     # generated; used to warn when settings have since changed.
     schedule_sig: str = ""
     overrides: list[Override] = field(default_factory=list)
+    # Organizer pair decisions, newest last (the form answers stay untouched).
+    pair_changes: list[PairChange] = field(default_factory=list)
 
     # --- convenience lookups (not serialized behavior, just helpers) ---
     def entry_label(self, ref: EntryRef) -> str:
