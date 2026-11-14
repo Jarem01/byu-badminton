@@ -9,6 +9,7 @@ import time
 import unittest
 import urllib.request
 
+from tournament.model.entities import Division, EntryRef, Pair, Player
 from tournament.server.app import make_server
 from tournament.server.service import Conflict, TournamentService
 from tournament.store.repository import Repository
@@ -209,3 +210,43 @@ class TestPreviewState(unittest.TestCase):
         finally:
             httpd.shutdown()
             httpd.server_close()
+
+
+class TestThinDivisions(unittest.TestCase):
+    """One entry in a division used to "generate" an empty bracket: the page
+    reported success and then showed nothing. It must say why instead."""
+
+    def setUp(self):
+        self.dir = tempfile.TemporaryDirectory()
+        self.svc = TournamentService(
+            Repository(os.path.join(self.dir.name, "t.json")))
+        t = self.svc.t
+        for pid, first, last in (("a", "Amy", "Nguyen"), ("b", "Bea", "Beta"),
+                                 ("c", "Cal", "Gamma"), ("d", "Dee", "Delta")):
+            t.players[pid] = Player(id=pid, first=first, last=last, gender="F",
+                                    skill=6, events=["WD"])
+        t.pairs["p1"] = Pair(id="p1", player_ids=["a", "b"], event="WD")
+        t.divisions["wd"] = Division(id="wd", event="WD", label="Women's Doubles",
+                                     entry_refs=[EntryRef("pair", "p1")])
+
+    def tearDown(self):
+        self.dir.cleanup()
+
+    def test_a_one_entry_division_explains_itself(self):
+        with self.assertRaises(Conflict) as caught:
+            self.svc.generate_bracket("wd", "single_elim", "ranking")
+
+        msg = str(caught.exception)
+        self.assertIn("Women's Doubles has 1 entry", msg)
+        self.assertIn("at least 2", msg)
+        self.assertNotIn("bracket", self.svc.t.brackets)   # nothing drawn
+
+    def test_it_generates_as_soon_as_there_are_two_entries(self):
+        self.svc.t.pairs["p2"] = Pair(id="p2", player_ids=["c", "d"], event="WD")
+        self.svc.t.divisions["wd"].entry_refs.append(EntryRef("pair", "p2"))
+
+        view = self.svc.generate_bracket("wd", "single_elim", "ranking")
+
+        matches = [m for r in view["rounds"] for m in r["matches"]]
+        self.assertGreater(len(matches), 0)
+        self.assertIn("wd", self.svc.t.brackets)

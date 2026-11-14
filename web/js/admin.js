@@ -483,7 +483,7 @@ async function loadDivisions() {
       <td>
         <button class="btn" data-act="plan">Plan / preview</button>
         <button class="btn secondary" data-act="gen">Generate</button>
-        <button class="btn ghost" data-act="final">${d.finalized ? "Un-finalize" : "Finalize"}</button>
+        <button class="btn ghost" data-act="final" ${d.has_bracket ? "" : "disabled"} title="${d.has_bracket ? "Lock the bracket once every result is in" : "Generate the bracket first"}">${d.finalized ? "Un-finalize" : "Finalize"}</button>
       </td>
       <td>${d.has_bracket ? '<span class="badge ok">bracket</span>' : '<span class="pill">no bracket</span>'}
           ${d.finalized ? '<span class="badge info">final</span>' : ""}</td>`;
@@ -522,7 +522,9 @@ async function generate(d, tr) {
     loadDivisions();
     showBracket(d.id, d.label);
   } catch (e) {
-    if (e.status === 409) toast("Finalized — tick force to replace", true);
+    // 409 also covers "not enough entries"; only a finalized bracket is about
+    // force, so don't claim that for every conflict.
+    if (e.status === 409 && d.finalized) toast("Finalized — tick force to replace", true);
     else toast(e.message, true);
   }
 }

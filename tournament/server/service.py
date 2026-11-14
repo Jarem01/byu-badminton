@@ -1384,6 +1384,15 @@ class TournamentService:
                          main_draw: int | None = None) -> dict:
         with self._lock:
             div = self.t.divisions[division_id]
+            if len(div.entry_refs) < 2:
+                # A division with one entry draws an empty bracket: the page
+                # would say "generated" and then show nothing. Say why instead.
+                raise Conflict(
+                    "%s has %d %s — a bracket needs at least 2. Add or pair "
+                    "players in %s, then build divisions again." % (
+                        div.label, len(div.entry_refs),
+                        "entry" if len(div.entry_refs) == 1 else "entries",
+                        div.event))
             existing = self.t.brackets.get(division_id)
             if existing and existing.finalized and not force:
                 raise Conflict("bracket is finalized; pass force=true to replace it")
