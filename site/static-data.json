@@ -1,5 +1,5 @@
 {
- "generated": "2026-11-14 20:20 UTC",
+ "generated": "2026-11-14 20:30 UTC",
  "name": "BYU Badminton Tournament",
  "public": {
   "name": "BYU Badminton Tournament",
@@ -1135,6 +1135,23 @@
     "queue": {
      "ready": [
       {
+       "id": "div-xd-poolA-r1-m0",
+       "round": "Pool A · Round 1",
+       "part": "pool",
+       "side1": {
+        "key": "pair:pair-middlebrook-hsiao",
+        "kind": "pair",
+        "label": "Sonny Middlebrook / Kaya Hsiao",
+        "seed": 2
+       },
+       "side2": {
+        "key": "pair:pair-lee-shu",
+        "kind": "pair",
+        "label": "Grace Lee / Sean Shu",
+        "seed": 9
+       }
+      },
+      {
        "id": "div-xd-poolA-r1-m1",
        "round": "Pool A · Round 1",
        "part": "pool",
@@ -1786,22 +1803,22 @@
       "rows": [
        {
         "rank": 1,
-        "key": "pair:pair-middlebrook-hsiao",
-        "label": "Sonny Middlebrook / Kaya Hsiao",
-        "played": 1,
-        "wins": 1,
+        "key": "pair:pair-nguyen-chi",
+        "label": "Amy Nguyen / Brian Chi",
+        "played": 0,
+        "wins": 0,
         "losses": 0,
-        "game_diff": 2,
-        "point_diff": 5,
-        "points_for": 30,
-        "points_against": 25,
+        "game_diff": 0,
+        "point_diff": 0,
+        "points_for": 0,
+        "points_against": 0,
         "advances": true,
         "qualify": "auto"
        },
        {
         "rank": 2,
-        "key": "pair:pair-nguyen-chi",
-        "label": "Amy Nguyen / Brian Chi",
+        "key": "pair:pair-middlebrook-hsiao",
+        "label": "Sonny Middlebrook / Kaya Hsiao",
         "played": 0,
         "wins": 0,
         "losses": 0,
@@ -1900,13 +1917,13 @@
         "rank": 9,
         "key": "pair:pair-lee-shu",
         "label": "Grace Lee / Sean Shu",
-        "played": 1,
+        "played": 0,
         "wins": 0,
-        "losses": 1,
-        "game_diff": -2,
-        "point_diff": -5,
-        "points_for": 25,
-        "points_against": 30,
+        "losses": 0,
+        "game_diff": 0,
+        "point_diff": 0,
+        "points_for": 0,
+        "points_against": 0,
         "advances": false,
         "qualify": "out"
        }
@@ -1936,17 +1953,8 @@
          "label": "Grace Lee / Sean Shu",
          "seed": 9
         },
-        "winner": "pair:pair-middlebrook-hsiao",
-        "games": [
-         [
-          15,
-          13
-         ],
-         [
-          15,
-          12
-         ]
-        ],
+        "winner": null,
+        "games": [],
         "walkover": false,
         "is_bye": false,
         "ready": true,
@@ -3082,32 +3090,13 @@
   "pool_slot_min": 30,
   "ends": "1:00 AM",
   "duration_min": 660,
-  "match_count": 59,
+  "match_count": 58,
   "conflicts": [],
   "stale": false,
   "blocks": [
    {
-    "match_id": "div-xd-poolA-r1-m0",
-    "court": "court-1",
-    "start": "2:00 PM",
-    "play_start": "2:05 PM",
-    "start_min": 0,
-    "division": "Mixed Doubles",
-    "round": "Pool A · Round 1",
-    "side1": {
-     "key": "pair:pair-middlebrook-hsiao",
-     "kind": "pair",
-     "label": "Sonny Middlebrook / Kaya Hsiao"
-    },
-    "side2": {
-     "key": "pair:pair-lee-shu",
-     "kind": "pair",
-     "label": "Grace Lee / Sean Shu"
-    }
-   },
-   {
     "match_id": "div-xd-poolA-r1-m1",
-    "court": "court-2",
+    "court": "court-1",
     "start": "2:00 PM",
     "play_start": "2:05 PM",
     "start_min": 0,
@@ -3126,7 +3115,7 @@
    },
    {
     "match_id": "div-xd-poolA-r1-m2",
-    "court": "court-3",
+    "court": "court-2",
     "start": "2:00 PM",
     "play_start": "2:05 PM",
     "start_min": 0,
@@ -3145,7 +3134,7 @@
    },
    {
     "match_id": "div-xd-poolA-r1-m3",
-    "court": "court-4",
+    "court": "court-3",
     "start": "2:00 PM",
     "play_start": "2:05 PM",
     "start_min": 0,
