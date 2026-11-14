@@ -204,6 +204,10 @@ const ALL_EVENTS = ["MS", "WS", "MD", "WD", "XD"];
 async function loadPlayers() {
   let data;
   try { data = await API.get("/api/players"); } catch { return; }
+  // A preview lives on the server, so it survives a reload; the button must
+  // follow that, not just whether Preview was clicked in this page session.
+  const commit = document.getElementById("btn-commit");
+  if (commit) commit.disabled = !data.preview;
   const tb = document.querySelector("#players tbody");
   tb.innerHTML = "";
   document.getElementById("player-count").textContent = `(${data.players.length})`;

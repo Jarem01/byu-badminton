@@ -833,6 +833,11 @@ class TournamentService:
         committed tournament."""
         return self._preview.tournament if self._preview else self.t
 
+    def has_preview(self) -> bool:
+        """Is an import preview waiting to be committed? The page asks, so a
+        reload does not leave Commit import greyed out with a preview pending."""
+        return self._preview is not None
+
     # --- reads --------------------------------------------------------------
     def players(self) -> list[dict]:
         return [{"id": p.id, "name": p.full, "gender": p.gender, "skill": p.skill,

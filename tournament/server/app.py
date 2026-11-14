@@ -113,7 +113,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json({"mode": svc.t.mode})
             if path == "/api/players":
                 return self._json({"players": svc.players(),
-                                   "merges": svc.merge_history()})
+                                   "merges": svc.merge_history(),
+                                   "preview": svc.has_preview()})
             if path == "/api/pairs":
                 return self._json(svc.pairs_view())
             if path == "/api/partnerships":

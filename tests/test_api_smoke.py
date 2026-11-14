@@ -161,3 +161,51 @@ class TestServiceFlow(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestPreviewState(unittest.TestCase):
+    """The page must be able to tell that an import preview is still waiting,
+    otherwise a reload leaves Commit import greyed out with a preview pending."""
+
+    def setUp(self):
+        self.dir = tempfile.TemporaryDirectory()
+        self.svc = TournamentService(
+            Repository(os.path.join(self.dir.name, "t.json")))
+
+    def tearDown(self):
+        self.dir.cleanup()
+
+    def test_has_preview_follows_preview_and_commit(self):
+        self.assertFalse(self.svc.has_preview())
+        self.svc.import_preview("file", FIXTURE, "auto")
+        self.assertTrue(self.svc.has_preview())
+        self.svc.import_commit()
+        self.assertFalse(self.svc.has_preview())
+
+    def test_players_endpoint_reports_the_pending_preview(self):
+        httpd, _port = make_server(os.path.join(self.dir.name, "api.json"), port=0)
+        threading.Thread(target=httpd.serve_forever, daemon=True).start()
+        time.sleep(0.2)
+        base = f"http://127.0.0.1:{httpd.server_address[1]}"
+
+        def post(path, obj):
+            req = urllib.request.Request(
+                base + path, data=json.dumps(obj).encode(),
+                headers={"Content-Type": "application/json"})
+            return json.load(urllib.request.urlopen(req, timeout=20))
+
+        def get(path):
+            return json.load(urllib.request.urlopen(base + path, timeout=10))
+        try:
+            self.assertFalse(get("/api/players")["preview"])
+            post("/api/import", {"source": "file", "ref": FIXTURE})
+            pending = get("/api/players")
+            self.assertTrue(pending["preview"])
+            self.assertGreater(len(pending["players"]), 15)   # the preview roster
+            post("/api/import/commit", {})
+            done = get("/api/players")
+            self.assertFalse(done["preview"])
+            self.assertGreater(len(done["players"]), 15)      # now committed
+        finally:
+            httpd.shutdown()
+            httpd.server_close()
