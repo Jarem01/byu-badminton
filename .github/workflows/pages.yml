@@ -1,0 +1,62 @@
+name: Publish the public display
+
+# The tournament app itself is a Python server, which GitHub Pages cannot run.
+# Pages hosts the read-only public display: brackets, standings and schedule
+# exported from the saved tournament (`python -m tournament.cli export`).
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run the test suite
+        run: python -m unittest discover -s tests -t .
+
+      - name: Refresh the snapshot when the tournament document is in the checkout
+        run: |
+          if [ -f data/tournament.json ]; then
+            python -m tournament.cli export --out site
+          else
+            echo "No data/tournament.json here; publishing the committed site/ snapshot."
+          fi
+
+      - name: Check the site is buildable
+        run: |
+          test -f site/index.html
+          test -f site/static-data.json
+          test -f site/js/public.js
+
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

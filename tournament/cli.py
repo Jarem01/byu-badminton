@@ -3,6 +3,7 @@
     python -m tournament.cli serve   [--port 8765] [--data data/tournament.json]
     python -m tournament.cli import  --file roster.csv [--schema legacy] [--commit]
     python -m tournament.cli validate [--data data/tournament.json]
+    python -m tournament.cli export  [--out site] [--data data/tournament.json]
 """
 
 from __future__ import annotations
@@ -64,6 +65,18 @@ def cmd_serve(args) -> int:
     return 0
 
 
+def cmd_export(args) -> int:
+    """Write the read-only public display as static files (GitHub Pages)."""
+    from .server.static_export import export_static
+    if not Repository(args.data).exists():
+        print(f"No tournament at {args.data}")
+        return 1
+    info = export_static(args.data, args.out)
+    print(f"Wrote the public site to {info['out']} "
+          f"({info['divisions']} division(s), snapshot {info['generated']})")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="tournament")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -86,6 +99,12 @@ def build_parser() -> argparse.ArgumentParser:
     ps.add_argument("--data", default=_DEFAULT_DATA)
     ps.add_argument("--actor", default="admin")
     ps.set_defaults(func=cmd_serve)
+
+    pe = sub.add_parser("export",
+                        help="write the read-only public site (GitHub Pages)")
+    pe.add_argument("--out", default="site")
+    pe.add_argument("--data", default=_DEFAULT_DATA)
+    pe.set_defaults(func=cmd_export)
     return p
 
 

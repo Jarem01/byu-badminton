@@ -4,6 +4,12 @@ let view = "overview";
 let selected = null;
 let snapshot = { divisions: [] };
 let schedule = { blocks: [] };
+// A published snapshot (GitHub Pages) has no API behind it: the export writes
+// static-data.json next to this page and flips the data-source marker, so the
+// page reads that file instead of calling the API, and does not poll.
+const DATA_SOURCE = (document.querySelector('meta[name="data-source"]') || {}).content;
+let snapshotOnly = DATA_SOURCE === "static";
+let staticData = null;
 
 document.querySelectorAll("#viewtabs button").forEach(b => {
   b.onclick = () => {
@@ -14,7 +20,28 @@ document.querySelectorAll("#viewtabs button").forEach(b => {
   };
 });
 
+async function loadStatic() {
+  try {
+    staticData = await (await fetch("static-data.json", { cache: "no-cache" })).json();
+  } catch {
+    return false;
+  }
+  snapshot = staticData.public || { divisions: [] };
+  schedule = staticData.schedule || { blocks: [] };
+  document.getElementById("tname").textContent = snapshot.name || "Tournament";
+  document.getElementById("refresh").textContent =
+    "read-only snapshot" + (staticData.generated ? " · " + staticData.generated : "");
+  render();
+  return true;
+}
+
 async function poll() {
+  if (snapshotOnly) {
+    if (!staticData && !(await loadStatic())) {
+      document.getElementById("refresh").textContent = "snapshot unavailable";
+    }
+    return;
+  }
   try {
     snapshot = await API.get("/api/public");
     schedule = await API.get("/api/schedule");
@@ -22,7 +49,9 @@ async function poll() {
     document.getElementById("refresh").textContent = "live · updating";
     render();
   } catch {
-    document.getElementById("refresh").textContent = "reconnecting…";
+    if (!(await loadStatic())) {
+      document.getElementById("refresh").textContent = "reconnecting…";
+    }
   }
 }
 
@@ -103,4 +132,4 @@ function render() {
 }
 
 poll();
-setInterval(poll, 5000);
+setInterval(() => { if (!snapshotOnly) poll(); }, 5000);

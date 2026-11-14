@@ -30,6 +30,32 @@ python -m tournament.cli import --file roster.csv --commit
 python -m tournament.cli validate
 ```
 
+## Publish the public display on GitHub Pages
+
+GitHub Pages only serves static files, so it hosts the **read-only public
+display** — brackets, pool standings, champions and the schedule — not the admin
+app, which needs the local Python server. One page works both ways: live in the
+arena it polls the API, and as a published snapshot it reads the exported JSON.
+
+```bash
+python -m tournament.cli export --out site      # snapshot of data/tournament.json
+python -m http.server 8000 --directory site     # check it before pushing
+```
+
+The export writes `site/index.html`, the page's assets and `static-data.json`
+(the same payloads `/api/public` and `/api/schedule` return), and marks the page
+as a snapshot so it loads that file instead of polling. Re-run it after the
+tournament changes and commit `site/`.
+
+`.github/workflows/pages.yml` runs the tests, refreshes `site/` when
+`data/tournament.json` is in the checkout, and deploys `site/`. To switch it on:
+**Settings → Pages → Source: GitHub Actions** (the workflow also tries to enable
+Pages itself). The site lands at `https://<user>.github.io/<repo>/`.
+
+Only the public view is published — names, draws and results. The registration
+document stays out of Git (`data/tournament.json` is ignored: it holds emails
+and phone numbers).
+
 ## Admin workflow
 1. **Import & Validate** — load the CSV (local file, pasted text, or a published
    Google Sheet CSV URL). Preview shows stats + a validation dashboard. Fix
@@ -59,8 +85,9 @@ tournament/           pure logic — no UI, no globals
   export/             CSV outputs
   store/              atomic JSON persistence + append-only audit log
   server/             http.server JSON API (thin) + application service
-  cli.py              import / validate / serve
+  cli.py              import / validate / serve / export
 web/                  admin.html, public.html, css/, js/ (vanilla), assets/logo.png
+site/                 generated static public display (GitHub Pages)
 tests/                unittest suite + real messy-data fixture
 docs/                 RESEARCH.md (cited rules), NEW_FORM_SPEC.md
 ```
