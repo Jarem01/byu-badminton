@@ -12,8 +12,11 @@ import subprocess
 
 
 def _git(args: list[str], cwd: str) -> subprocess.CompletedProcess:
-    return subprocess.run(["git", *args], cwd=cwd, capture_output=True,
-                          text=True)
+    try:
+        return subprocess.run(["git", *args], cwd=cwd, capture_output=True,
+                              text=True)
+    except OSError as exc:              # git not installed
+        return subprocess.CompletedProcess(["git", *args], 127, "", str(exc))
 
 
 def publish_snapshot(data_path: str, out_dir: str = "site", *,
@@ -26,7 +29,9 @@ def publish_snapshot(data_path: str, out_dir: str = "site", *,
               "committed": False, "pushed": False, "ok": True, "detail": ""}
 
     root = cwd or os.getcwd()
-    if not os.path.isdir(os.path.join(root, ".git")):
+    # A linked worktree has a .git file, not a directory, so ask git itself.
+    probe = _git(["rev-parse", "--is-inside-work-tree"], root)
+    if probe.returncode or probe.stdout.strip() != "true":
         report["detail"] = ("not a git checkout — the files are written; commit "
                             "them yourself")
         return report
