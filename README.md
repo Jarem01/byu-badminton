@@ -137,7 +137,8 @@ python -m tournament.cli publish
 That exports the snapshot from `data/tournament.json`, commits **only** `site/`
 and pushes. The workflow redeploys Pages in about a minute. Anyone with the page
 open picks the new version up within a minute without reloading (it re-checks
-the snapshot every 60 seconds).
+the snapshot every 60 seconds). If nothing changed, it says *already up to
+date — nothing to publish* and makes no commit.
 
 Useful variants:
 

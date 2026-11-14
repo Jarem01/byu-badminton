@@ -25,13 +25,22 @@ _COPY = ("assets", "css", os.path.join("js", "api.js"),
          os.path.join("js", "bracket.js"), os.path.join("js", "public.js"))
 
 
+def _read_json(path: str):
+    try:
+        with open(path, encoding="utf-8") as fh:
+            return json.load(fh)
+    except (OSError, ValueError):
+        return None
+
+
 def export_static(data_path: str, out_dir: str, *, web_dir: str = WEB_DIR,
                   generated: str | None = None) -> dict:
     """Write the public site into ``out_dir`` and report what went out."""
     svc = TournamentService(Repository(data_path))
     snapshot = svc.public_snapshot()
     schedule = svc.schedule_view()
-    if generated is None:
+    auto = generated is None
+    if auto:
         generated = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
     os.makedirs(out_dir, exist_ok=True)
@@ -53,8 +62,17 @@ def export_static(data_path: str, out_dir: str, *, web_dir: str = WEB_DIR,
 
     payload = {"generated": generated, "name": snapshot.get("name"),
                "public": snapshot, "schedule": schedule}
-    with open(os.path.join(out_dir, "static-data.json"), "w",
-              encoding="utf-8") as fh:
+    path = os.path.join(out_dir, "static-data.json")
+    if auto:
+        # Nothing changed since the last export? Keep its timestamp so the file
+        # is byte-identical and `publish` has nothing to commit.
+        previous = _read_json(path)
+        if previous and previous.get("public") == snapshot \
+                and previous.get("schedule") == schedule \
+                and previous.get("generated"):
+            payload["generated"] = previous["generated"]
+            generated = previous["generated"]
+    with open(path, "w", encoding="utf-8") as fh:
         json.dump(payload, fh, indent=1, ensure_ascii=False)
     # GitHub Pages runs Jekyll by default; the page has no templating to do.
     with open(os.path.join(out_dir, ".nojekyll"), "w", encoding="utf-8"):

@@ -73,6 +73,27 @@ class TestStaticExport(unittest.TestCase):
         with open(path, "rb") as fh:
             self.assertEqual(first, fh.read())
 
+    def test_repeat_export_without_changes_keeps_its_timestamp(self):
+        first = static_export.export_static(self.data, self.out)
+        with open(os.path.join(self.out, "static-data.json"), "rb") as fh:
+            before = fh.read()
+        second = static_export.export_static(self.data, self.out)
+        with open(os.path.join(self.out, "static-data.json"), "rb") as fh:
+            self.assertEqual(before, fh.read())
+        self.assertEqual(first["generated"], second["generated"])
+
+    def test_changed_content_gets_a_fresh_timestamp(self):
+        static_export.export_static(self.data, self.out)
+        svc = TournamentService(Repository(self.data))
+        svc.set_format("div-ms", "round_robin")
+        svc.generate_bracket("div-ms", "round_robin")
+        after = static_export.export_static(self.data, self.out)
+        with open(os.path.join(self.out, "static-data.json"), encoding="utf-8") as fh:
+            payload = json.load(fh)
+        self.assertEqual(payload["generated"], after["generated"])
+        self.assertEqual(
+            payload["public"]["divisions"][0]["division"]["format"], "round_robin")
+
     def test_page_is_marked_as_a_snapshot(self):
         self.export()
         with open(os.path.join(self.out, "index.html"), encoding="utf-8") as fh:
