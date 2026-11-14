@@ -10,8 +10,9 @@ from __future__ import annotations
 import copy
 import random
 import threading
+from datetime import datetime, timezone
 
-from ..config import DEFAULT_SETTINGS
+from ..config import DEFAULT_SETTINGS, EVENT_LABELS
 from ..engine import (
     bracket_double, bracket_groups, format_registry, team_build, tie,
 )
@@ -27,7 +28,8 @@ from ..ingest.importer import build_tournament
 from ..ingest.source_csv import read_rows, read_rows_from_text
 from ..ingest.source_gsheet import fetch_rows
 from ..config import Settings
-from ..model.entities import Bracket, EntryRef, Tournament
+from ..model.entities import (Bracket, EntryRef, Override, PartnerHint,
+                              RegistrationEntry, Tournament)
 from ..schedule.timeslots import parse_clock
 from ..store.repository import Repository
 
@@ -47,6 +49,77 @@ def _pair_gender_issue(t, pair) -> str:
     if sorted(genders) == sorted(rule):
         return ""
     return "should be %s (got %s)" % (_GENDER_TEXT[pair.event], "/".join(genders))
+
+
+def _player_brief(p) -> dict:
+    return {"id": p.id, "name": p.full, "gender": p.gender, "skill": p.skill}
+
+
+def _two_gender_issue(event: str, ga: str, gb: str) -> str:
+    """Gender-rule note for a *proposed* partnership (unknown genders are quiet:
+    the unknown_gender validation rule already reports those)."""
+    rule = _GENDER_RULE.get(event)
+    if not rule or "U" in (ga, gb):
+        return ""
+    if sorted([ga, gb]) == sorted(rule):
+        return ""
+    return "should be %s (got %s/%s)" % (_GENDER_TEXT[event], ga, gb)
+
+
+def _partnership_row(t, event: str, p, in_event: list, pair_of: dict,
+                     partner_of) -> dict:
+    """One player's partnership in one event, as the organizer sees it.
+
+    ``paired``   a pair is on the roster (this is what the build will use)
+    ``agreed``   both players named each other; they pair when divisions build
+    ``waiting``  this player named someone who has not named them back
+    ``incoming`` someone named this player; no answer yet
+    ``blocked``  the request cannot be honoured (partner paired elsewhere/out)
+    ``open``     nobody named anybody: pick a partner
+    """
+    from ..engine.grouping import _requests
+    row = {"player": _player_brief(p), "partner": None, "status": "open",
+           "origin": "", "note": "", "issue": ""}
+    pr = pair_of.get(p.id)
+    if pr is not None:
+        other_id = next((i for i in pr.player_ids if i != p.id), None)
+        other = t.players.get(other_id) if other_id else None
+        if other is not None:
+            row.update(partner=_player_brief(other), status="paired",
+                       origin=pr.origin, issue=_pair_gender_issue(t, pr))
+            return row
+    wanted = partner_of(t, p.id, event)
+    if wanted and wanted != p.id:
+        q = t.players.get(wanted)
+        if q is not None:
+            row["partner"] = _player_brief(q)
+            row["issue"] = _two_gender_issue(event, p.gender, q.gender)
+            if q.id in pair_of:
+                mate = next((i for i in pair_of[q.id].player_ids if i != q.id), "")
+                row.update(status="blocked", note="%s is already paired with %s."
+                           % (q.full, t.players[mate].full if mate in t.players
+                              else "someone else"))
+                return row
+            if q.withdrawn:
+                row.update(status="blocked", note="%s has withdrawn." % q.full)
+                return row
+            if _requests(t, q.id, p.id, event):
+                row.update(status="agreed", note="Both asked for each other.")
+            else:
+                row.update(status="waiting",
+                           note="%s has not named you back." % q.full)
+            if event not in q.events:
+                row["note"] += " %s is not registered for %s." % (q.full, event)
+            return row
+    asker = next((q for q in in_event if q.id != p.id
+                  and partner_of(t, q.id, event) == p.id), None)
+    if asker is not None:
+        row.update(partner=_player_brief(asker), status="incoming",
+                   issue=_two_gender_issue(event, p.gender, asker.gender),
+                   note="%s asked for %s." % (asker.full, p.full))
+    return row
+
+
 from ..validate.dashboard import validate
 from ..validate.overrides import apply_override
 
@@ -632,6 +705,214 @@ class TournamentService:
             self._restore_division_settings(kept)
         self._save(backup=True)
         return {"rebuilt": bool(rebuilt), "view": self.pairs_view()}
+
+    # --- partnerships: one row per player per doubles event, editable -------
+    def partnerships_view(self) -> dict:
+        """Who every doubles player is paired with -- or *wants* to be paired
+        with -- per event, plus who else in that event is free.
+
+        Unlike the pairs editor this reads the registrations, so a one-sided
+        request or a player still looking for a partner is visible (and
+        fixable) before any pair is built. Works on the pending import preview
+        too, so partners can be settled before committing.
+        """
+        from ..engine.grouping import _partner_for_event
+        t = self._active()
+        locked = any(self.t.brackets.get(d) for d in self.t.divisions)
+        events = []
+        for ev in DOUBLES:
+            in_event = sorted((p for p in t.players.values()
+                               if ev in p.events and not p.withdrawn
+                               and not p.is_stub), key=lambda x: x.full)
+            if not in_event:
+                continue
+            pair_of = {}
+            entered = {p.id for p in in_event}
+            for pr in sorted(t.pairs.values(), key=lambda x: x.id):
+                if (pr.event == ev and len(pr.player_ids) == 2
+                        and all(i in entered for i in pr.player_ids)):
+                    for i in pr.player_ids:
+                        pair_of[i] = pr
+            candidates = []
+            for p in sorted((p for p in t.players.values()
+                             if not p.withdrawn and not p.is_stub),
+                            key=lambda x: x.full):
+                pr = pair_of.get(p.id)
+                mate = ""
+                if pr:
+                    other = next((i for i in pr.player_ids if i != p.id), "")
+                    mate = t.players[other].full if other in t.players else ""
+                candidates.append({
+                    "id": p.id, "name": p.full, "gender": p.gender,
+                    "skill": p.skill, "entered": ev in p.events,
+                    "paired_with": mate})
+            rows = [_partnership_row(t, ev, p, in_event, pair_of,
+                                     _partner_for_event)
+                    for p in in_event]
+            events.append({
+                "event": ev, "label": EVENT_LABELS.get(ev, ev),
+                "rule": {"MD": "MM", "WD": "FF", "XD": "MF"}[ev],
+                "players": len(in_event),
+                "paired": sum(1 for r in rows if r["status"] == "paired") // 2,
+                "open": sum(1 for r in rows if r["status"] == "open"),
+                "rows": rows, "candidates": candidates})
+        return {"editable": not locked,
+                "reason": "" if not locked else
+                          "A bracket has been drawn — clear divisions & brackets "
+                          "before changing partnerships.",
+                "events": events}
+
+    def partnership_assign(self, event: str, player_id: str,
+                           partner_id: str) -> dict:
+        """Pair two players in ``event`` by hand.
+
+        This is the organizer's decision, so it also settles the paperwork: the
+        partner is added to the event if they had not entered it, both players
+        are recorded as having asked for each other (so validation stops
+        reporting a one-sided request) and anybody either of them was paired
+        with is freed.
+        """
+        from ..engine.grouping import _id_factory
+        from ..model.entities import Pair
+        with self._lock:
+            t = self._active()
+            self._require_pairs_editable()
+            if event not in DOUBLES:
+                raise ValueError("%s is not a doubles event" % event)
+            p, q = t.players.get(player_id), t.players.get(partner_id)
+            if not p or not q:
+                raise ValueError("unknown player")
+            if p.id == q.id:
+                raise ValueError("a player cannot be their own partner")
+            for who in (p, q):
+                if who.withdrawn:
+                    raise ValueError("%s has withdrawn" % who.full)
+                if who.is_stub:
+                    raise ValueError("%s is only a placeholder from someone "
+                                     "else's form" % who.full)
+            notes = []
+            freed = []
+            for pr in [pr for pr in t.pairs.values()
+                       if pr.event == event
+                       and set(pr.player_ids) & {p.id, q.id}]:
+                del t.pairs[pr.id]
+                for other in pr.player_ids:
+                    if other not in (p.id, q.id) and other in t.players:
+                        freed.append(other)
+                        notes.append("unpaired %s" % t.players[other].full)
+            # Whoever lost their partner must not still be recorded as asking
+            # for one of these two, or the pairing step would undo the change.
+            for other in freed:
+                self._drop_hints(t, other, event, {p.id, q.id})
+            if event not in q.events:
+                q.events.append(event)
+                notes.append("added %s to %s's events" % (event, q.full))
+                self._audit(q, "events", ", ".join(q.events[:-1]),
+                            ", ".join(q.events), "partner named for %s" % event)
+            old_p = self._set_partner_hint(t, p.id, event, q.id)
+            old_q = self._set_partner_hint(t, q.id, event, p.id)
+            self._audit(p, "partner_%s" % event, old_p, q.full,
+                        "paired by hand on the import page")
+            self._audit(q, "partner_%s" % event, old_q, p.full,
+                        "paired by hand on the import page")
+            pid = _id_factory(t).make("pair", p.last or p.id, q.last or q.id)
+            t.pairs[pid] = Pair(id=pid, player_ids=[p.id, q.id], event=event,
+                                origin="manual")
+            return self._finish_partnership_edit(notes)
+
+    def partnership_clear(self, event: str, player_id: str) -> dict:
+        """Unpair a player in ``event``: drop the pair, their own request, and
+        anyone else's request naming them -- otherwise the build would pair
+        them straight back up."""
+        with self._lock:
+            t = self._active()
+            self._require_pairs_editable()
+            p = t.players.get(player_id)
+            if not p:
+                raise ValueError("unknown player")
+            notes = []
+            for pr in [pr for pr in t.pairs.values()
+                       if pr.event == event and p.id in pr.player_ids]:
+                del t.pairs[pr.id]
+                for other in pr.player_ids:
+                    if other != p.id and other in t.players:
+                        notes.append("unpaired %s" % t.players[other].full)
+            dropped = []
+            for reg in t.registrations:
+                kept = []
+                for h in reg.partner_hints:
+                    if h.event_hint in (event, None) and (
+                            reg.player_id == p.id
+                            or h.resolved_player_id == p.id):
+                        if h.resolved_player_id in t.players:
+                            dropped.append((reg.player_id,
+                                            t.players[h.resolved_player_id].full))
+                        continue
+                    kept.append(h)
+                reg.partner_hints = kept
+            for who, _name in dropped:
+                if who in t.players:
+                    self._audit(t.players[who], "partner_%s" % event,
+                                _name if who != p.id else "", "",
+                                "partnership cleared on the import page")
+            return self._finish_partnership_edit(notes)
+
+    def _drop_hints(self, t, player_id: str, event: str,
+                    targets: set[str] | None = None) -> None:
+        """Remove a player's partner hints for one event -- all of them, or only
+        those naming one of ``targets``."""
+        for reg in t.registrations:
+            if reg.player_id != player_id:
+                continue
+            reg.partner_hints = [
+                h for h in reg.partner_hints
+                if not (h.event_hint in (event, None)
+                        and (targets is None
+                             or h.resolved_player_id in targets))]
+
+    def _set_partner_hint(self, t, player_id: str, event: str,
+                          partner_id: str) -> str:
+        """Record ``partner_id`` as this player's chosen partner for ``event``,
+        replacing whatever they had asked for there. Returns the old name."""
+        reg = next((r for r in t.registrations if r.player_id == player_id), None)
+        if reg is None:
+            reg = RegistrationEntry(row_index=-1, player_id=player_id)
+            t.registrations.append(reg)
+        old_ids = [h.resolved_player_id for h in reg.partner_hints
+                   if h.event_hint in (event, None)]
+        reg.partner_hints = [h for h in reg.partner_hints
+                             if h.event_hint not in (event, None)]
+        partner = t.players[partner_id]
+        reg.partner_hints.append(PartnerHint(raw_name=partner.full,
+                                             event_hint=event,
+                                             resolved_player_id=partner_id,
+                                             confidence=1.0))
+        return ", ".join(t.players[i].full for i in old_ids if i in t.players)
+
+    def _audit(self, player, field_name: str, old: str, new: str,
+               reason: str) -> None:
+        self.repo.append_audit(Override(
+            ts=datetime.now(timezone.utc).isoformat(), actor=self.actor,
+            target="player:%s" % player.id, field_name=field_name,
+            old_value=old, new_value=new, reason=reason))
+
+    def _finish_partnership_edit(self, notes: list[str] | None = None) -> dict:
+        """Persist a partnership change and keep any built divisions in step.
+        While an import preview is open the edit stays in the preview."""
+        out = {"notes": list(notes or []), "rebuilt": False}
+        if self._preview is not None:
+            out["view"] = self.partnerships_view()
+            return out
+        rebuilt = self._generated_divisions()
+        if rebuilt:
+            kept = self._division_settings()
+            self._clear_divisions()
+            build_divisions(self.t, auto_pair=False)
+            self._restore_division_settings(kept)
+        self._save(backup=True)
+        out["rebuilt"] = bool(rebuilt)
+        out["view"] = self.partnerships_view()
+        return out
 
     def _generated_divisions(self) -> list[str]:
         """Divisions the pair build made. Hand-made ones (custom brackets, team

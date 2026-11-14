@@ -139,11 +139,32 @@ Your `data/` folder is untouched by either command.
 2. Check the preview: adapter, counts, and the validation dashboard. Errors must
    be fixed; warnings are usually name/gender/skill mismatches.
 3. Fix gender, skill or "withdrawn" inline — each edit is logged with who/when.
-4. **Commit** to save. Nothing downstream exists until you do.
+4. Settle the **partnerships** (see below) while you are still on this screen.
+5. **Commit** to save. Nothing downstream exists until you do.
+
+#### Partnerships (the table under Players)
+
+One table per doubles event, **one row per player**, with that player's gender
+and skill and their partner's:
+
+| Status | Meaning | What you can do |
+|---|---|---|
+| `paired` | they are a pair on the roster | **Unpair** frees both players |
+| `agreed` | both named each other; they pair when divisions are built | **Confirm** / **Unpair** |
+| `waiting on them` | this player named someone who hasn't named them back | **Confirm** accepts it, **Clear** drops the request |
+| `they asked you` | someone named this player; no answer yet | **Confirm** accepts it |
+| `not honoured` | the request can't be used (partner paired elsewhere or withdrawn) | pick someone else |
+| `no partner` | nobody named anybody | choose a partner from the list |
+
+"Set partner" lists everyone already in that event first, then anyone else
+(choosing them adds the event to their form). Gender-rule mismatches are shown
+before you save, not after. Every change is audited, and the choice survives a
+rebuild — a hand-picked pair is never re-shuffled away.
 
 ### Step 2 — Pairs
 
-The pairs panel is where you fix what the import guessed:
+The pairs panel on the Draw tab is the same data seen as pairs, for moving a
+player between pairs once the draw is being built:
 
 - Each pair shows both players; pick a different player to **swap**.
 - **Shuffle** re-pairs everything, **Re-pair** fills only the open slots.
@@ -154,7 +175,8 @@ The pairs panel is where you fix what the import guessed:
   split rules and warn you when a pair breaks them.
 
 Saving a pair change rebuilds the divisions for the affected events. Your format
-and seeding choices are remembered and reapplied.
+and seeding choices are remembered and reapplied. Partnerships are editable
+until a bracket is drawn; after that, un-finalize or clear divisions first.
 
 ### Step 3 — Divisions & Brackets
 

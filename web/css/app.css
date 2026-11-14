@@ -316,6 +316,16 @@ tr:hover td { background: #f7fafd; }
 }
 
 /* Pairs editor */
+.partner-event { margin: 16px 0 8px; }
+.partner-event:first-child { margin-top: 6px; }
+.partner-head { display: flex; gap: 10px; align-items: baseline; margin-bottom: 4px; }
+.partner-scroll { max-height: 430px; overflow: auto; }
+table.partners { min-width: 900px; }
+table.partners td, table.partners th { vertical-align: top; white-space: nowrap; }
+table.partners th:nth-child(7), table.partners td.status-cell { width: 220px; white-space: normal; }
+table.partners select { min-width: 205px; max-width: 300px; }
+.partner-note { color: var(--muted); font-size: 12px; margin-top: 2px; max-width: 300px; }
+
 .pair-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 4px 0; }
 .pair-row select { min-width: 185px; }
 .pair-row.locked select { opacity: .72; }

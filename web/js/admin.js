@@ -106,6 +106,7 @@ document.getElementById("btn-preview").onclick = async () => {
       `registrations ${res.stats.registrations}`;
     renderIssues(res.validation);
     loadPlayers();     // show preview roster so gender/skill fixes apply pre-commit
+    loadPartnerships();
     document.getElementById("btn-commit").disabled = false;
     toast("Preview ready — review and fix below, then Commit");
   } catch (e) { toast(e.message, true); }
@@ -176,6 +177,134 @@ async function loadPlayers() {
   });
 }
 
+// --- partnerships: one row per player per doubles event ---------------------
+let partnerView = null;
+
+const PARTNER_RULE = { MM: ["M"], FF: ["F"] };
+const PARTNER_STATUS = {
+  paired:   ["ok", "paired"],
+  agreed:   ["ok", "agreed"],
+  waiting:  ["warn", "waiting on them"],
+  incoming: ["info", "they asked you"],
+  blocked:  ["err", "not honoured"],
+  open:     ["", "no partner"],
+};
+
+function partnerGenderOk(ev, self, cand) {
+  if (!self.gender || !cand.gender) return true;
+  if (self.gender === "U" || cand.gender === "U") return true;   // unknown
+  if (ev.rule === "MF") return cand.gender !== self.gender;
+  return cand.gender === PARTNER_RULE[ev.rule][0];
+}
+
+async function loadPartnerships() {
+  try { partnerView = await API.get("/api/partnerships"); } catch { partnerView = null; }
+  renderPartnerships();
+}
+
+function renderPartnerships() {
+  const box = document.getElementById("partnerships-body");
+  const note = document.getElementById("partnerships-note");
+  if (!box) return;
+  if (!partnerView || !(partnerView.events || []).length) {
+    box.innerHTML = '<p class="muted">No doubles players yet — import registrations first.</p>';
+    note.textContent = "";
+    return;
+  }
+  const locked = !partnerView.editable;
+  note.textContent = locked ? partnerView.reason
+    : "One row per player. Pick a partner to pair them, or Unpair to free both players. " +
+      "Gender and skill come from the roster — fix those in Players above.";
+  box.innerHTML = partnerView.events.map(ev => {
+    const head = `<div class="partner-head"><b>${ev.label}</b> <span class="muted">` +
+      `${ev.players} players · ${ev.paired} pair(s) · ${ev.open} without a partner</span></div>`;
+    const rows = ev.rows.map(r => partnerRow(ev, r, locked)).join("");
+    return `<div class="partner-event">${head}<div class="partner-scroll">` +
+      `<table class="partners"><thead><tr><th>Name</th><th>G</th><th>Skill</th>` +
+      `<th>Partner</th><th>G</th><th>Skill</th><th>Status</th>` +
+      `<th>Set partner</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  }).join("");
+  box.querySelectorAll("select[data-player]").forEach(s => { s.onchange = onPartnerPick; });
+  box.querySelectorAll("button[data-clear]").forEach(b => { b.onclick = onPartnerClear; });
+  box.querySelectorAll("button[data-confirm]").forEach(b => { b.onclick = onPartnerConfirm; });
+}
+
+function partnerRow(ev, r, locked) {
+  const p = r.player, q = r.partner;
+  const [cls, label] = PARTNER_STATUS[r.status] || ["", r.status];
+  const current = q ? q.id : "";
+  const cands = (ev.candidates || []).filter(c => c.id !== p.id);
+  const option = (c) => `<option value="${c.id}"${c.id === current ? " selected" : ""}>` +
+    `${c.name}${c.gender ? " (" + c.gender + ")" : ""}` +
+    `${c.skill != null ? " · " + c.skill : ""}` +
+    `${c.paired_with && c.id !== current ? " — paired with " + c.paired_with : ""}</option>`;
+  const group = (title, list) => list.length
+    ? `<optgroup label="${title}">${list.map(option).join("")}</optgroup>` : "";
+  const inEvent = cands.filter(c => c.entered);
+  const opts = '<option value="">— none —</option>' +
+    group(`In ${ev.event}`, inEvent.filter(c => partnerGenderOk(ev, p, c))) +
+    group(`${ev.event} — gender rule mismatch`, inEvent.filter(c => !partnerGenderOk(ev, p, c))) +
+    group(`Not in ${ev.event} (will be added)`, cands.filter(c => !c.entered));
+  const note = r.note ? `<div class="partner-note">${r.note}</div>` : "";
+  const issue = r.issue ? `<div class="pair-issue">${r.issue}</div>` : "";
+  const linked = r.status !== "open";
+  const open_to_confirm = q && (r.status === "waiting" || r.status === "incoming"
+                                || r.status === "agreed");
+  const confirm = open_to_confirm
+    ? `<button class="btn" data-ev="${ev.event}" data-confirm="${p.id}" ` +
+      `data-partner="${q.id}" ${locked ? "disabled" : ""} ` +
+      `title="Make this an accepted pair">Confirm</button> ` : "";
+  const clear = linked
+    ? `<button class="btn ghost" data-ev="${ev.event}" data-clear="${p.id}" ` +
+      `${locked ? "disabled" : ""}>${r.status === "paired" || r.status === "agreed"
+        ? "Unpair" : "Clear"}</button>` : "";
+  return `<tr class="partner-${r.status}">` +
+    `<td>${p.name}</td><td>${p.gender || "?"}</td><td>${p.skill != null ? p.skill : "—"}</td>` +
+    `<td>${q ? q.name : '<span class="muted">—</span>'}</td>` +
+    `<td>${q ? (q.gender || "?") : ""}</td>` +
+    `<td>${q && q.skill != null ? q.skill : ""}</td>` +
+    `<td class="status-cell"><span class="badge ${cls}">${label}</span>${issue}${note}</td>` +
+    `<td><select data-ev="${ev.event}" data-player="${p.id}" ${locked ? "disabled" : ""}>${opts}</select></td>` +
+    `<td>${confirm}${clear}</td>` +
+    `</tr>`;
+}
+
+async function savePartnership(path, body) {
+  try {
+    const r = await API.post(path, body);
+    partnerView = r.view;
+    renderPartnerships();
+    loadValidation();
+    loadPlayers();
+    if (r.rebuilt) loadDivisions();
+    return r;
+  } catch (e) { toast(e.message, true); loadPartnerships(); return null; }
+}
+
+async function onPartnerPick(e) {
+  const sel = e.target;
+  const r = sel.value
+    ? await savePartnership("/api/partnership/assign",
+        { event: sel.dataset.ev, player: sel.dataset.player, partner: sel.value })
+    : await savePartnership("/api/partnership/clear",
+        { event: sel.dataset.ev, player: sel.dataset.player });
+  if (r) toast(r.notes && r.notes.length ? `Saved — ${r.notes.join(", ")}` : "Partnership saved");
+}
+
+async function onPartnerConfirm(e) {
+  const b = e.target;
+  const r = await savePartnership("/api/partnership/assign",
+    { event: b.dataset.ev, player: b.dataset.confirm, partner: b.dataset.partner });
+  if (r) toast("Partnership confirmed");
+}
+
+async function onPartnerClear(e) {
+  const b = e.target;
+  const r = await savePartnership("/api/partnership/clear",
+    { event: b.dataset.ev, player: b.dataset.clear });
+  if (r) toast(r.notes && r.notes.length ? `Cleared — ${r.notes.join(", ")}` : "Partnership cleared");
+}
+
 // --- divisions & brackets ---------------------------------------------------
 const FORMATS = ["single_elim", "double_elim", "round_robin", "group_knockout"];
 
@@ -189,6 +318,7 @@ document.getElementById("btn-build").onclick = async () => {
     toast("Divisions built");
     loadDivisions();
     loadPairs();
+    loadPartnerships();
   } catch (e) { toast(e.message, true); }
 };
 
@@ -275,6 +405,7 @@ async function savePairs(groups) {
     const r = await API.post("/api/pairs/set", { event: pairEvent, groups });
     pairView = r.view;
     renderPairs();
+    loadPartnerships();          // the table shows the same pairings
     if (r.rebuilt) { loadDivisions(); toast("Pairs saved — divisions rebuilt"); }
     else toast("Pairs saved");
   } catch (e) { toast(e.message, true); loadPairs(); }
@@ -292,6 +423,7 @@ document.getElementById("pairs-shuffle").onclick = async () => {
       { event: pairEvent, rng_seed: isNaN(seed) ? null : seed });
     pairView = r.view;
     renderPairs();
+    loadPartnerships();
     if (r.rebuilt) loadDivisions();
     toast(`${pairEvent} shuffled`);
   } catch (e) { toast(e.message, true); }
@@ -304,6 +436,7 @@ document.getElementById("pairs-auto").onclick = async () => {
       { event: pairEvent, rng_seed: isNaN(seed) ? null : seed });
     pairView = r.view;
     renderPairs();
+    loadPartnerships();
     if (r.rebuilt) loadDivisions();
     const made = (r.auto_paired || []).length;
     toast(made ? `${pairEvent} re-paired (${made} new auto pair(s))`
@@ -1170,7 +1303,9 @@ document.getElementById("tb-commit").onclick = async () => {
 };
 
 // --- boot -------------------------------------------------------------------
-function refreshAll() { loadValidation(); loadPlayers(); updateStepper(); }
+function refreshAll() {
+  loadValidation(); loadPlayers(); loadPartnerships(); updateStepper();
+}
 API.get("/api/mode").then(r => applyMode(r.mode)).catch(() => {});
 loadPlanWindow();
 ping(); refreshAll();
