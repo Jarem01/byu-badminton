@@ -52,6 +52,9 @@ class Player:
     weekday_avail: list[str] = field(default_factory=list)
     source_row: int = -1                 # trace back to CSV row for audit
     is_stub: bool = False                # created only from a partner mention
+    # Typed in by hand (a late entrant) rather than imported: kept when a new
+    # import replaces the roster, as long as the sheet doesn't list the name.
+    manual: bool = False
     withdrawn: bool = False
     # Self-declared on the form: willing to play more than one rubber in a team
     # tie. Only opted-in players may be doubled-up (capped by settings).

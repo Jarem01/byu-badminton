@@ -228,6 +228,9 @@ class Handler(BaseHTTPRequestHandler):
                     body.get("num_groups")))
             if path == "/api/settings":
                 return self._json(svc.update_settings(body))
+            if path == "/api/player/add":
+                return self._json(svc.add_manual_entries(
+                    body.get("event", "MS"), body.get("entries", [])))
             if path == "/api/division/custom":
                 return self._json(svc.create_custom_division(
                     body["label"], body.get("kind", "player"),

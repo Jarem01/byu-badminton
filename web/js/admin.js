@@ -1285,6 +1285,37 @@ document.getElementById("btn-custom").onclick = async () => {
   } catch (e) { toast(e.message, true); }
 };
 
+// --- late entry: add a player or pair by hand -------------------------------
+const LATE_DOUBLES = ["MD", "WD", "XD"];
+function lateHint() {
+  const ev = document.getElementById("late-event").value;
+  const box = document.getElementById("late-entries");
+  const doub = LATE_DOUBLES.includes(ev);
+  document.getElementById("late-hint").innerHTML = doub
+    ? "One pair per line: <code>Player A / Player B</code> — or a single name to " +
+      "pair them later. Skill is optional: <code>Name:7</code>."
+    : "One player per line. Skill is optional: <code>Name:7</code>.";
+  box.placeholder = doub ? "Late Entrant:5 / Partner Name:4" : "Late Entrant:5";
+}
+document.getElementById("late-event").onchange = lateHint;
+lateHint();
+
+document.getElementById("btn-late-add").onclick = async () => {
+  const event = document.getElementById("late-event").value;
+  const entries = document.getElementById("late-entries").value
+    .split("\n").map(s => s.trim()).filter(Boolean);
+  const note = document.getElementById("late-note");
+  if (!entries.length) { toast("Type at least one name", true); return; }
+  try {
+    const r = await API.post("/api/player/add", { event, entries });
+    const notes = r.notes || [];
+    note.textContent = notes.join(" · ");
+    toast(notes[0] || "Added", !notes.length);
+    document.getElementById("late-entries").value = "";
+    loadDivisions(); loadPlayers(); loadPartnerships();
+  } catch (e) { toast(e.message, true); }
+};
+
 // --- settings ---------------------------------------------------------------
 const SET_FIELDS = {
   "set-courts": "court_count", "set-daystart": "day_start",

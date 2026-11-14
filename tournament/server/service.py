@@ -267,11 +267,16 @@ class TournamentService:
             tournament.settings = self.t.settings
             tournament.mode = self.t.mode
             tournament.date = self.t.date
+            # Hand-typed late entrants are not on the sheet, so a re-import must
+            # not quietly delete them.
+            carried = self._carry_manual_entries(self.t, tournament)
             self.t = tournament
             self._preview = None
             self._save(backup=True)
             return {"players": len(self.t.players),
-                    "registrations": len(self.t.registrations)}
+                    "registrations": len(self.t.registrations),
+                    "manual_kept": carried["players"],
+                    "manual_pairs_kept": carried["pairs"]}
 
     # --- settings (editable, persisted) ------------------------------------
     def get_settings(self) -> dict:
@@ -356,7 +361,8 @@ class TournamentService:
                 last = " ".join(parts[1:])
                 pid = ids.make("player", first, last or first)
                 self.t.players[pid] = Player(id=pid, first=first, last=last,
-                                             skill=skill, events=[event])
+                                             skill=skill, events=[event],
+                                             manual=True)
                 return pid
 
             refs: list[EntryRef] = []
@@ -392,6 +398,212 @@ class TournamentService:
             self._save(backup=True)
             return {"id": div_id, "label": label, "entries": len(refs), "format": fmt,
                     "skipped": skipped}
+
+    # --- late entries: add a player or pair by hand -------------------------
+    _EVENT_GENDERS = {"MS": ("M", "M"), "MD": ("M", "M"),
+                      "WS": ("F", "F"), "WD": ("F", "F"),
+                      "XD": ("M", "F")}
+
+    def add_manual_entries(self, event: str, entries: list[str]) -> dict:
+        """Add late entrants by hand, leaving the import (and the sheet) alone.
+
+        Singles events take one name per line; doubles events take
+        ``Name A / Name B`` or a single name that is left unpaired for now.
+        Skills are optional: ``Alice Ace:8``. A name already in the roster is
+        reused rather than duplicated, so typing somebody who is already there
+        just adds the event to their card.
+        """
+        from ..engine.grouping import _id_factory
+        from ..model.entities import EntryRef, Pair, Player
+
+        event = str(event or "").upper()
+        if event not in EVENT_CODES:
+            raise ValueError("unknown event %r" % event)
+        g1, g2 = self._EVENT_GENDERS[event]
+        label = EVENT_LABELS.get(event, event)
+        with self._lock:
+            ids = _id_factory(self.t)
+            added: list[str] = []
+            reused: list[str] = []
+            already: list[str] = []
+            unpaired: list[str] = []
+            skipped: list[str] = []
+            refs: list[EntryRef] = []
+            pairs_made = 0
+            t = self.t
+
+            by_name = {p.full.lower(): p for p in t.players.values()
+                       if not p.is_stub}
+
+            def person(token: str, gender: str) -> str | None:
+                token = str(token).strip()
+                skill = None
+                if ":" in token:
+                    token, _, sk = token.rpartition(":")
+                    skill = int(sk) if sk.strip().isdigit() else None
+                    token = token.strip()
+                if not token:
+                    return None
+                found = by_name.get(token.lower())
+                if found is not None:
+                    if event in found.events:
+                        already.append(found.full)
+                    else:
+                        found.events.append(event)
+                        reused.append(found.full)
+                    return found.id
+                parts = token.split()
+                first = parts[0]
+                last = " ".join(parts[1:])
+                pid = ids.make("player", first, last or first)
+                t.players[pid] = Player(id=pid, first=first, last=last,
+                                        gender=gender, skill=skill,
+                                        events=[event], manual=True)
+                by_name[token.lower()] = t.players[pid]
+                added.append(t.players[pid].full)
+                return pid
+
+            for line in entries or []:
+                line = str(line).strip()
+                if not line:
+                    continue
+                names = [n for n in line.replace("/", ",").split(",") if n.strip()]
+                if event in DOUBLES:
+                    made = [person(n, gender) for n, gender in zip(names, (g1, g2))]
+                    made = [pid for pid in made if pid]
+                    if len(made) < 2:
+                        for pid in made:
+                            unpaired.append(t.players[pid].full)
+                        if not made:
+                            skipped.append(line)
+                        continue
+                    if made[0] == made[1]:
+                        skipped.append(line)      # same player typed twice
+                        continue
+                    twins = frozenset(made)
+                    pid = next((pr.id for pr in t.pairs.values()
+                                if pr.event == event
+                                and frozenset(pr.player_ids) == twins), None)
+                    if pid is None:
+                        pid = ids.make("pair", t.players[made[0]].last or made[0],
+                                       t.players[made[1]].last or made[1])
+                        t.pairs[pid] = Pair(id=pid,
+                                            player_ids=[made[0], made[1]],
+                                            event=event, origin="manual")
+                        pairs_made += 1
+                    refs.append(EntryRef("pair", pid))
+                else:
+                    pid = person(line, g1)
+                    if pid:
+                        refs.append(EntryRef("player", pid))
+                    else:
+                        skipped.append(line)
+
+            # They join the event's entrant list straight away, which is what a
+            # regeneration draws from. An existing bracket is never edited here:
+            # silently reshuffling a live draw would move matches people are
+            # already playing, so the note tells the organizer to regenerate it.
+            div = next((d for d in t.divisions.values()
+                        if d.event == event and not d.custom), None)
+            drawn = bool(div and t.brackets.get(div.id))
+            entered = 0
+            if div is not None:
+                have = {ref.key() for ref in div.entry_refs}
+                for ref in refs:
+                    if ref.key() not in have:
+                        div.entry_refs.append(ref)
+                        have.add(ref.key())
+                        entered += 1
+
+            notes = []
+            made_pairs = pairs_made
+            if added or made_pairs:
+                what = []
+                if added:
+                    what.append("%d player%s" % (len(added), "" if len(added) == 1 else "s"))
+                if made_pairs:
+                    what.append("%d pair%s" % (made_pairs, "" if made_pairs == 1 else "s"))
+                notes.append("added %s to %s" % (" and ".join(what), label))
+            if reused or already:
+                names = ", ".join(dict.fromkeys(reused + already))
+                notes.append("already in the roster: " + names)
+            if unpaired:
+                notes.append("added %s unpaired — pick a partner on the Import tab"
+                             % ", ".join(unpaired))
+            if skipped:
+                notes.append("skipped: " + "; ".join(skipped))
+            if div is None:
+                notes.append("no %s division yet — Build divisions to create it" % label)
+            elif drawn:
+                notes.append("%s already has a draw — regenerate that bracket to "
+                             "include the new entry (%d entrants now)"
+                             % (label, len(div.entry_refs)))
+            elif entered:
+                notes.append("entered in the %s division (%d now)"
+                             % (label, len(div.entry_refs)))
+            self._save(backup=True)
+            return {"event": event, "added": added, "reused": reused,
+                    "unpaired": unpaired, "skipped": skipped,
+                    "entered": entered, "draw": drawn,
+                    "division_id": div.id if div else None,
+                    "notes": notes}
+
+    @staticmethod
+    def _carry_manual_entries(old, new) -> dict:
+        """Keep hand-typed late entrants when a new import replaces the roster.
+
+        The sheet stays the source of truth for everyone it lists: a manual
+        player is carried over only when the import has no such name, and pairs
+        follow when both of their players survived.
+        """
+        from ..engine.grouping import _id_factory
+        from ..model.entities import Pair, Player
+
+        by_name = {p.full.lower(): p for p in new.players.values()}
+        ids = _id_factory(new)
+        mapped: dict[str, str] = {}          # old player id -> new player id
+        kept: list[str] = []
+        for p in old.players.values():
+            if not p.manual:
+                continue
+            twin = by_name.get(p.full.lower())
+            if twin is not None:
+                mapped[p.id] = twin.id
+                for ev in p.events:
+                    if ev not in twin.events:
+                        twin.events.append(ev)
+                continue
+            pid = ids.make("player", p.first, p.last or p.first)
+            new.players[pid] = Player(
+                id=pid, first=p.first, last=p.last, email=p.email,
+                gender=p.gender, skill=p.skill, events=list(p.events),
+                club=p.club, willing_random=p.willing_random,
+                weekend_avail=list(p.weekend_avail),
+                weekday_avail=list(p.weekday_avail),
+                withdrawn=p.withdrawn, multi_event_ok=p.multi_event_ok,
+                manual=True)
+            mapped[p.id] = pid
+            kept.append(p.full)
+
+        pairs = 0
+        existing = {(tuple(sorted(pr.player_ids)), pr.event)
+                    for pr in new.pairs.values()}
+        for pr in old.pairs.values():
+            if pr.origin != "manual":
+                continue
+            ids_new = [mapped.get(pid) for pid in pr.player_ids]
+            if not all(ids_new) or len(set(ids_new)) != 2:
+                continue
+            key = (tuple(sorted(ids_new)), pr.event)
+            if key in existing:
+                continue
+            pid = ids.make("pair", new.players[ids_new[0]].last or ids_new[0],
+                           new.players[ids_new[1]].last or ids_new[1])
+            new.pairs[pid] = Pair(id=pid, player_ids=list(ids_new),
+                                  event=pr.event, origin="manual")
+            existing.add(key)
+            pairs += 1
+        return {"players": kept, "pairs": pairs}
 
     # --- team tournaments ---------------------------------------------------
     def set_mode(self, mode: str) -> dict:

@@ -86,6 +86,41 @@ class TestPublishEndpoint(unittest.TestCase):
             httpd.server_close()
 
 
+class TestLateEntryEndpoint(unittest.TestCase):
+    """POST /api/player/add is the "late entry" box on the Divisions tab."""
+
+    def test_adds_a_pair_without_touching_the_import(self):
+        d = tempfile.mkdtemp()
+        httpd, port = make_server(os.path.join(d, "t.json"), port=0)
+        threading.Thread(target=httpd.serve_forever, daemon=True).start()
+        time.sleep(0.2)
+        base = f"http://127.0.0.1:{httpd.server_address[1]}"
+
+        def post(p, o):
+            req = urllib.request.Request(base + p, data=json.dumps(o).encode(),
+                                         headers={"Content-Type": "application/json"})
+            return json.load(urllib.request.urlopen(req, timeout=20))
+
+        def get(p):
+            return json.load(urllib.request.urlopen(base + p, timeout=10))
+        try:
+            post("/api/import", {"source": "file", "ref": os.path.abspath(
+                os.path.join(os.path.dirname(__file__), "..", "sample_data",
+                             "clean_singles_16.csv"))})
+            post("/api/import/commit", {})
+            before = len(get("/api/players")["players"])
+            r = post("/api/player/add",
+                     {"event": "MD", "entries": ["Late Ace:6 / New Net:4"]})
+            self.assertEqual(r["added"], ["Late Ace", "New Net"])
+            self.assertEqual(r["event"], "MD")
+            after = get("/api/players")["players"]
+            self.assertEqual(len(after), before + 2)
+            self.assertTrue(any(p["name"] == "New Net" for p in after))
+        finally:
+            httpd.shutdown()
+            httpd.server_close()
+
+
 class TestRunOrderEndpoint(unittest.TestCase):
     """The organizer can put the events in the order they want scheduled."""
 

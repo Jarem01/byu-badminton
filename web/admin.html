@@ -34,7 +34,7 @@
       <h3>How to run a tournament</h3>
       <ol class="help-list" style="font-size:14px;line-height:1.6">
         <li><b>Import &amp; Validate</b> — paste your published Google Sheet CSV URL (or a local file / pasted CSV), click <b>Preview</b>, review the validation list, fix any gender/skill inline, then <b>Commit</b>.</li>
-        <li><b>Divisions &amp; Brackets</b> — click <b>Build divisions &amp; pairs</b>. Or make a <b>Custom bracket</b> by typing players in. Use <b>Plan</b> on a division to compare formats and time estimates, then approve one. Enter results by clicking a match. <b>Finalize</b> to lock a bracket.</li>
+        <li><b>Divisions &amp; Brackets</b> — click <b>Build divisions &amp; pairs</b>. Or make a <b>Custom bracket</b> by typing players in. <b>Late entry</b> adds someone who turns up on the day (player or pair) without touching the import. Use <b>Plan</b> on a division to compare formats and time estimates, then approve one. Enter results by clicking a match. <b>Finalize</b> to lock a bracket.</li>
         <li><b>Schedule &amp; Export</b> — <b>Generate schedule</b> (warm-up/buffer/rest built in, no player double-booked), check for conflicts, and export CSVs.</li>
         <li><b>Settings</b> — set courts, day start, slot timing, and match format. These feed the scheduler and planner. No code needed.</li>
         <li><b>Publish public display</b> (top right) — refreshes and pushes the GitHub Pages snapshot from here; no terminal, no stopping the server. The note beside it says when <code>site/</code> last reached the remote. Pages rebuilds a minute after a push; if the public page still looks old, hard-refresh it (<b>Ctrl+F5</b> / <b>Cmd+Shift+R</b>), then check the repo's <b>Actions</b> tab for a failed Pages run — the public page itself re-checks for a new snapshot every 60 seconds.</li>
@@ -202,6 +202,23 @@
         <p class="muted">Who plays with whom is set on the <b>Import</b> tab
           (<b>Partnerships</b>) — one table per event, with Shuffle and Re-pair
           there too. This build uses exactly those pairs.</p>
+      </div>
+
+      <div class="card">
+        <h2>Late entry <span class="muted">(add a player or pair by hand — the import is untouched)</span></h2>
+        <div class="row">
+          <label class="inline">Event
+            <select id="late-event"><option>MS</option><option>WS</option>
+              <option>MD</option><option>WD</option><option>XD</option></select></label>
+        </div>
+        <p class="muted" style="margin:8px 0 4px" id="late-hint">One entrant per line.
+          Doubles: <code>Player A / Player B</code> — or just one name to pair them later.</p>
+        <textarea id="late-entries" rows="3" style="width:100%;font-family:monospace"
+          placeholder="Late Entrant:5 / Partner Name:4"></textarea>
+        <div class="row" style="margin-top:8px">
+          <button class="btn" id="btn-late-add">Add to roster</button>
+          <span class="muted" id="late-note"></span>
+        </div>
       </div>
 
       <div class="card">
