@@ -362,3 +362,7 @@ table.partners select { width: 100%; }
 }
 .ev-chip:hover { border-color: #8fa1b3; color: #2d3b4a; }
 .ev-chip.on { background: #e7f2ff; border-color: #7aa7d6; color: #1c4f86; font-weight: 600; }
+
+/* merge buttons on duplicate-registration warnings */
+.issue-actions { display: inline-flex; gap: 6px; flex-wrap: wrap; margin-left: 8px; }
+.merge-btn { font-size: .72rem; padding: 2px 8px; }

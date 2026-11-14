@@ -146,6 +146,17 @@ Your `data/` folder is untouched by either command.
    unpair them, and an event whose bracket is already drawn can't be changed at
    all (clear that division first) — otherwise the draw would be left stale and
    the new entry missing from it.
+   **Merge a duplicate.** A `Possible duplicate registrations` or
+   `Duplicate registration email` warning carries a **Merge into <name>**
+   button for each entry. Pressing it confirms, then folds that person into the
+   chosen survivor: their registration and partner requests, the pairs they are
+   in (that partner stays with the survivor) and the events they entered all
+   move across, and the duplicate is deleted. The merge is written to the audit
+   log both ways (`merged_from` on the survivor, `merged_into` on the one that
+   goes). It refuses when the two entries are paired with different partners in
+   the same event (unpair one first) and when a bracket is already drawn for an
+   event the merge touches (clear that division first), so no draw is left
+   pointing at a player who no longer exists.
 4. Settle the **partnerships** (see below) while you are still on this screen.
 5. **Commit** to save. Nothing downstream exists until you do.
 

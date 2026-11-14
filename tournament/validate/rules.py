@@ -42,6 +42,12 @@ def check_gender(t: Tournament) -> list[Issue]:
     return out
 
 
+def _people(t: Tournament, ids: list[str]) -> list[dict]:
+    """The players a duplicate note is about, for the page's merge buttons."""
+    return [{"id": i, "name": t.players[i].full,
+             "email": getattr(t.players[i], "email", "") or ""} for i in ids]
+
+
 def check_duplicates(t: Tournament) -> list[Issue]:
     out = []
     by_email: dict[str, list[str]] = {}
@@ -57,13 +63,15 @@ def check_duplicates(t: Tournament) -> list[Issue]:
             names = ", ".join(t.players[i].full for i in ids)
             out.append(Issue("warning", "duplicate_email",
                              f"Duplicate registration email {email}: {names}.",
-                             target=f"player:{ids[0]}"))
+                             target=f"player:{ids[0]}",
+                             data={"players": _people(t, ids)}))
     for _key, ids in by_name.items():
         if len(ids) > 1 and not any(t.players[i].email for i in ids):
             out.append(Issue("warning", "duplicate_name",
                              f"Possible duplicate registrations for "
                              f"{t.players[ids[0]].full}.",
-                             target=f"player:{ids[0]}"))
+                             target=f"player:{ids[0]}",
+                             data={"players": _people(t, ids)}))
     return out
 
 

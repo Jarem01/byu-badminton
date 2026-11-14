@@ -586,6 +586,120 @@ class TournamentService:
             return {"ok": True, "events": player.events, "notes": notes,
                     "view": self.partnerships_view()}
 
+    def merge_players(self, keep_id: str, drop_id: str) -> dict:
+        """Fold one player into another: a duplicate registration or a typo.
+
+        Everything the duplicate brings comes with them -- registrations and the
+        partner requests in them, the pairs they are in (that partner stays with
+        the survivor) and the events they entered -- and the duplicate is
+        removed. Their divisions, brackets and pairs are refused during a
+        merge, so nothing is left pointing at a player who is gone.
+        """
+        with self._lock:
+            t = self._active()
+            keep, drop = t.players.get(keep_id), t.players.get(drop_id)
+            if keep is None or drop is None:
+                raise ValueError("unknown player")
+            if keep.id == drop.id:
+                raise ValueError("those are the same player")
+            keep_pairs = [pr for pr in t.pairs.values() if keep.id in pr.player_ids]
+            drop_pairs = [pr for pr in t.pairs.values() if drop.id in pr.player_ids]
+            keep_by_ev = {pr.event: pr for pr in keep_pairs}
+            drop_by_ev = {pr.event: pr for pr in drop_pairs}
+            # paired with each other is fine (that pair is dropped); paired with
+            # two different people in one event is not
+            both = sorted(ev for ev in set(keep_by_ev) & set(drop_by_ev)
+                          if keep_by_ev[ev].id != drop_by_ev[ev].id)
+            if both:
+                raise Conflict("%s and %s are both paired in %s — unpair one of "
+                               "them first" % (keep.full, drop.full,
+                                               ", ".join(both)))
+            touched = set(keep.events) | set(drop.events)
+            touched |= {pr.event for pr in keep_pairs}
+            touched |= {pr.event for pr in drop_pairs}
+            drawn = sorted({d.event for d in t.divisions.values()
+                            if d.event in touched and t.brackets.get(d.id)})
+            if drawn:
+                raise Conflict("a bracket has been drawn for %s — clear those "
+                               "divisions before merging" % ", ".join(drawn))
+
+            notes = []
+            before_events = list(keep.events)
+            for ev in drop.events:
+                if ev not in keep.events:
+                    keep.events.append(ev)
+                    notes.append("added %s" % ev)
+            keep.events.sort(key=lambda e: EVENT_CODES.index(e)
+                             if e in EVENT_CODES else len(EVENT_CODES))
+
+            # registrations: keep one per player, with every partner request on it
+            mine = next((r for r in t.registrations if r.player_id == keep.id), None)
+            theirs = [r for r in t.registrations if r.player_id == drop.id]
+            for reg in theirs:
+                if mine is None:
+                    reg.player_id = keep.id
+                    mine = reg
+                    notes.append("kept their registration")
+                    continue
+                have = {(h.raw_name.strip().casefold(),
+                         (h.event_hint or "").upper()) for h in mine.partner_hints}
+                for hint in reg.partner_hints:
+                    key = (hint.raw_name.strip().casefold(),
+                           (hint.event_hint or "").upper())
+                    if key not in have:
+                        mine.partner_hints.append(hint)
+                        have.add(key)
+                        notes.append("took over their request for %s"
+                                     % hint.raw_name)
+                t.registrations.remove(reg)
+
+            # anybody who asked for the duplicate by player id now asks for us
+            for reg in t.registrations:
+                for hint in reg.partner_hints:
+                    if hint.resolved_player_id == drop.id:
+                        hint.resolved_player_id = keep.id
+                    elif (hint.resolved_player_id is None
+                          and hint.raw_name.strip().casefold()
+                          == drop.full.strip().casefold()):
+                        hint.raw_name = keep.full
+
+            # pairs: the partner they were paired with stays with the survivor
+            for pr in drop_pairs:
+                if set(pr.player_ids) == {keep.id, drop.id}:
+                    del t.pairs[pr.id]
+                    notes.append("dropped their %s pair (they were partners)"
+                                 % pr.event)
+                    continue
+                pr.player_ids = [keep.id if p == drop.id else p
+                                 for p in pr.player_ids]
+                notes.append("took over their %s pair" % pr.event)
+
+            gone_pairs = {pr.id for pr in drop_pairs if pr.id not in t.pairs}
+            for div in t.divisions.values():
+                refs = []
+                for ref in div.entry_refs:
+                    if ref.kind == "player" and ref.ref_id == drop.id:
+                        ref = EntryRef("player", keep.id)
+                    if ref.kind == "pair" and ref.ref_id in gone_pairs:
+                        continue
+                    if ref.key() not in {r.key() for r in refs}:
+                        refs.append(ref)
+                div.entry_refs = refs
+
+            self._audit(keep, "merged_from", "",
+                        "%s (%s)" % (drop.full, drop.id),
+                        "merged a duplicate registration")
+            if before_events != keep.events:
+                self._audit(keep, "events", ", ".join(before_events),
+                            ", ".join(keep.events), "merged a duplicate")
+            self._audit(drop, "merged_into", "", "%s (%s)" % (keep.full, keep.id),
+                        "merged away as a duplicate")
+            del t.players[drop.id]
+            if self._preview is None:
+                self._save()
+            return {"ok": True, "notes": notes, "players": self.players(),
+                    "view": self.partnerships_view()}
+
     def _active(self):
         """The tournament to read/edit right now: the pending import preview if
         one is open (so inline fixes apply there and survive commit), else the

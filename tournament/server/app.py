@@ -168,6 +168,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(svc.override(
                     body["target"], body["field"], str(body.get("value", "")),
                     body.get("reason", "")))
+            if path == "/api/player/merge":
+                return self._json(svc.merge_players(body["keep"], body["drop"]))
             if path == "/api/player/events":
                 return self._json(svc.player_events(
                     body["player"], body.get("events", [])))

@@ -124,6 +124,26 @@ document.getElementById("btn-commit").onclick = async () => {
 document.getElementById("btn-revalidate").onclick = () => refreshAll();
 
 // --- validation -------------------------------------------------------------
+async function mergeInto(keep, people) {
+  const others = people.filter(p => p.id !== keep.id);
+  const names = others.map(o => `"${o.name}"`).join(", ");
+  const ok = window.confirm(
+    `Keep "${keep.name}" and merge ${names} into them?\n\n` +
+    `Their registrations, partner requests, pairs and events move to ` +
+    `"${keep.name}" and the duplicate is removed. The merge is logged.`);
+  if (!ok) return;
+  try {
+    let last = null;
+    for (const o of others) {
+      last = await API.post("/api/player/merge", { keep: keep.id, drop: o.id });
+    }
+    if (last && last.view) { partnerView = last.view; renderPartnerships(); }
+    toast(`Kept ${keep.name} — merged ${others.length} duplicate` +
+          `${others.length === 1 ? "" : "s"}`);
+    loadPlayers(); loadValidation();
+  } catch (e) { toast(e.message, true); loadValidation(); }
+}
+
 function renderIssues(val) {
   const c = val.counts || { error: 0, warning: 0, info: 0 };
   document.getElementById("val-counts").textContent =
@@ -135,6 +155,24 @@ function renderIssues(val) {
     d.className = "issue " + i.severity;
     d.innerHTML = `<span class="badge ${i.severity === "error" ? "err" : i.severity}">${i.severity}</span> ` +
       `${i.message}` + (i.suggestion ? ` <span class="sugg">→ ${i.suggestion}</span>` : "");
+    const people = (i.data && i.data.players) || [];
+    if (people.length > 1) {
+      const wrap = document.createElement("span");
+      wrap.className = "issue-actions";
+      const seen = people.map(p => people.filter(o => o.name === p.name).length);
+      people.forEach((p, i) => {
+        const b = document.createElement("button");
+        b.className = "btn ghost merge-btn";
+        // two entries with the same name would otherwise give identical buttons
+        b.textContent = `Merge into ${p.name}` +
+          (seen[i] > 1 ? ` (entry ${i + 1})` : "");
+        b.title = `Keep ${p.name} and fold the other ${people.length - 1} ` +
+                  `into them`;
+        b.onclick = () => mergeInto(p, people);
+        wrap.appendChild(b);
+      });
+      d.appendChild(wrap);
+    }
     box.appendChild(d);
   });
   if (!(val.issues || []).length) box.innerHTML = '<p class="muted">No issues found.</p>';
