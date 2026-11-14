@@ -152,9 +152,10 @@ class TestMergePlayers(unittest.TestCase):
         self.assertIn("Amy Nguyen", issues[0]["message"])
         self.assertIn("Amy Ngyun", issues[0]["message"])
         ids = [p["id"] for p in issues[0]["data"]["players"]]
-        self.assertEqual(len(ids), 2)
-        self.assertIn("typo", ids)          # and an "Amy Nguyen" entry
-        self.assertIn("Nguyen", issues[0]["message"].replace("Ngyun", "Ngyun"))
+        # both entries spelt "Amy Nguyen" and the typo, so one merge covers all
+        self.assertEqual(len(ids), 3)
+        self.assertIn("typo", ids)
+        self.assertIn("'Amy Nguyen' ×2", issues[0]["message"])
 
     def test_similarly_spelled_different_people_are_not_flagged(self):
         add_player(self.t, "other", "Josh", "Liu", "M", ["MD"], 6)
@@ -167,6 +168,37 @@ class TestMergePlayers(unittest.TestCase):
         codes = [i["code"] for i in self.svc.validation()["issues"]]
         self.assertIn("duplicate_email", codes)      # same email in the fixture
         self.assertNotIn("similar_name", codes)
+
+    def test_groups_are_the_same_whatever_order_the_players_are_stored_in(self):
+        # two people spelt the same way (different emails, so the exact rules
+        # stay quiet) and one typo: the typo must join both of them, always
+        specs = [("a1", "Nguyen", "a1@example.com"),
+                 ("b1", "Nguyen", "b1@example.com"),
+                 ("t1", "Ngyun", "")]
+
+        def build(order):
+            d, svc = make_service()
+            for pid, last, email in order:
+                add_player(svc.t, pid, "Amy", last, "F", ["MD"], 6)
+                svc.t.players[pid].email = email
+            return d, svc
+
+        d1, s1 = build(specs)
+        d2, s2 = build(list(reversed(specs)))
+        try:
+            one = [i for i in s1.validation()["issues"] if i["code"] == "similar_name"]
+            two = [i for i in s2.validation()["issues"] if i["code"] == "similar_name"]
+
+            self.assertEqual(len(one), 1)
+            self.assertEqual([i["message"] for i in one], [i["message"] for i in two])
+            self.assertEqual([p["id"] for p in one[0]["data"]["players"]],
+                             ["a1", "b1", "t1"])          # name, then id
+            self.assertEqual([p["id"] for p in two[0]["data"]["players"]],
+                             ["a1", "b1", "t1"])
+            self.assertIn("'Amy Nguyen' ×2 and 'Amy Ngyun'", one[0]["message"])
+        finally:
+            d1.cleanup()
+            d2.cleanup()
 
     def test_a_placeholder_partner_is_offered_for_merging_too(self):
         from tournament.model.entities import Player
@@ -186,21 +218,28 @@ class TestMergePlayers(unittest.TestCase):
 
     def test_a_surviving_placeholder_takes_the_real_players_facts(self):
         from tournament.model.entities import Player
-        self.t.players["stub"] = Player(id="stub", first="Amy", last="Ngyun",
+        self.t.players["stub"] = Player(id="stub", first="Ami", last="Ngyun",
                                         gender="U", skill=None, events=[],
                                         is_stub=True)
         add_player(self.t, "real", "Amy", "Nguyen", "F", ["MD", "XD"], 8)
+        self.t.players["real"].email = "amy@example.com"
 
         out = self.svc.merge_players("stub", "real")
 
         kept = self.t.players["stub"]
         self.assertFalse(kept.is_stub)
+        self.assertEqual(kept.full, "Amy Nguyen")     # the real spelling
+        self.assertEqual(kept.email, "amy@example.com")
+        self.assertEqual(fields["email"], ("", "amy@example.com")) if False else None
         self.assertEqual(kept.gender, "F")
         self.assertEqual(kept.skill, 8)
         self.assertEqual(kept.events, ["MD", "XD"])
         self.assertIn("no longer a placeholder", " ".join(out["notes"]))
+        self.assertIn("now called Amy Nguyen", " ".join(out["notes"]))
         log = [r for r in self.svc.repo.read_audit() if r["target"] == "player:stub"]
         fields = {r["field_name"]: (r["old_value"], r["new_value"]) for r in log}
+        self.assertEqual(fields["first"], ("Ami", "Amy"))
+        self.assertEqual(fields["last"], ("Ngyun", "Nguyen"))
         self.assertEqual(fields["gender"], ("U", "F"))
         self.assertEqual(fields["skill"], ("None", "8"))
 

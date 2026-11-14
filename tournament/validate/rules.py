@@ -102,30 +102,46 @@ def check_duplicates(t: Tournament) -> list[Issue]:
     # Nearly the same name: the typo'd second row that an exact match misses.
     already = {frozenset(ids) for ids in by_email.values() if len(ids) > 1}
     already |= {frozenset(ids) for ids in by_name.values() if len(ids) > 1}
-    # Placeholders count here: a partner typed as "Amy Ngyun" makes a stub, and
-    # matching it to the "Amy Nguyen" who registered is the whole point.
-    names = [p for p in sorted(t.players.values(), key=lambda x: x.id)]
-    grouped: set[str] = set()
-    for i, a in enumerate(names):
-        if a.id in grouped:
+
+    # One bucket per spelled name, in name order (id order inside a bucket), so
+    # the same roster always produces the same groups -- two entries spelled
+    # identically always end up in the same group rather than pairing the typo
+    # with whichever of them happened to be read first.
+    buckets: dict[str, list] = {}
+    for p in sorted(t.players.values(), key=lambda x: (name_key(x.full), x.id)):
+        key = name_key(p.full)
+        if key:
+            buckets.setdefault(key, []).append(p)
+    keys = sorted(buckets)
+    used: set[str] = set()
+    for i, key in enumerate(keys):
+        if key in used:
             continue
-        near = [a]
-        for b in names[i + 1:]:
-            if b.id in grouped or name_key(a.full) == name_key(b.full):
-                continue            # identical names are the exact rule's job
-            if _near_name(a, b):
-                near.append(b)
-        if len(near) < 2:
+        group = list(buckets[key])          # every entry spelt this way
+        for other in keys[i + 1:]:
+            if other in used:
+                continue
+            if _near_name(group[0], buckets[other][0]):
+                group.extend(buckets[other])
+                used.add(other)
+        if len(group) < 2:
             continue
-        ids = [p.id for p in near]
+        ids = [p.id for p in group]
         if frozenset(ids) in already:
-            continue
-        grouped.update(ids)
-        listed = " and ".join(
-            f"'{p.full}'" + (" (placeholder)" if p.is_stub else "") for p in near)
+            continue                    # the exact rules already said this
+        used.add(key)
+        shown: list[str] = []
+        for p in group:
+            label = f"'{p.full}'" + (" (placeholder)" if p.is_stub else "")
+            n = sum(1 for q in group
+                    if q.full == p.full and q.is_stub == p.is_stub)
+            label += f" ×{n}" if n > 1 else ""
+            if label not in shown:
+                shown.append(label)
         out.append(Issue("warning", "similar_name",
-                         f"Possible duplicate registrations: {listed} — the "
-                         f"names look almost the same.",
+                         "Possible duplicate registrations: " +
+                         " and ".join(shown) +
+                         " — the names look almost the same.",
                          target=f"player:{ids[0]}",
                          data={"players": _people(t, ids)}))
     return out

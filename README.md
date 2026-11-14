@@ -152,7 +152,9 @@ Your `data/` folder is untouched by either command.
    ones: "Amy Ngyun" next to "Amy Nguyen" (or "Sunny" next to "Sonny") raises
    the same warning, as does a placeholder partner typed with a typo. A
    different surname that merely looks similar ("Josh Lim" / "Josh Liu") is
-   left alone. Pressing it confirms, then folds that person into the
+   left alone. Entries spelt identically are always grouped together and the
+   list is ordered by name then id, so the same roster always produces the same
+   warning (`'Kei Wong' ×3 and 'Kei Wng'`) and the same buttons. Pressing it confirms, then folds that person into the
    chosen survivor: their registration and partner requests, the pairs they are
    in (that partner stays with the survivor) and the events they entered all
    move across, and the duplicate is deleted. The merge is written to the audit
@@ -161,8 +163,8 @@ Your `data/` folder is untouched by either command.
    the same event (unpair one first) and when a bracket is already drawn for an
    event the merge touches (clear that division first), so no draw is left
    pointing at a player who no longer exists. If the entry you keep is a
-   placeholder, it takes the real player's gender and skill and stops being a
-   placeholder.
+   placeholder, it takes the real player's name, email, gender and skill, and
+   stops being a placeholder — each change is audited separately.
 4. Settle the **partnerships** (see below) while you are still on this screen.
 5. **Commit** to save. Nothing downstream exists until you do.
 

@@ -635,6 +635,19 @@ class TournamentService:
             # A placeholder that survives takes the real player's own facts and
             # stops being a placeholder.
             if keep.is_stub and not drop.is_stub:
+                if (drop.first, drop.last) != (keep.first, keep.last):
+                    if drop.first != keep.first:      # only log what changed
+                        self._audit(keep, "first", keep.first, drop.first,
+                                    "taken from the duplicate when merging")
+                    if drop.last != keep.last:
+                        self._audit(keep, "last", keep.last, drop.last,
+                                    "taken from the duplicate when merging")
+                    keep.first, keep.last = drop.first, drop.last
+                    notes.append("now called %s" % keep.full)
+                if drop.email and drop.email != keep.email:
+                    self._audit(keep, "email", keep.email, drop.email,
+                                "taken from the duplicate when merging")
+                    keep.email = drop.email
                 if drop.gender != "U" and keep.gender != drop.gender:
                     self._audit(keep, "gender", keep.gender, drop.gender,
                                 "taken from the duplicate when merging")
@@ -644,8 +657,8 @@ class TournamentService:
                                 "taken from the duplicate when merging")
                     keep.skill = drop.skill
                 keep.is_stub = False
-                notes.append("no longer a placeholder — took their gender (%s) "
-                             "and skill (%s)" % (keep.gender, keep.skill))
+                notes.append("no longer a placeholder — took their name, gender "
+                             "(%s) and skill (%s)" % (keep.gender, keep.skill))
 
             # registrations: keep one per player, with every partner request on it
             mine = next((r for r in t.registrations if r.player_id == keep.id), None)
