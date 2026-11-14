@@ -1,5 +1,5 @@
 {
- "generated": "2026-11-14 20:04 UTC",
+ "generated": "2026-11-14 20:20 UTC",
  "name": "BYU Badminton Tournament",
  "public": {
   "name": "BYU Badminton Tournament",
@@ -1135,23 +1135,6 @@
     "queue": {
      "ready": [
       {
-       "id": "div-xd-poolA-r1-m0",
-       "round": "Pool A · Round 1",
-       "part": "pool",
-       "side1": {
-        "key": "pair:pair-middlebrook-hsiao",
-        "kind": "pair",
-        "label": "Sonny Middlebrook / Kaya Hsiao",
-        "seed": 2
-       },
-       "side2": {
-        "key": "pair:pair-lee-shu",
-        "kind": "pair",
-        "label": "Grace Lee / Sean Shu",
-        "seed": 9
-       }
-      },
-      {
        "id": "div-xd-poolA-r1-m1",
        "round": "Pool A · Round 1",
        "part": "pool",
@@ -1803,22 +1786,22 @@
       "rows": [
        {
         "rank": 1,
-        "key": "pair:pair-nguyen-chi",
-        "label": "Amy Nguyen / Brian Chi",
-        "played": 0,
-        "wins": 0,
+        "key": "pair:pair-middlebrook-hsiao",
+        "label": "Sonny Middlebrook / Kaya Hsiao",
+        "played": 1,
+        "wins": 1,
         "losses": 0,
-        "game_diff": 0,
-        "point_diff": 0,
-        "points_for": 0,
-        "points_against": 0,
+        "game_diff": 2,
+        "point_diff": 5,
+        "points_for": 30,
+        "points_against": 25,
         "advances": true,
         "qualify": "auto"
        },
        {
         "rank": 2,
-        "key": "pair:pair-middlebrook-hsiao",
-        "label": "Sonny Middlebrook / Kaya Hsiao",
+        "key": "pair:pair-nguyen-chi",
+        "label": "Amy Nguyen / Brian Chi",
         "played": 0,
         "wins": 0,
         "losses": 0,
@@ -1917,13 +1900,13 @@
         "rank": 9,
         "key": "pair:pair-lee-shu",
         "label": "Grace Lee / Sean Shu",
-        "played": 0,
+        "played": 1,
         "wins": 0,
-        "losses": 0,
-        "game_diff": 0,
-        "point_diff": 0,
-        "points_for": 0,
-        "points_against": 0,
+        "losses": 1,
+        "game_diff": -2,
+        "point_diff": -5,
+        "points_for": 25,
+        "points_against": 30,
         "advances": false,
         "qualify": "out"
        }
@@ -1953,8 +1936,17 @@
          "label": "Grace Lee / Sean Shu",
          "seed": 9
         },
-        "winner": null,
-        "games": [],
+        "winner": "pair:pair-middlebrook-hsiao",
+        "games": [
+         [
+          15,
+          13
+         ],
+         [
+          15,
+          12
+         ]
+        ],
         "walkover": false,
         "is_bye": false,
         "ready": true,
