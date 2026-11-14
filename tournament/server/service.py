@@ -8,6 +8,7 @@ written until a human approves it (matches the review-before-action rule).
 from __future__ import annotations
 
 import copy
+import os
 import random
 import threading
 from datetime import datetime, timezone
@@ -53,6 +54,27 @@ def _pair_gender_issue(t, pair) -> str:
 
 def _player_brief(p) -> dict:
     return {"id": p.id, "name": p.full, "gender": p.gender, "skill": p.skill}
+
+
+def _parse_center_courts(raw) -> tuple[int, ...]:
+    """Read the knockout-court list from ``"2, 3, 6, 7"`` or ``[2, 3, 6, 7]``.
+
+    Empty means "no restriction". Junk is rejected here, before any other
+    setting is touched, so a typo cannot half-apply the panel.
+    """
+    items = (raw.replace(";", ",").split(",") if isinstance(raw, str)
+             else (raw or []))
+    nums = set()
+    for item in items:
+        text = str(item).strip()
+        if not text:
+            continue
+        try:
+            nums.add(int(text))
+        except ValueError:
+            raise ValueError("center courts must be numbers like 2, 3, 6, 7 "
+                             f"(got {text!r})") from None
+    return tuple(sorted(n for n in nums if n >= 1))
 
 
 def _two_gender_issue(event: str, ga: str, gb: str) -> str:
@@ -265,6 +287,7 @@ class TournamentService:
             "pool_slot_min": s.pool_timing.slot_min,
             "pool_single_game": s.pool_single_game,
             "schedule_mode": s.schedule_mode,
+            "center_courts": list(s.center_courts),
             "best_of": s.match_format.best_of, "points_to": s.match_format.points_to,
             "win_by": s.match_format.win_by, "hard_cap": s.match_format.hard_cap,
             "tiebreak_order": list(s.tiebreak_order),
@@ -273,6 +296,8 @@ class TournamentService:
     def update_settings(self, patch: dict) -> dict:
         with self._lock:
             s = self.t.settings
+            center_courts = (_parse_center_courts(patch["center_courts"])
+                             if "center_courts" in patch else None)
             for k in ("court_count", "rest_min"):
                 if k in patch:
                     setattr(s, k, max(1, int(patch[k])))
@@ -295,6 +320,8 @@ class TournamentService:
                 if mode not in ("integrated", "separated"):
                     raise ValueError("schedule_mode must be 'integrated' or 'separated'")
                 s.schedule_mode = mode
+            if center_courts is not None:
+                s.center_courts = center_courts
             for k in ("best_of", "points_to", "win_by", "hard_cap"):
                 if k in patch:
                     setattr(s.match_format, k, max(1, int(patch[k])))
@@ -2071,6 +2098,24 @@ class TournamentService:
         return out
 
     # --- CSV export ---------------------------------------------------------
+    def publish(self, out_dir: str | None = None, cwd: str | None = None) -> dict:
+        """Refresh the published snapshot and push it, from the running admin.
+
+        Same work as ``python -m tournament.cli publish``: re-export ``site/``
+        from the saved tournament, commit just that folder and push, which is
+        what redeploys GitHub Pages. No need to stop the server first.
+        """
+        from ..publish import publish_snapshot
+
+        root = cwd or os.path.normpath(
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+        out = out_dir or os.path.join(root, "site")
+        with self._lock:
+            self._save()             # the export reads the file from disk
+        # Commit and push outside the lock: a slow push must not freeze the
+        # board and the scorekeeping requests that share this service.
+        return publish_snapshot(self.repo.path, out, push=True, cwd=root)
+
     def export_csv(self, what: str) -> tuple[str, str]:
         from ..export.csv_out import rows_to_csv
 

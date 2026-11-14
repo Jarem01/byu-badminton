@@ -231,6 +231,8 @@ class Handler(BaseHTTPRequestHandler):
                     body["label"], body.get("kind", "player"),
                     body.get("entries", []), body.get("event", "MS"),
                     body.get("format", "single_elim")))
+            if path == "/api/publish":
+                return self._json(svc.publish())
             if path == "/api/clear":
                 return self._json(svc.clear(body["stage"]))
             if path == "/api/mode":

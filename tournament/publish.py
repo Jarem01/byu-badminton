@@ -13,8 +13,10 @@ import subprocess
 
 def _git(args: list[str], cwd: str) -> subprocess.CompletedProcess:
     try:
+        # stdin carries the admin server's terminal: never let git wait there
+        # for a credential prompt while a request is open.
         return subprocess.run(["git", *args], cwd=cwd, capture_output=True,
-                              text=True)
+                              text=True, stdin=subprocess.DEVNULL)
     except OSError as exc:              # git not installed
         return subprocess.CompletedProcess(["git", *args], 127, "", str(exc))
 

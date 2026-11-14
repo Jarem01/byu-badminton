@@ -75,6 +75,20 @@ class TestPublish(unittest.TestCase):
         self.assertFalse(again["committed"])
         self.assertIn("already up to date", again["detail"])
 
+    def test_the_admin_button_publishes_through_the_service(self):
+        # The "Publish public display" button posts /api/publish, which calls
+        # this method -- no stopping the server, same snapshot as the CLI.
+        svc = TournamentService(Repository(self.data))
+        report = svc.publish(out_dir=os.path.join(self.root, "site"),
+                            cwd=self.root)
+        self.assertTrue(report["committed"])
+        self.assertIn("Refresh the published snapshot",
+                     git(self.root, "log", "-1", "--pretty=%s"))
+        # No remote is configured here, so the commit lands and the report says
+        # the push failed rather than raising.
+        self.assertFalse(report["ok"])
+        self.assertIn("push failed", report["detail"])
+
     def test_outside_a_git_checkout_the_files_are_still_written(self):
         with tempfile.TemporaryDirectory() as bare:
             report = publish_snapshot(self.data, os.path.join(bare, "site"),

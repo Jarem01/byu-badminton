@@ -291,6 +291,12 @@ open picks the new version up within a minute without reloading (it re-checks
 the snapshot every 60 seconds). If nothing changed, it says *already up to
 date — nothing to publish* and makes no commit.
 
+Around a running tournament there is no need to stop the server: with
+`serve` running, click **Publish public display** in the admin header (it is on
+every tab, including Tournament Manager). It does exactly what the command
+above does and reports the result in a toast, including *already up to date* and
+*push failed* (the commit is still made in that case).
+
 Useful variants:
 
 ```bash

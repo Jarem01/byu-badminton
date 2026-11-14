@@ -8,6 +8,7 @@ import threading
 import time
 import unittest
 import urllib.request
+from unittest import mock
 
 from tournament.model.entities import Division, EntryRef, Pair, Player
 from tournament.server.app import make_server
@@ -47,6 +48,33 @@ class TestGenerateEndpointParams(unittest.TestCase):
                      {"division": ms["id"], "format": "group_knockout",
                       "method": "ranking", "num_groups": 4, "main_draw": 8})
             self.assertEqual(len(v["standings"]), 4)   # honored 4 pools, not default
+        finally:
+            httpd.shutdown()
+            httpd.server_close()
+
+
+class TestPublishEndpoint(unittest.TestCase):
+    """POST /api/publish is the admin button: refresh site/, commit, push."""
+
+    def test_publish_endpoint_reports_what_happened(self):
+        d = tempfile.mkdtemp()
+        httpd, port = make_server(os.path.join(d, "t.json"), port=0)
+        threading.Thread(target=httpd.serve_forever, daemon=True).start()
+        time.sleep(0.2)
+        base = f"http://127.0.0.1:{httpd.server_address[1]}"
+        try:
+            fake = {"ok": True, "committed": True, "pushed": True,
+                    "generated": "2026-03-21T10:00:00Z", "out": "site",
+                    "detail": "pushed — GitHub Pages redeploys in about a minute"}
+            with mock.patch("tournament.publish.publish_snapshot",
+                            return_value=fake) as pub:
+                req = urllib.request.Request(
+                    base + "/api/publish", data=b"{}",
+                    headers={"Content-Type": "application/json"})
+                body = json.load(urllib.request.urlopen(req, timeout=20))
+            self.assertTrue(body["pushed"])
+            self.assertIn("redeploys", body["detail"])
+            self.assertTrue(pub.called)
         finally:
             httpd.shutdown()
             httpd.server_close()

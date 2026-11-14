@@ -36,6 +36,23 @@ document.getElementById("help-modal").addEventListener("click", (e) => {
     document.getElementById("help-modal").classList.remove("show");
 });
 
+// --- publish the public display --------------------------------------------
+// Same work as `python -m tournament.cli publish`: re-export site/, commit it
+// and push, so GitHub Pages picks it up without stopping the server.
+document.getElementById("btn-publish").onclick = async () => {
+  if (!confirm("Publish the public display?\n\nThis refreshes the snapshot, commits " +
+               "site/ and pushes it, which redeploys GitHub Pages in about a minute.")) return;
+  const btn = document.getElementById("btn-publish");
+  const label = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Publishing…";
+  try {
+    const r = await API.post("/api/publish", {});
+    toast(r.detail || "Published", !r.ok);
+  } catch (e) { toast(e.message, true); }
+  finally { btn.disabled = false; btn.textContent = label; }
+};
+
 // --- format explainers ------------------------------------------------------
 const FORMAT_HELP = {
   single_elim: "Single elimination — lose once and you're out. Fast; best when time is tight.",
@@ -1225,6 +1242,7 @@ async function loadSettings() {
     const s = await API.get("/api/settings");
     for (const [id, key] of Object.entries(SET_FIELDS)) document.getElementById(id).value = s[key];
     document.getElementById("set-mode").value = s.schedule_mode || "integrated";
+    document.getElementById("set-center").value = (s.center_courts || []).join(", ");
     showSlotMeta(s);
   } catch (e) {}
 }
@@ -1235,6 +1253,7 @@ document.getElementById("btn-save-settings").onclick = async () => {
     patch[key] = el.type === "time" ? el.value : parseInt(el.value, 10);
   }
   patch.schedule_mode = document.getElementById("set-mode").value;
+  patch.center_courts = document.getElementById("set-center").value;
   try {
     const s = await API.post("/api/settings", patch);
     showSlotMeta(s);

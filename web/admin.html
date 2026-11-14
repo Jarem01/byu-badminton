@@ -20,6 +20,8 @@
     <span class="spacer"></span>
     <button class="btn ghost" id="btn-help" style="color:#fff;border-color:#fff">? How to run a tournament</button>
     <a class="btn ghost" href="/public" target="_blank" style="color:#fff;border-color:#fff">Open Public Display</a>
+    <button class="btn ghost" id="btn-publish" style="color:#fff;border-color:#fff"
+            title="Re-export the public snapshot, commit it and push it — GitHub Pages redeploys in about a minute">Publish public display</button>
     <span class="status" id="status">connecting…</span>
   </header>
 
@@ -31,6 +33,7 @@
         <li><b>Divisions &amp; Brackets</b> — click <b>Build divisions &amp; pairs</b>. Or make a <b>Custom bracket</b> by typing players in. Use <b>Plan</b> on a division to compare formats and time estimates, then approve one. Enter results by clicking a match. <b>Finalize</b> to lock a bracket.</li>
         <li><b>Schedule &amp; Export</b> — <b>Generate schedule</b> (warm-up/buffer/rest built in, no player double-booked), check for conflicts, and export CSVs.</li>
         <li><b>Settings</b> — set courts, day start, slot timing, and match format. These feed the scheduler and planner. No code needed.</li>
+        <li><b>Publish public display</b> (top right) — refreshes and pushes the GitHub Pages snapshot from here; no terminal, no stopping the server.</li>
         <li>Open the <b>Public Display</b> on a second monitor — it mirrors everything live with Overview / Bracket / Standings / Schedule tabs.</li>
       </ol>
       <p class="muted">Tip: import a file from <code>sample_data/</code> to practice with fake data first.</p>
@@ -341,6 +344,11 @@
           <label class="inline">Day start <input id="set-daystart" type="time" style="width:120px"></label>
           <label class="inline">Day end <input id="set-dayend" type="time" style="width:120px"></label>
           <label class="inline">Rest between matches (min) <input id="set-rest" type="number" min="0" style="width:70px"></label>
+        </div>
+        <div class="row" style="gap:18px;margin-top:10px">
+          <label class="inline">Center courts (knockout only)
+            <input id="set-center" type="text" placeholder="2, 3, 6, 7" style="width:130px"></label>
+          <span class="muted">QF/SF/final may only use these courts (obstruction-free ones); pools and early rounds use any court. Blank = no restriction, and with fewer than two usable courts the rule is dropped so play never stalls.</span>
         </div>
         <div class="row" style="gap:18px;margin-top:10px">
           <label class="inline">Schedule style

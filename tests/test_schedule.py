@@ -54,6 +54,18 @@ class TestScheduling(unittest.TestCase):
         for sid in semi_ids:
             self.assertGreater(final_start, by_match[sid].start_min)
 
+    def test_chosen_center_courts_are_honoured(self):
+        # The knockout courts used to be fixed at 2,3,6,7; the organizer can pick
+        # them now, and the scheduler follows.
+        t = Tournament()
+        single_elim_division(t, "ms", "MS", 8)
+        blocks = generate_schedule(t, Settings(court_count=6, center_courts=(1, 5)),
+                                   ["ms"])
+        semi_final = t.brackets["ms"].rounds[1].match_ids
+        by_match = {b.match_id: b for b in blocks}
+        for mid in semi_final:                       # SF and final are knockout
+            self.assertIn(by_match[mid].court_id, ("court-1", "court-5"))
+
     def test_no_court_double_booked(self):
         t = Tournament()
         single_elim_division(t, "ms", "MS", 8)

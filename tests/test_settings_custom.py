@@ -33,6 +33,27 @@ class TestSettings(Base):
         self.assertEqual(svc2.get_settings()["court_count"], 6)
         self.assertEqual(svc2.get_settings()["day_start"], "18:00")
 
+    def test_center_courts_are_editable(self):
+        # Which courts knockouts may use used to be fixed at 2,3,6,7.
+        s = self.svc.update_settings({"center_courts": "1, 4 ;4"})
+        self.assertEqual(s["center_courts"], [1, 4])
+        self.assertEqual(self.svc.get_settings()["center_courts"], [1, 4])
+        svc2 = TournamentService(Repository(self.path))
+        self.assertEqual(svc2.get_settings()["center_courts"], [1, 4])
+        self.svc.update_settings({"center_courts": ""})      # blank = no restriction
+        self.assertEqual(self.svc.get_settings()["center_courts"], [])
+
+    def test_center_courts_rejects_junk_readably(self):
+        self.svc.update_settings({"center_courts": "1, 2"})
+        before = self.svc.get_settings()["court_count"]
+        with self.assertRaises(ValueError) as ctx:
+            self.svc.update_settings({"center_courts": "1, court 2",
+                                      "court_count": before + 3})
+        self.assertIn("numbers like 2, 3, 6, 7", str(ctx.exception))
+        after = self.svc.get_settings()
+        self.assertEqual(after["center_courts"], [1, 2])
+        self.assertEqual(after["court_count"], before)   # nothing half-applied
+
     def test_settings_feed_scheduler(self):
         self.svc.update_settings({"court_count": 1, "day_start": "09:00"})
         self.svc.create_custom_division("Test", "player",
