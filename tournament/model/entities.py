@@ -169,6 +169,11 @@ class Division:
     label: str
     entry_refs: list[EntryRef] = field(default_factory=list)
     format: FormatName = "single_elim"   # per-division format (draw over entries)
+    # Seeding the organizer picked, kept so a rebuild keeps their choice.
+    seed_method: SeedMethod = "ranking"
+    seed_no: Optional[int] = None
+    # Hand-made divisions (custom bracket, team event) survive a table rebuild.
+    custom: bool = False
     # Team divisions only: how teams field a tie. Absent (None) => individual.
     team_type: Optional[TeamType] = None
     team_format: Optional[TeamFormat] = None

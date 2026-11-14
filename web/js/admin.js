@@ -324,9 +324,9 @@ async function loadDivisions() {
       <td><select data-f="format">${FORMATS.map(f =>
         `<option ${f === d.format ? "selected" : ""}>${f}</option>`).join("")}</select></td>
       <td><select data-f="method">
-        <option value="ranking">ranking (skill)</option>
-        <option value="random">random</option></select></td>
-      <td><input data-f="seed" type="number" placeholder="opt" style="width:70px"></td>
+        <option value="ranking"${d.seed_method === "ranking" ? " selected" : ""}>ranking (skill)</option>
+        <option value="random"${d.seed_method === "random" ? " selected" : ""}>random</option></select></td>
+      <td><input data-f="seed" type="number" value="${d.seed_no == null ? "" : d.seed_no}" placeholder="opt" style="width:70px"></td>
       <td>
         <button class="btn" data-act="plan">Plan / preview</button>
         <button class="btn secondary" data-act="gen">Generate</button>
@@ -336,6 +336,16 @@ async function loadDivisions() {
           ${d.finalized ? '<span class="badge info">final</span>' : ""}</td>`;
     tr.querySelector('[data-f="format"]').onchange = (e) =>
       API.post("/api/division/format", { division: d.id, format: e.target.value }).catch(x => toast(x.message, true));
+    // Remember the seeding too, so a rebuild keeps it.
+    const saveSeed = () => {
+      const seed = parseInt(tr.querySelector('[data-f="seed"]').value, 10);
+      API.post("/api/division/seed", {
+        division: d.id, method: tr.querySelector('[data-f="method"]').value,
+        rng_seed: isNaN(seed) ? null : seed,
+      }).catch(x => toast(x.message, true));
+    };
+    tr.querySelector('[data-f="method"]').onchange = saveSeed;
+    tr.querySelector('[data-f="seed"]').onchange = saveSeed;
     tr.querySelector('[data-act="plan"]').onclick = () => planDivision(d);
     tr.querySelector('[data-act="gen"]').onclick = () => generate(d, tr);
     tr.querySelector('[data-act="final"]').onclick = () => toggleFinal(d);

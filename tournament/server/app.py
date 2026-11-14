@@ -176,6 +176,10 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(svc.pairs_auto(body["event"], body.get("rng_seed")))
             if path == "/api/division/format":
                 return self._json(svc.set_format(body["division"], body["format"]))
+            if path == "/api/division/seed":
+                return self._json(svc.set_seed_choice(
+                    body["division"], body.get("method", "ranking"),
+                    body.get("rng_seed")))
             if path == "/api/bracket/generate":
                 return self._json(svc.generate_bracket(
                     body["division"], body.get("format"),

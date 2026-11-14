@@ -281,7 +281,8 @@ class TournamentService:
                 raise ValueError(msg)
             div_id = ids.make("div", event, label)
             self.t.divisions[div_id] = Division(id=div_id, event=event, label=label,
-                                                entry_refs=refs, format=fmt)
+                                                entry_refs=refs, format=fmt,
+                                                custom=True)
             self._save(backup=True)
             return {"id": div_id, "label": label, "entries": len(refs), "format": fmt,
                     "skipped": skipped}
@@ -403,7 +404,7 @@ class TournamentService:
             div_id = ids.make("div", event, label)
             self.t.divisions[div_id] = Division(
                 id=div_id, event=event, label=label, entry_refs=refs,
-                format=opts.get("format", "single_elim"),
+                format=opts.get("format", "single_elim"), custom=True,
                 team_type=opts.get("team_type", "open"), team_format=fmt)
             self._save(backup=True)
             return {"id": div_id, "label": label, "teams": len(refs), "report": report}
@@ -479,7 +480,9 @@ class TournamentService:
         for d in self.t.divisions.values():
             br = self.t.brackets.get(d.id)
             out.append({"id": d.id, "event": d.event, "label": d.label,
-                        "format": d.format, "entries": len(d.entry_refs),
+                        "format": d.format, "seed_method": d.seed_method,
+                        "seed_no": d.seed_no, "custom": d.custom,
+                        "entries": len(d.entry_refs),
                         "has_bracket": br is not None,
                         "finalized": br.finalized if br else False})
         return sorted(out, key=lambda x: x["event"])
@@ -493,8 +496,10 @@ class TournamentService:
             if finalized:
                 raise Conflict(f"{len(finalized)} finalized bracket(s) exist; "
                                "un-finalize before rebuilding divisions.")
+            kept = self._division_settings()
             self._clear_divisions()
             res = build_divisions(self.t, rng_seed=rng_seed)
+            self._restore_division_settings(kept)
             self._save(backup=True)
             return {"divisions": self.divisions(),
                     "auto_paired": res.auto_paired,
@@ -620,16 +625,31 @@ class TournamentService:
         rebuilt = self._generated_divisions()
         if rebuilt:
             # Keep every pair exactly as set (no auto-pairing), so players the
-            # organizer left off stay off.
+            # organizer left off stay off, and keep the format + seeding choices.
+            kept = self._division_settings()
             self._clear_divisions()
             build_divisions(self.t, auto_pair=False)
+            self._restore_division_settings(kept)
         self._save(backup=True)
         return {"rebuilt": bool(rebuilt), "view": self.pairs_view()}
 
     def _generated_divisions(self) -> list[str]:
-        """Divisions that came from the pair build (``div-md``); hand-made and
-        team divisions (``div-xd-social-doubles``) are left alone by a rebuild."""
-        return [did for did in self.t.divisions if did.count("-") == 1]
+        """Divisions the pair build made. Hand-made ones (custom brackets, team
+        events) carry their own marker and are left alone by a rebuild."""
+        return [d.id for d in self.t.divisions.values()
+                if not d.custom and d.team_type is None]
+
+    def _division_settings(self) -> dict[str, tuple]:
+        """Format + seeding per event, so a rebuild keeps the organizer's picks."""
+        return {d.event: (d.format, d.seed_method, d.seed_no)
+                for d in self.t.divisions.values()
+                if not d.custom and d.team_type is None}
+
+    def _restore_division_settings(self, kept: dict[str, tuple]) -> None:
+        for d in self.t.divisions.values():
+            if d.custom or d.team_type is not None or d.event not in kept:
+                continue
+            d.format, d.seed_method, d.seed_no = kept[d.event]
 
     def _clear_divisions(self) -> None:
         """Drop the built divisions, braces and generated pairs, keeping the
@@ -643,6 +663,18 @@ class TournamentService:
             self.t.brackets.pop(did, None)
         self.t.pairs.clear()
         self.t.pairs.update(manual)
+
+    def set_seed_choice(self, division_id: str, method: str,
+                        rng_seed: int | None = None) -> dict:
+        """Remember the seeding the organizer picked for a division (kept across
+        a rebuild)."""
+        with self._lock:
+            div = self.t.divisions[division_id]
+            div.seed_method = method or "ranking"
+            div.seed_no = rng_seed
+            self._save()
+            return {"ok": True, "seed_method": div.seed_method,
+                    "seed_no": div.seed_no}
 
     def set_format(self, division_id: str, fmt: str) -> dict:
         with self._lock:
@@ -671,6 +703,9 @@ class TournamentService:
                 raise Conflict("bracket is finalized; pass force=true to replace it")
             fmt = fmt or div.format
             div.format = fmt
+            div.seed_method = method or div.seed_method
+            if rng_seed is not None:
+                div.seed_no = rng_seed
             seeds = seed_entries(self.t, div, method, rng_seed, manual_order)
             if fmt == "group_knockout":
                 br = bracket_groups.generate(div, seeds, rng_seed, num_groups,

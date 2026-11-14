@@ -127,6 +127,40 @@ class TestPairChanges(unittest.TestCase):
         self.assertIn(custom["id"], ids)             # hand-made bracket kept
         self.assertIn("div-md", ids)                 # built one re-created
 
+    def test_rebuild_keeps_the_format_and_seeding_choice(self):
+        self.svc.build_divisions()
+        div = next(d for d in self.svc.divisions() if d["event"] == "MD")
+        self.svc.set_format(div["id"], "round_robin")
+        self.svc.set_seed_choice(div["id"], "random", 42)
+        self.svc.pairs_set("MD", [["m0", "m1"], ["m2", "m3"]])
+        after = next(d for d in self.svc.divisions() if d["event"] == "MD")
+        self.assertEqual(after["format"], "round_robin")
+        self.assertEqual(after["seed_method"], "random")
+        self.assertEqual(after["seed_no"], 42)
+        self.assertEqual(after["entries"], 2)
+
+    def test_drawing_remembers_the_seeding_used(self):
+        self.svc.build_divisions()
+        div = next(d for d in self.svc.divisions() if d["event"] == "MD")
+        self.svc.generate_bracket(div["id"], "single_elim", method="random", rng_seed=7)
+        self.svc.build_divisions()            # a rebuild after drawing
+        after = next(d for d in self.svc.divisions() if d["event"] == "MD")
+        self.assertEqual((after["seed_method"], after["seed_no"]), ("random", 7))
+
+    def test_custom_marker_decides_what_a_rebuild_keeps(self):
+        from tournament.model.entities import Division
+        t = self.svc.t
+        # a hand-made id that is not marked: the build owns it and replaces it
+        t.divisions["div-xd-social-doubles"] = Division(
+            id="div-xd-social-doubles", event="XD", label="Looks custom")
+        # a plain id that IS marked: the organizer's, so it stays
+        t.divisions["div-ws-extra"] = Division(
+            id="div-ws-extra", event="WS", label="Hand made", custom=True)
+        self.svc.build_divisions()
+        ids = [d["id"] for d in self.svc.divisions()]
+        self.assertNotIn("div-xd-social-doubles", ids)
+        self.assertIn("div-ws-extra", ids)
+
     def test_building_divisions_keeps_a_custom_division(self):
         custom = self.svc.create_custom_division(
             "Friday Social", "player", ["Zed One", "Yan Two"], "MS")

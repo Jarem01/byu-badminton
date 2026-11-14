@@ -97,6 +97,39 @@ class TestRoundTrip(unittest.TestCase):
         self.assertEqual(br.pools[0].advance_count, 2)
         self.assertEqual(loaded.schedule[0].end_min, 40)
 
+    def test_division_markers_and_seed_choice_survive_a_round_trip(self):
+        t = sample_tournament()
+        t.divisions["div-xd"].custom = True
+        t.divisions["div-xd"].seed_method = "random"
+        t.divisions["div-xd"].seed_no = 11
+        with tempfile.TemporaryDirectory() as d:
+            repo = Repository(os.path.join(d, "tournament.json"))
+            repo.save(t)
+            loaded = repo.load()
+        div = loaded.divisions["div-xd"]
+        self.assertTrue(div.custom)
+        self.assertEqual((div.seed_method, div.seed_no), ("random", 11))
+        # An older document without the new keys still loads with the defaults.
+        self.assertFalse(loaded.divisions["div-xd"].team_type is not None)
+
+    def test_old_document_loads_with_default_markers(self):
+        import json
+        t = sample_tournament()
+        with tempfile.TemporaryDirectory() as d:
+            path = os.path.join(d, "old.json")
+            from tournament.model.codec import to_jsonable
+            payload = to_jsonable(t)
+            for div in payload["divisions"].values():
+                for key in ("custom", "seed_method", "seed_no"):
+                    div.pop(key, None)
+            with open(path, "w", encoding="utf-8") as fh:
+                json.dump(payload, fh)
+            loaded = Repository(path).load()
+        div = loaded.divisions["div-xd"]
+        self.assertFalse(div.custom)
+        self.assertEqual(div.seed_method, "ranking")
+        self.assertIsNone(div.seed_no)
+
     def test_missing_file_returns_empty_tournament(self):
         with tempfile.TemporaryDirectory() as d:
             repo = Repository(os.path.join(d, "nope.json"))
