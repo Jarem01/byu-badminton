@@ -4,6 +4,7 @@
     python -m tournament.cli import  --file roster.csv [--schema legacy] [--commit]
     python -m tournament.cli validate [--data data/tournament.json]
     python -m tournament.cli export  [--out site] [--data data/tournament.json]
+    python -m tournament.cli publish [--no-push] [--out site]
 """
 
 from __future__ import annotations
@@ -77,6 +78,18 @@ def cmd_export(args) -> int:
     return 0
 
 
+def cmd_publish(args) -> int:
+    """Refresh the public snapshot and commit it (and push, unless --no-push)."""
+    from .publish import publish_snapshot
+    if not Repository(args.data).exists():
+        print(f"No tournament at {args.data}")
+        return 1
+    report = publish_snapshot(args.data, args.out, push=not args.no_push)
+    print(f"Snapshot {report['generated']} written to {report['out']}")
+    print(f"{report['detail']}")
+    return 0 if report["ok"] else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="tournament")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -105,6 +118,14 @@ def build_parser() -> argparse.ArgumentParser:
     pe.add_argument("--out", default="site")
     pe.add_argument("--data", default=_DEFAULT_DATA)
     pe.set_defaults(func=cmd_export)
+
+    pp = sub.add_parser("publish",
+                        help="refresh the public snapshot and commit it (and push)")
+    pp.add_argument("--out", default="site")
+    pp.add_argument("--data", default=_DEFAULT_DATA)
+    pp.add_argument("--no-push", action="store_true",
+                    help="commit the refreshed snapshot but do not push")
+    pp.set_defaults(func=cmd_publish)
     return p
 
 

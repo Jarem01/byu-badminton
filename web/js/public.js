@@ -21,11 +21,16 @@ document.querySelectorAll("#viewtabs button").forEach(b => {
 });
 
 async function loadStatic() {
+  let data;
   try {
-    staticData = await (await fetch("static-data.json", { cache: "no-cache" })).json();
+    data = await (await fetch("static-data.json", { cache: "no-cache" })).json();
   } catch {
+    if (!staticData) document.getElementById("refresh").textContent = "snapshot unavailable";
     return false;
   }
+  // Republishing rewrites the file: only redraw when the snapshot changed.
+  if (staticData && data.generated === staticData.generated) return true;
+  staticData = data;
   snapshot = staticData.public || { divisions: [] };
   schedule = staticData.schedule || { blocks: [] };
   document.getElementById("tname").textContent = snapshot.name || "Tournament";
@@ -36,10 +41,8 @@ async function loadStatic() {
 }
 
 async function poll() {
-  if (snapshotOnly) {
-    if (!staticData && !(await loadStatic())) {
-      document.getElementById("refresh").textContent = "snapshot unavailable";
-    }
+  if (snapshotOnly) {          // a published page: look for a newer snapshot
+    await loadStatic();
     return;
   }
   try {
@@ -132,4 +135,5 @@ function render() {
 }
 
 poll();
-setInterval(() => { if (!snapshotOnly) poll(); }, 5000);
+// Live server: every 5s. Published snapshot: check for a redeploy every minute.
+setInterval(poll, snapshotOnly ? 60000 : 5000);
