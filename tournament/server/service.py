@@ -12,7 +12,7 @@ import random
 import threading
 from datetime import datetime, timezone
 
-from ..config import DEFAULT_SETTINGS, EVENT_LABELS
+from ..config import DEFAULT_SETTINGS, EVENT_CODES, EVENT_LABELS
 from ..engine import (
     bracket_double, bracket_groups, format_registry, team_build, tie,
 )
@@ -534,6 +534,57 @@ class TournamentService:
             if self._preview is None:
                 self._save()
             return {"ok": True, "audited": ov.ts}
+
+    def player_events(self, player_id: str, events: list[str]) -> dict:
+        """Set exactly which events a player is entered in.
+
+        This is how a spot nobody signed up for gets filled (add the event) or a
+        withdrawn entry stops taking a place (remove it). Removing an event the
+        player is already paired in is refused -- unpair them first, so no pair
+        is left pointing at an event its player is not in.
+        """
+        with self._lock:
+            t = self._active()
+            player = t.players.get(player_id)
+            if player is None:
+                raise ValueError("unknown player")
+            wanted: list[str] = []
+            for ev in events:
+                code = str(ev).strip().upper()
+                if not code or code in wanted:
+                    continue
+                if code not in EVENT_CODES:
+                    raise ValueError("unknown event %r" % code)
+                wanted.append(code)
+            wanted = [e for e in EVENT_CODES if e in wanted]   # roster order
+            before = list(player.events)
+            # A drawn bracket holds the entry list it was made from, so changing
+            # who is entered would leave it stale -- refuse like a pair change.
+            for ev in sorted(set(wanted) ^ set(before)):
+                drawn = [d for d in t.divisions.values()
+                         if d.event == ev and t.brackets.get(d.id)]
+                if drawn:
+                    raise Conflict(
+                        "a bracket has been drawn for %s — clear that division "
+                        "before changing who is entered" % ev)
+            for ev in [e for e in player.events if e not in wanted]:
+                if any(ev == pr.event and player.id in pr.player_ids
+                       for pr in t.pairs.values()):
+                    raise Conflict("%s is paired in %s — unpair them there first"
+                                   % (player.full, ev))
+            if before != wanted:
+                ov = apply_override(t, self.actor, "player:%s" % player.id,
+                                    "events", ", ".join(wanted),
+                                    "events edited by hand")
+                self.repo.append_audit(ov)
+                if self._preview is None:
+                    self._save()
+            added = [e for e in wanted if e not in before]
+            removed = [e for e in before if e not in wanted]
+            notes = (["added " + ", ".join(added)] if added else []) + \
+                    (["removed " + ", ".join(removed)] if removed else [])
+            return {"ok": True, "events": player.events, "notes": notes,
+                    "view": self.partnerships_view()}
 
     def _active(self):
         """The tournament to read/edit right now: the pending import preview if

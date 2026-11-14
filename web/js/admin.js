@@ -145,6 +145,8 @@ async function loadValidation() {
 }
 
 // --- players (inline overrides) --------------------------------------------
+const ALL_EVENTS = ["MS", "WS", "MD", "WD", "XD"];
+
 async function loadPlayers() {
   let data;
   try { data = await API.get("/api/players"); } catch { return; }
@@ -158,10 +160,26 @@ async function loadPlayers() {
       <td><select data-f="gender">${["M","F","U"].map(g =>
         `<option ${g === p.gender ? "selected" : ""}>${g}</option>`).join("")}</select></td>
       <td><input data-f="skill" type="number" min="1" max="9" value="${p.skill ?? ""}" style="width:60px"></td>
-      <td>${(p.events || []).join(", ")}</td>
+      <td class="ev-cell">${ALL_EVENTS.map(e => {
+        const on = (p.events || []).includes(e);
+        return `<button type="button" class="ev-chip${on ? " on" : ""}" data-ev="${e}" ` +
+          `title="${on ? "in " + e + " — click to take them out" : "not in " + e + " — click to add them"}">${e}</button>`;
+      }).join("")}</td>
       <td>${p.stub ? '<span class="badge stub">placeholder</span>' : ""}
           ${p.willing_random ? '<span class="pill">random ok</span>' : ""}</td>
       <td><input data-f="withdrawn" type="checkbox" ${p.withdrawn ? "checked" : ""}></td>`;
+    tr.querySelectorAll(".ev-chip").forEach(chip => {
+      chip.onclick = async () => {
+        const want = new Set(p.events || []);
+        want.has(chip.dataset.ev) ? want.delete(chip.dataset.ev) : want.add(chip.dataset.ev);
+        try {
+          const r = await API.post("/api/player/events",
+                                   { player: p.id, events: [...want] });
+          toast(`${p.name}: ${(r.notes || []).join(", ") || "events updated"}`);
+          loadPlayers(); loadPartnerships(); loadValidation();
+        } catch (e) { toast(e.message, true); }
+      };
+    });
     tr.querySelectorAll("[data-f]").forEach(el => {
       el.addEventListener("change", async () => {
         const field = el.dataset.f;

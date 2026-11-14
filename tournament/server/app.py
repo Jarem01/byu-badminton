@@ -168,6 +168,9 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(svc.override(
                     body["target"], body["field"], str(body.get("value", "")),
                     body.get("reason", "")))
+            if path == "/api/player/events":
+                return self._json(svc.player_events(
+                    body["player"], body.get("events", [])))
             if path == "/api/divisions/build":
                 return self._json(svc.build_divisions(body.get("rng_seed")))
             if path == "/api/pairs/set":

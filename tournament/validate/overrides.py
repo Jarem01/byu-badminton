@@ -65,5 +65,10 @@ def apply_override(t: Tournament, actor: str, target: str, field_name: str,
         player.is_stub = False
 
     ts = now or datetime.now(timezone.utc).isoformat()
+
+    def shown(v):
+        # an events list reads as "MD, XD" in the audit log, not as a Python repr
+        return ", ".join(v) if isinstance(v, (list, tuple)) else str(v)
+
     return Override(ts=ts, actor=actor, target=target, field_name=field_name,
-                    old_value=str(old), new_value=str(coerced), reason=reason)
+                    old_value=shown(old), new_value=shown(coerced), reason=reason)

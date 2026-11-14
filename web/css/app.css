@@ -352,3 +352,13 @@ table.partners select { width: 100%; }
   table.partners select { font-size: 12px; padding: 4px 5px; }
   .partner-buttons .btn { font-size: 11px; padding: 3px 6px; }
 }
+
+/* editable event codes in the players table */
+.ev-cell { white-space: normal; min-width: 108px; line-height: 1.5; }
+.ev-chip {
+  font: inherit; font-size: .7rem; line-height: 1; padding: 3px 5px; margin: 0 1px 1px 0;
+  border: 1px solid var(--line, #d6dbe1); border-radius: 6px; background: #fff;
+  color: #7b8794; cursor: pointer;
+}
+.ev-chip:hover { border-color: #8fa1b3; color: #2d3b4a; }
+.ev-chip.on { background: #e7f2ff; border-color: #7aa7d6; color: #1c4f86; font-weight: 600; }

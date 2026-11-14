@@ -139,6 +139,13 @@ Your `data/` folder is untouched by either command.
 2. Check the preview: adapter, counts, and the validation dashboard. Errors must
    be fixed; warnings are usually name/gender/skill mismatches.
 3. Fix gender, skill or "withdrawn" inline — each edit is logged with who/when.
+   The event codes on each row (MS WS MD WD XD) are buttons: click one to put a
+   player into that event — how you fill a spot nobody signed up for — and click
+   it again to take them out. Two guards apply, the same way pair changes are
+   refused: an event they are already paired in can't be removed until you
+   unpair them, and an event whose bracket is already drawn can't be changed at
+   all (clear that division first) — otherwise the draw would be left stale and
+   the new entry missing from it.
 4. Settle the **partnerships** (see below) while you are still on this screen.
 5. **Commit** to save. Nothing downstream exists until you do.
 
