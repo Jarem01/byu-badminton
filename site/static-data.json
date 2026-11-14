@@ -1,5 +1,5 @@
 {
- "generated": "2026-11-14 20:30 UTC",
+ "generated": "2026-11-14 21:24 UTC",
  "name": "BYU Badminton Tournament",
  "public": {
   "name": "BYU Badminton Tournament",
@@ -13,7 +13,7 @@
     },
     "exists": true,
     "finalized": true,
-    "version": 2,
+    "version": 1,
     "queue": {
      "ready": [
       {
@@ -707,7 +707,7 @@
     },
     "exists": true,
     "finalized": true,
-    "version": 4,
+    "version": 1,
     "queue": {
      "ready": [
       {
@@ -1131,7 +1131,7 @@
     },
     "exists": true,
     "finalized": true,
-    "version": 5,
+    "version": 1,
     "queue": {
      "ready": [
       {
@@ -3090,13 +3090,32 @@
   "pool_slot_min": 30,
   "ends": "1:00 AM",
   "duration_min": 660,
-  "match_count": 58,
+  "match_count": 59,
   "conflicts": [],
   "stale": false,
   "blocks": [
    {
-    "match_id": "div-xd-poolA-r1-m1",
+    "match_id": "div-xd-poolA-r1-m0",
     "court": "court-1",
+    "start": "2:00 PM",
+    "play_start": "2:05 PM",
+    "start_min": 0,
+    "division": "Mixed Doubles",
+    "round": "Pool A · Round 1",
+    "side1": {
+     "key": "pair:pair-middlebrook-hsiao",
+     "kind": "pair",
+     "label": "Sonny Middlebrook / Kaya Hsiao"
+    },
+    "side2": {
+     "key": "pair:pair-lee-shu",
+     "kind": "pair",
+     "label": "Grace Lee / Sean Shu"
+    }
+   },
+   {
+    "match_id": "div-xd-poolA-r1-m1",
+    "court": "court-2",
     "start": "2:00 PM",
     "play_start": "2:05 PM",
     "start_min": 0,
@@ -3115,7 +3134,7 @@
    },
    {
     "match_id": "div-xd-poolA-r1-m2",
-    "court": "court-2",
+    "court": "court-3",
     "start": "2:00 PM",
     "play_start": "2:05 PM",
     "start_min": 0,
@@ -3134,7 +3153,7 @@
    },
    {
     "match_id": "div-xd-poolA-r1-m3",
-    "court": "court-3",
+    "court": "court-4",
     "start": "2:00 PM",
     "play_start": "2:05 PM",
     "start_min": 0,
