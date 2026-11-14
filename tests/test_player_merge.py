@@ -442,3 +442,63 @@ class TestUndoMerge(unittest.TestCase):
 
         self.assertEqual(len(out["players"]), len(people))
         self.assertEqual(self.svc.repo.load().players, {})   # committed untouched
+
+
+class TestOneWordNames(unittest.TestCase):
+    """A name typed with no surname ("Zhihan") must still offer a merge against
+    the same person's fuller entry ("Zhi-Han Tsai")."""
+
+    def setUp(self):
+        self.d, self.svc = make_service()
+        self.t = self.svc.t
+
+    def tearDown(self):
+        self.d.cleanup()
+
+    def warnings(self):
+        return [i for i in self.svc.validation()["issues"]
+                if i["code"] == "similar_name"]
+
+    def test_a_hyphenated_name_matches_the_same_name_written_as_one_word(self):
+        add_player(self.t, "full", "Zhi-Han", "Tsai", "M", ["MD"], 7)
+        add_player(self.t, "short", "Zhihan", "", "M", ["XD"], 7)
+
+        issues = self.warnings()
+
+        self.assertEqual(len(issues), 1)
+        self.assertIn("Zhi-Han Tsai", issues[0]["message"])
+        self.assertIn("Zhihan", issues[0]["message"])
+        self.assertEqual(sorted(p["id"] for p in issues[0]["data"]["players"]),
+                         ["full", "short"])
+
+    def test_merging_the_pair_keeps_the_fuller_name_and_both_events(self):
+        add_player(self.t, "full", "Zhi-Han", "Tsai", "M", ["MD"], 7)
+        add_player(self.t, "short", "Zhihan", "", "M", ["XD"], 7)
+
+        out = self.svc.merge_players("full", "short")
+
+        self.assertNotIn("short", self.t.players)
+        self.assertEqual(self.t.players["full"].full, "Zhi-Han Tsai")
+        self.assertEqual(sorted(self.t.players["full"].events), ["MD", "XD"])
+        self.assertEqual([p["name"] for p in out["players"] if p["id"] == "full"],
+                         ["Zhi-Han Tsai"])
+
+    def test_a_first_name_alone_matches_the_full_name(self):
+        add_player(self.t, "full", "Vivek", "Kumar", "M", ["MD"], 8)
+        add_player(self.t, "short", "Vivek", "", "U", ["MD"], 8)
+
+        self.assertEqual(len(self.warnings()), 1)
+
+    def test_different_single_word_names_are_not_flagged(self):
+        add_player(self.t, "short", "Zhihan", "", "M", ["XD"], 7)
+        add_player(self.t, "other", "Vivek", "Kumar", "M", ["MD"], 8)
+
+        self.assertEqual(self.warnings(), [])
+
+    def test_a_near_miss_first_name_is_not_flagged(self):
+        # "Zhihan" and "Zhihao" are one letter apart but different people; with
+        # a surname on the other side they must stay apart.
+        add_player(self.t, "short", "Zhihan", "", "M", ["XD"], 7)
+        add_player(self.t, "other", "Zhihao", "Tsai", "M", ["MD"], 8)
+
+        self.assertEqual(self.warnings(), [])

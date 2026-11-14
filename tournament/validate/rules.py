@@ -53,6 +53,12 @@ def _ratio(a: str, b: str) -> float:
     return SequenceMatcher(None, a, b).ratio()
 
 
+def _squash(text: str) -> str:
+    """Letters only, so hyphenation and spacing stop splitting a name:
+    "Zhi-Han", "Zhi Han" and "Zhihan" all become "zhihan"."""
+    return "".join(ch for ch in text.lower() if ch.isalpha())
+
+
 def _near_name(a, b) -> bool:
     """Do two names look like the same person typed twice? "Amy Ngyun" and
     "Amy Nguyen" do; "Josh Lim" and "Josh Liu" do not."""
@@ -65,6 +71,13 @@ def _near_name(a, b) -> bool:
         # different person, so 0.7 with the same initial is a fair line.
         return (_ratio(af, bf) >= 0.8 and _ratio(al, bl) >= 0.7
                 and al[0] == bl[0])
+    # One side is a single word: just the first name, with no surname to
+    # compare. "Zhihan" and "Zhi-Han Tsai" (or "Vivek" and "Vivek Kumar") are
+    # then the same person, as long as the first names line up once the
+    # hyphen/spacing is dropped.
+    sa, sb = _squash(af), _squash(bf)
+    if sa and sb and _ratio(sa, sb) >= 0.9:
+        return True
     return _ratio(name_key(a.full), name_key(b.full)) >= 0.9
 
 

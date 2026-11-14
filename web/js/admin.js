@@ -168,14 +168,22 @@ function renderIssues(val) {
       const wrap = document.createElement("span");
       wrap.className = "issue-actions";
       const seen = people.map(p => people.filter(o => o.name === p.name).length);
-      people.forEach((p, i) => {
+      // The longest name is usually the fullest one ("Zhi-Han Tsai" over
+      // "Zhihan"), so keeping it is offered first and highlighted; any of the
+      // others can still be kept instead.
+      const order = people.map((_p, i) => i).sort((x, y) =>
+        people[y].name.length - people[x].name.length || x - y);
+      order.forEach((i, rank) => {
+        const p = people[i];
         const b = document.createElement("button");
-        b.className = "btn ghost merge-btn";
+        b.className = "btn merge-btn" + (rank ? " ghost" : "");
         // two entries with the same name would otherwise give identical buttons
         b.textContent = `Merge into ${p.name}` +
           (seen[i] > 1 ? ` (entry ${i + 1})` : "");
-        b.title = `Keep ${p.name} and fold the other ${people.length - 1} ` +
-                  `into them`;
+        b.title = rank
+          ? `Keep ${p.name} and fold the other ${people.length - 1} into them`
+          : `Keep ${p.name} (the fuller name — the default) and fold the ` +
+            `other ${people.length - 1} into them`;
         b.onclick = () => mergeInto(p, people);
         wrap.appendChild(b);
       });
