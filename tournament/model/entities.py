@@ -318,6 +318,9 @@ class PairChange:
     # partner named for an event they had not entered), so undo can take the
     # entry back off.
     added_events: list[list[str]] = field(default_factory=list)
+    # Placeholders this change paired by hand (their placeholder flag was
+    # cleared), so undo can mark them a placeholder again.
+    promoted: list[str] = field(default_factory=list)
 
 
 @dataclass(slots=True)

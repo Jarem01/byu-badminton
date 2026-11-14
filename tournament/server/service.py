@@ -974,6 +974,10 @@ class TournamentService:
             for pr in [pr for pr in t.pairs.values() if pr.event == event]:
                 del t.pairs[pr.id]
             earlier = [c for c in t.pair_changes if c.event == event]
+            # Anyone this change turned from a placeholder into a real entry is
+            # a placeholder again -- before the pairs are re-formed, so the
+            # automatic pairing leaves them out like it did before.
+            back = self._revert_promotions(t, undone)
             # A pairing may have put someone into an event they had not entered.
             # Undo takes that back too -- before the form answers are re-formed,
             # otherwise a random pair there would keep them in the event.
@@ -986,12 +990,19 @@ class TournamentService:
                 form_pairs_for_event(t, event, _id_factory(t),
                                      random.Random(0), GroupingResult())
                 note = "back to the form answers"
+            # Re-forming the pairs can quietly pick the person we just put back
+            # to placeholder (they are still on the event's entry list). They
+            # were not in a pair before the merge-in, so take those out.
+            for pid in undone.promoted:
+                for pr in [pr for pr in t.pairs.values()
+                           if pr.event == event and pid in pr.player_ids]:
+                    del t.pairs[pr.id]
             restored = [list(pr.player_ids) for pr in
                         sorted(t.pairs.values(), key=lambda x: x.id)
                         if pr.event == event]
             self._audit_pairs(event, current, restored, "undo — " + note, t)
             out = self._finish_pair_edit()
-            out["notes"] = [note] + dropped
+            out["notes"] = [note] + dropped + back
             return out
 
     def _revert_added_events(self, t, change) -> list[str]:
@@ -1010,6 +1021,22 @@ class TournamentService:
                         "undo of a pairing that added %s" % ev)
             dropped.append("removed %s from %s's events" % (ev, player.full))
         return dropped
+
+    def _revert_promotions(self, t, change) -> list[str]:
+        """Put the placeholder flag back on anyone a pairing made real, unless
+        they are still in a pair (then they really are playing)."""
+        back = []
+        for pid in change.promoted:
+            player = t.players.get(pid)
+            if player is None or player.is_stub:
+                continue
+            if any(pid in pr.player_ids for pr in t.pairs.values()):
+                continue
+            player.is_stub = True
+            self._audit(player, "placeholder", "no", "yes",
+                        "undo of a pairing that entered them")
+            back.append("%s is a placeholder again" % player.full)
+        return back
 
     def _require_pairs_editable(self) -> None:
         # While an import preview is open the edits land in the preview only, so
@@ -1098,8 +1125,10 @@ class TournamentService:
                     for i in pr.player_ids:
                         pair_of[i] = pr
             candidates = []
-            for p in sorted((p for p in t.players.values()
-                             if not p.withdrawn and not p.is_stub),
+            # A placeholder (someone named on another person's form) is a real
+            # person the organizer can pair; they are offered here too, just
+            # labelled, or a one-sided request can never be settled by hand.
+            for p in sorted((p for p in t.players.values() if not p.withdrawn),
                             key=lambda x: x.full):
                 pr = pair_of.get(p.id)
                 mate = ""
@@ -1109,7 +1138,7 @@ class TournamentService:
                 candidates.append({
                     "id": p.id, "name": p.full, "gender": p.gender,
                     "skill": p.skill, "entered": ev in p.events,
-                    "paired_with": mate})
+                    "paired_with": mate, "stub": p.is_stub})
             rows = [_partnership_row(t, ev, p, in_event, pair_of,
                                      _partner_for_event)
                     for p in in_event]
@@ -1151,10 +1180,19 @@ class TournamentService:
             for who in (p, q):
                 if who.withdrawn:
                     raise ValueError("%s has withdrawn" % who.full)
-                if who.is_stub:
-                    raise ValueError("%s is only a placeholder from someone "
-                                     "else's form" % who.full)
             notes = []
+            promoted = []
+            for who in (p, q):
+                if not who.is_stub:
+                    continue
+                # Paired by hand, so this placeholder is playing: drop the
+                # placeholder flag, or the build would leave them out of the
+                # division they were just put in.
+                who.is_stub = False
+                promoted.append(who.id)
+                notes.append("%s was a placeholder — now a real entry" % who.full)
+                self._audit(who, "placeholder", "yes", "no",
+                            "paired by hand for %s" % event)
             for pr in [pr for pr in t.pairs.values()
                        if pr.event == event
                        and set(pr.player_ids) & {p.id, q.id}]:
@@ -1178,7 +1216,7 @@ class TournamentService:
                         "paired by hand on the import page")
             self._record_pair_change(event, "manual", t=t,
                                      note=notes[0] if notes else "",
-                                     added_events=added)
+                                     added_events=added, promoted=promoted)
             return self._finish_partnership_edit(notes)
 
     def partnership_clear(self, event: str, player_id: str) -> dict:
@@ -1226,7 +1264,7 @@ class TournamentService:
             for pr in pairs)
 
     def _record_pair_change(self, event: str, kind: str, note: str = "",
-                            t=None, added_events=None) -> None:
+                            t=None, added_events=None, promoted=None) -> None:
         """Log one pair decision: a snapshot of the event's pairs after it (for
         undo) plus an append-only audit line with the before/after pairings.
         The registrations -- the form answers -- are never rewritten here."""
@@ -1237,7 +1275,8 @@ class TournamentService:
         t.pair_changes.append(PairChange(
             ts=datetime.now(timezone.utc).isoformat(), actor=self.actor,
             event=event, kind=kind, pairs=pairs, note=note,
-            added_events=[list(x) for x in (added_events or [])]))
+            added_events=[list(x) for x in (added_events or [])],
+            promoted=list(promoted or [])))
         self._audit_pairs(event, earlier[-1].pairs if earlier else [], pairs,
                           ("%s (%s)" % (note, kind)) if note else kind, t)
 

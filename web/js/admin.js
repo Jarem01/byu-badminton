@@ -320,7 +320,8 @@ function partnerRow(ev, r, locked) {
   const current = q ? q.id : "";
   const cands = (ev.candidates || []).filter(c => c.id !== p.id);
   const option = (c) => `<option value="${c.id}"${c.id === current ? " selected" : ""}>` +
-    `${c.name}${c.gender ? " (" + c.gender + ")" : ""}` +
+    `${c.name}${c.stub ? " (placeholder)" : ""}` +
+    `${c.gender ? " (" + c.gender + ")" : ""}` +
     `${c.skill != null ? " · " + c.skill : ""}` +
     `${c.paired_with && c.id !== current ? " — paired with " + c.paired_with : ""}</option>`;
   const group = (title, list) => list.length

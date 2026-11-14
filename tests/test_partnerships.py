@@ -164,11 +164,14 @@ class TestAssign(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.svc.partnership_assign("MD", "m0", "m0")
 
-    def test_a_placeholder_cannot_be_assigned(self):
+    def test_a_placeholder_can_be_assigned(self):
+        # A placeholder is a person named on someone else's form, so the
+        # organizer can pair them; doing so enters them for real.
         self.svc.t.players["stub"] = Player(id="stub", first="Ghost", last="Player",
                                             is_stub=True, events=["MD"])
-        with self.assertRaises(ValueError):
-            self.svc.partnership_assign("MD", "m0", "stub")
+        r = self.svc.partnership_assign("MD", "m0", "stub")
+        self.assertFalse(self.svc.t.players["stub"].is_stub)
+        self.assertEqual(row(r["view"], "MD", "m0")["partner"]["id"], "stub")
 
     def test_assign_rebuilds_divisions_that_already_exist(self):
         self.svc.build_divisions()
@@ -471,3 +474,64 @@ class TestPreviewEdits(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestPlaceholdersAsPartners(unittest.TestCase):
+    """A placeholder is somebody named on another person's form: a real person
+    the organizer can pair, so they must be in the partner list."""
+
+    def setUp(self):
+        self.d, self.svc = make_service()
+        roster(self.svc.t)
+        self.svc.t.players["stub"] = Player(id="stub", first="Vivek",
+                                            last="Rao", gender="U", skill=None,
+                                            events=["MD"], is_stub=True)
+
+    def tearDown(self):
+        self.d.cleanup()
+
+    def test_a_placeholder_is_offered_in_the_event_they_were_named_for(self):
+        md = event(self.svc.partnerships_view(), "MD")
+        cand = next(c for c in md["candidates"] if c["id"] == "stub")
+        self.assertTrue(cand["entered"])
+        self.assertTrue(cand["stub"])
+        self.assertEqual(cand["name"], "Vivek Rao")
+
+    def test_pairing_a_placeholder_works_and_makes_them_a_real_entry(self):
+        out = self.svc.partnership_assign("MD", "m2", "stub")
+
+        vivek = self.svc.t.players["stub"]
+        self.assertFalse(vivek.is_stub)
+        self.assertTrue(any(sorted(pr.player_ids) == ["m2", "stub"]
+                            for pr in self.svc.t.pairs.values()))
+        self.assertTrue(any("was a placeholder" in n for n in out["notes"]))
+        # they get their own row now, shown as paired
+        self.assertEqual(row(out["view"], "MD", "stub")["status"], "paired")
+        self.assertEqual(row(out["view"], "MD", "m2")["partner"]["id"], "stub")
+        # and the flag change is in the audit trail
+        log = self.svc.repo.read_audit()
+        self.assertEqual(
+            [(r["old_value"], r["new_value"]) for r in log
+             if r["target"] == "player:stub" and r["field_name"] == "placeholder"],
+            [("yes", "no")])
+
+    def test_the_placeholder_can_also_be_the_one_given_a_partner(self):
+        out = self.svc.partnership_assign("MD", "stub", "m3")
+
+        self.assertFalse(self.svc.t.players["stub"].is_stub)
+        self.assertEqual(row(out["view"], "MD", "stub")["partner"]["id"], "m3")
+
+    def test_undo_puts_the_placeholder_flag_back(self):
+        self.svc.partnership_assign("MD", "m2", "stub")
+        out = self.svc.pairs_undo("MD")
+
+        self.assertTrue(self.svc.t.players["stub"].is_stub)
+        self.assertFalse(any("stub" in pr.player_ids
+                             for pr in self.svc.t.pairs.values()))
+        self.assertTrue(any("placeholder again" in n for n in out["notes"]))
+
+    def test_a_withdrawn_placeholder_is_still_refused(self):
+        self.svc.t.players["stub"].withdrawn = True
+        with self.assertRaises(ValueError) as caught:
+            self.svc.partnership_assign("MD", "m2", "stub")
+        self.assertIn("withdrawn", str(caught.exception))
