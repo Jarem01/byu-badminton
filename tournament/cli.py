@@ -129,7 +129,28 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
+MIN_PYTHON = (3, 11)
+
+
+def python_problem(version_info=None) -> str | None:
+    """Explain a too-old interpreter instead of failing on a syntax error."""
+    info = version_info or sys.version_info
+    if tuple(info[:2]) >= MIN_PYTHON:
+        return None
+    have = ".".join(str(p) for p in info[:3])
+    need = ".".join(str(p) for p in MIN_PYTHON)
+    return (f"This needs Python {need} or newer; this is Python {have}.\n"
+            f"Install a newer Python (python.org, or `brew install python@3.12`\n"
+            f"on a Mac) and run the command again with it, e.g. `py -3.12 -m "
+            f"tournament.cli serve` on Windows or `python3.12 -m "
+            f"tournament.cli serve` on macOS/Linux.")
+
+
 def main(argv=None) -> int:
+    problem = python_problem()
+    if problem:
+        print(problem)
+        return 2
     args = build_parser().parse_args(argv)
     return args.func(args)
 

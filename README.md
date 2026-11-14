@@ -11,7 +11,7 @@ Two halves:
 
 | | Runs where | What it does |
 |---|---|---|
-| **Admin** | your laptop (`python -m tournament.cli serve`) | import, pairs, divisions, formats, seeding, brackets, results, schedule, exports |
+| **Admin** | your laptop (`python3 -m tournament.cli serve`) | import, pairs, divisions, formats, seeding, brackets, results, schedule, exports |
 | **Public display** | your laptop *and* GitHub Pages | read-only brackets, pool standings, champions, schedule |
 
 GitHub Pages can't run Python, so the admin is never published — only the
@@ -19,28 +19,114 @@ read-only view is. Everything below covers both.
 
 ---
 
-## 1. Get it running (a minute)
+## 1. Set it up (once, about five minutes)
+
+Nothing to install beyond Python — the app is standard library only, so there is
+no `pip install`, no virtualenv and no build step. It runs on your own computer
+and prints a web address you open in a browser.
+
+### What you need
+
+1. **Python 3.11 or newer.**
+2. **This repository on your computer** (a clone or a ZIP download).
+3. **Git** — only if you want to publish the public display from your machine.
+
+### Step 1 — Check your Python
+
+Open a terminal and run:
+
+| Your computer | Command |
+|---|---|
+| **Windows** | `py --version` (or `python --version`) |
+| **macOS / Linux** | `python3 --version` |
+
+You want **3.11** or higher. If you get a lower number, or "command not found":
+
+- **Windows:** install from <https://www.python.org/downloads/> and tick
+  *Add python.exe to PATH* in the installer.
+- **macOS:** `brew install python@3.12`, or the installer from python.org.
+- **Linux:** `sudo apt install python3` (Debian/Ubuntu) or your distro's package.
+
+No Python at all is fine to fix later, but the rest of this walkthrough assumes
+the command works.
+
+### Step 2 — Get the code onto your computer
+
+**Option A — with git (recommended**, because publishing updates later needs it):
 
 ```bash
-cd NEW
-python -m tournament.cli serve          # http://127.0.0.1:8765
+git clone https://github.com/Jarem01/byu-badminton.git
+cd byu-badminton
 ```
 
-Open:
+**Option B — no git:** open the repository page, click **Code → Download ZIP**,
+unzip it, and open a terminal inside the unzipped `byu-badminton` folder.
 
-- **Admin:** <http://127.0.0.1:8765/>
-- **Public display:** <http://127.0.0.1:8765/public> — put this on the second
-  monitor; it updates itself every 5 seconds as you work in the admin.
+Either way you should now be in the folder that contains `README.md`,
+`tournament/` and `web/`. Every command below is run from there — there is no
+`NEW` folder any more; that name was left over from the old layout.
 
-Other port (5000/5001 are deliberately avoided):
+### Step 3 — Start it
+
+| Your computer | Command |
+|---|---|
+| **Windows** | `py -m tournament.cli serve` |
+| **macOS / Linux** | `python3 -m tournament.cli serve` |
+
+You'll see:
+
+```
+BYU Badminton Tournament server on http://127.0.0.1:8765
+  Admin:  http://127.0.0.1:8765/
+  Public: http://127.0.0.1:8765/public
+Press Ctrl+C to stop.
+```
+
+Leave that terminal open — it *is* the app. `Ctrl+C` stops it.
+
+### Step 4 — Open the two pages
+
+- **Admin:** <http://127.0.0.1:8765/> — you run the tournament here.
+- **Public display:** <http://127.0.0.1:8765/public> — read-only brackets and
+  schedule for a second monitor; it refreshes itself every 5 seconds.
+
+### Step 5 — Load the roster
+
+On the admin page, **Import & Validate** → paste the published Google Form CSV
+URL (Form → Responses → ⋮ → *Get response CSV*, or *File → Share → Publish to
+web*), or pick the CSV file from your computer → check the validation list →
+**Commit**. From there, follow §2.
+
+A repo you just cloned starts empty: no players, no draws. That's expected.
+
+### Where your data lives
+
+Everything you enter is saved to **`data/tournament.json` inside the project
+folder**, created the first time you Commit:
+
+- Nothing is uploaded anywhere; the public page reads from the same process.
+- It is gitignored on purpose — it holds emails and phone numbers.
+- **Back it up** (copy the file) before the event, and to continue on another
+  computer just copy it into that checkout's `data/` folder.
+- `data/tournament.json.bak` is the previous version, kept before each generate.
+- `data/audit.log` records every correction you make to a registration.
+
+### Changing the port
+
+5000 and 5001 are deliberately avoided (they clash with other tools):
 
 ```bash
-python -m tournament.cli serve --port 8800     # or set BADMINTON_PORT
+python3 -m tournament.cli serve --port 8800    # or set BADMINTON_PORT
 ```
 
-State is one file, `data/tournament.json`. It is written atomically and a `.bak`
-copy of the previous version is kept before every generate, so a bad click is
-recoverable. Corrections are appended to `data/audit.log`.
+### Updating the code later
+
+```bash
+git pull                       # get the latest version
+python3 -m tournament.cli publish   # republish the public display
+```
+
+Your `data/` folder is untouched by either command.
 
 ---
 
@@ -131,7 +217,7 @@ After you change anything in the admin — a result, a new division, a finalized
 bracket — run:
 
 ```bash
-python -m tournament.cli publish
+python3 -m tournament.cli publish
 ```
 
 That exports the snapshot from `data/tournament.json`, commits **only** `site/`
@@ -143,9 +229,9 @@ date — nothing to publish* and makes no commit.
 Useful variants:
 
 ```bash
-python -m tournament.cli export --out site       # just rebuild the files
-python -m tournament.cli publish --no-push       # commit locally, push later
-python -m http.server 8000 --directory site      # preview the published page locally
+python3 -m tournament.cli export --out site       # just rebuild the files
+python3 -m tournament.cli publish --no-push       # commit locally, push later
+python3 -m http.server 8000 --directory site      # preview the published page locally
 ```
 
 If the push fails, the commit is still there — push it yourself and the site
@@ -163,13 +249,16 @@ has those.
 
 ## 4. Command reference
 
+Run these from the project folder. **On Windows type `py` where these say
+`python3`** (`py -m tournament.cli serve`).
+
 ```bash
-python -m tournament.cli serve    [--port 8765] [--data data/tournament.json] [--actor admin]
-python -m tournament.cli import   --file roster.csv [--schema auto|legacy|strict] [--commit]
-python -m tournament.cli import   --url "<published sheet csv>" [--commit]
-python -m tournament.cli validate [--data data/tournament.json]
-python -m tournament.cli export   [--out site]
-python -m tournament.cli publish  [--no-push] [--out site]
+python3 -m tournament.cli serve    [--port 8765] [--data data/tournament.json] [--actor admin]
+python3 -m tournament.cli import   --file roster.csv [--schema auto|legacy|strict] [--commit]
+python3 -m tournament.cli import   --url "<published sheet csv>" [--commit]
+python3 -m tournament.cli validate [--data data/tournament.json]
+python3 -m tournament.cli export   [--out site]
+python3 -m tournament.cli publish  [--no-push] [--out site]
 ```
 
 `import` without `--commit` is a preview: it prints the stats and validation
@@ -184,7 +273,9 @@ report and writes nothing.
 | `Address already in use` | another server is running; `--port 8800` or stop it |
 | Admin shows stale data | refresh the tab; the page loads state on open |
 | Public page says "reconnecting…" | the server stopped — restart `serve` |
-| Published page is old | run `python -m tournament.cli publish`; check the Actions tab |
+| Published page is old | run `python3 -m tournament.cli publish`; check the Actions tab |
+| `SyntaxError` on startup | your `python3`/`py` is older than 3.11 — install a newer one |
+| `python3: command not found` | Python isn't installed or not on PATH; see §1 Step 1 |
 | A generate went wrong | copy `data/tournament.json.bak` back over `data/tournament.json` |
 | Bracket finalized by mistake | Divisions → Unfinalize, then regenerate |
 
