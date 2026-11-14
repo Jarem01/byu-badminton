@@ -4,6 +4,8 @@ Issues, so rules are independently testable and easy to extend.
 
 from __future__ import annotations
 
+from difflib import SequenceMatcher
+
 from ..config import DOUBLES_EVENTS
 from ..engine.grouping import partner_confirmed
 from ..ingest.normalize import infer_gender_from_events, name_key
@@ -42,6 +44,30 @@ def check_gender(t: Tournament) -> list[Issue]:
     return out
 
 
+def _name_parts(p) -> tuple[str, str]:
+    bits = name_key(p.full).split()
+    return (bits[0], " ".join(bits[1:])) if bits else ("", "")
+
+
+def _ratio(a: str, b: str) -> float:
+    return SequenceMatcher(None, a, b).ratio()
+
+
+def _near_name(a, b) -> bool:
+    """Do two names look like the same person typed twice? "Amy Ngyun" and
+    "Amy Nguyen" do; "Josh Lim" and "Josh Liu" do not."""
+    af, al = _name_parts(a)
+    bf, bl = _name_parts(b)
+    if not af or not bf:
+        return False
+    if al and bl:
+        # "Ngyun" for "Nguyen" is 0.73; "Lim" for "Liu" is 0.67 and is a
+        # different person, so 0.7 with the same initial is a fair line.
+        return (_ratio(af, bf) >= 0.8 and _ratio(al, bl) >= 0.7
+                and al[0] == bl[0])
+    return _ratio(name_key(a.full), name_key(b.full)) >= 0.9
+
+
 def _people(t: Tournament, ids: list[str]) -> list[dict]:
     """The players a duplicate note is about, for the page's merge buttons."""
     return [{"id": i, "name": t.players[i].full,
@@ -72,6 +98,36 @@ def check_duplicates(t: Tournament) -> list[Issue]:
                              f"{t.players[ids[0]].full}.",
                              target=f"player:{ids[0]}",
                              data={"players": _people(t, ids)}))
+
+    # Nearly the same name: the typo'd second row that an exact match misses.
+    already = {frozenset(ids) for ids in by_email.values() if len(ids) > 1}
+    already |= {frozenset(ids) for ids in by_name.values() if len(ids) > 1}
+    # Placeholders count here: a partner typed as "Amy Ngyun" makes a stub, and
+    # matching it to the "Amy Nguyen" who registered is the whole point.
+    names = [p for p in sorted(t.players.values(), key=lambda x: x.id)]
+    grouped: set[str] = set()
+    for i, a in enumerate(names):
+        if a.id in grouped:
+            continue
+        near = [a]
+        for b in names[i + 1:]:
+            if b.id in grouped or name_key(a.full) == name_key(b.full):
+                continue            # identical names are the exact rule's job
+            if _near_name(a, b):
+                near.append(b)
+        if len(near) < 2:
+            continue
+        ids = [p.id for p in near]
+        if frozenset(ids) in already:
+            continue
+        grouped.update(ids)
+        listed = " and ".join(
+            f"'{p.full}'" + (" (placeholder)" if p.is_stub else "") for p in near)
+        out.append(Issue("warning", "similar_name",
+                         f"Possible duplicate registrations: {listed} — the "
+                         f"names look almost the same.",
+                         target=f"player:{ids[0]}",
+                         data={"players": _people(t, ids)}))
     return out
 
 

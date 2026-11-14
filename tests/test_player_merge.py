@@ -142,6 +142,81 @@ class TestMergePlayers(unittest.TestCase):
         self.assertEqual(len([pr for pr in again.t.pairs.values()
                               if "keep" in pr.player_ids]), 1)
 
+    def test_a_typo_name_still_gets_a_merge_warning(self):
+        add_player(self.t, "typo", "Amy", "Ngyun", "F", ["MD"], 7)
+
+        issues = [i for i in self.svc.validation()["issues"]
+                  if i["code"] == "similar_name"]
+
+        self.assertEqual(len(issues), 1)
+        self.assertIn("Amy Nguyen", issues[0]["message"])
+        self.assertIn("Amy Ngyun", issues[0]["message"])
+        ids = [p["id"] for p in issues[0]["data"]["players"]]
+        self.assertEqual(len(ids), 2)
+        self.assertIn("typo", ids)          # and an "Amy Nguyen" entry
+        self.assertIn("Nguyen", issues[0]["message"].replace("Ngyun", "Ngyun"))
+
+    def test_similarly_spelled_different_people_are_not_flagged(self):
+        add_player(self.t, "other", "Josh", "Liu", "M", ["MD"], 6)
+        add_player(self.t, "josh", "Josh", "Lim", "M", ["MD"], 6)
+
+        codes = [i["code"] for i in self.svc.validation()["issues"]]
+        self.assertNotIn("similar_name", codes)
+
+    def test_an_identical_name_is_reported_once_not_twice(self):
+        codes = [i["code"] for i in self.svc.validation()["issues"]]
+        self.assertIn("duplicate_email", codes)      # same email in the fixture
+        self.assertNotIn("similar_name", codes)
+
+    def test_a_placeholder_partner_is_offered_for_merging_too(self):
+        from tournament.model.entities import Player
+        self.t.players["stubm"] = Player(id="stubm", first="Betty", last="Wong",
+                                         gender="U", skill=None, events=[],
+                                         is_stub=True)
+        add_player(self.t, "betty", "Betty", "Wng", "F", ["WD"], 6)
+
+        issues = [i for i in self.svc.validation()["issues"]
+                  if i["code"] == "similar_name"]
+        mine = [i for i in issues if "Betty" in i["message"]]
+
+        self.assertEqual(len(mine), 1)
+        self.assertIn("(placeholder)", mine[0]["message"])
+        self.assertEqual(sorted(p["id"] for p in mine[0]["data"]["players"]),
+                         ["betty", "stubm"])
+
+    def test_a_surviving_placeholder_takes_the_real_players_facts(self):
+        from tournament.model.entities import Player
+        self.t.players["stub"] = Player(id="stub", first="Amy", last="Ngyun",
+                                        gender="U", skill=None, events=[],
+                                        is_stub=True)
+        add_player(self.t, "real", "Amy", "Nguyen", "F", ["MD", "XD"], 8)
+
+        out = self.svc.merge_players("stub", "real")
+
+        kept = self.t.players["stub"]
+        self.assertFalse(kept.is_stub)
+        self.assertEqual(kept.gender, "F")
+        self.assertEqual(kept.skill, 8)
+        self.assertEqual(kept.events, ["MD", "XD"])
+        self.assertIn("no longer a placeholder", " ".join(out["notes"]))
+        log = [r for r in self.svc.repo.read_audit() if r["target"] == "player:stub"]
+        fields = {r["field_name"]: (r["old_value"], r["new_value"]) for r in log}
+        self.assertEqual(fields["gender"], ("U", "F"))
+        self.assertEqual(fields["skill"], ("None", "8"))
+
+    def test_a_real_survivor_keeps_its_own_gender_and_skill(self):
+        from tournament.model.entities import Player
+        self.t.players["stub2"] = Player(id="stub2", first="Bo", last="Bee",
+                                         gender="U", skill=None, events=["MD"],
+                                         is_stub=True)
+        add_player(self.t, "real2", "Bo", "Bee", "M", ["MD"], 4)
+
+        self.svc.merge_players("real2", "stub2")
+
+        kept = self.t.players["real2"]
+        self.assertFalse(kept.is_stub)
+        self.assertEqual((kept.gender, kept.skill), ("M", 4))
+
     def test_duplicate_warnings_carry_the_players_for_the_buttons(self):
         val = self.svc.validation()
         dup = [i for i in val["issues"] if i["code"] == "duplicate_email"]

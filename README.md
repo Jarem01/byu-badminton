@@ -148,7 +148,11 @@ Your `data/` folder is untouched by either command.
    the new entry missing from it.
    **Merge a duplicate.** A `Possible duplicate registrations` or
    `Duplicate registration email` warning carries a **Merge into <name>**
-   button for each entry. Pressing it confirms, then folds that person into the
+   button for each entry. Near-miss names are caught as well, not just exact
+   ones: "Amy Ngyun" next to "Amy Nguyen" (or "Sunny" next to "Sonny") raises
+   the same warning, as does a placeholder partner typed with a typo. A
+   different surname that merely looks similar ("Josh Lim" / "Josh Liu") is
+   left alone. Pressing it confirms, then folds that person into the
    chosen survivor: their registration and partner requests, the pairs they are
    in (that partner stays with the survivor) and the events they entered all
    move across, and the duplicate is deleted. The merge is written to the audit
@@ -156,7 +160,9 @@ Your `data/` folder is untouched by either command.
    goes). It refuses when the two entries are paired with different partners in
    the same event (unpair one first) and when a bracket is already drawn for an
    event the merge touches (clear that division first), so no draw is left
-   pointing at a player who no longer exists.
+   pointing at a player who no longer exists. If the entry you keep is a
+   placeholder, it takes the real player's gender and skill and stops being a
+   placeholder.
 4. Settle the **partnerships** (see below) while you are still on this screen.
 5. **Commit** to save. Nothing downstream exists until you do.
 

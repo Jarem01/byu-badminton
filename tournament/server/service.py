@@ -632,6 +632,21 @@ class TournamentService:
             keep.events.sort(key=lambda e: EVENT_CODES.index(e)
                              if e in EVENT_CODES else len(EVENT_CODES))
 
+            # A placeholder that survives takes the real player's own facts and
+            # stops being a placeholder.
+            if keep.is_stub and not drop.is_stub:
+                if drop.gender != "U" and keep.gender != drop.gender:
+                    self._audit(keep, "gender", keep.gender, drop.gender,
+                                "taken from the duplicate when merging")
+                    keep.gender = drop.gender
+                if drop.skill is not None and keep.skill != drop.skill:
+                    self._audit(keep, "skill", str(keep.skill), str(drop.skill),
+                                "taken from the duplicate when merging")
+                    keep.skill = drop.skill
+                keep.is_stub = False
+                notes.append("no longer a placeholder — took their gender (%s) "
+                             "and skill (%s)" % (keep.gender, keep.skill))
+
             # registrations: keep one per player, with every partner request on it
             mine = next((r for r in t.registrations if r.player_id == keep.id), None)
             theirs = [r for r in t.registrations if r.player_id == drop.id]
