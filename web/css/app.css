@@ -318,19 +318,37 @@ tr:hover td { background: #f7fafd; }
 /* Pairs editor */
 .partner-event { margin: 16px 0 8px; }
 .partner-event:first-child { margin-top: 6px; }
-.partner-head { display: flex; gap: 10px; align-items: baseline; margin-bottom: 4px; }
-.partner-scroll { max-height: 430px; overflow: auto; }
-table.partners { min-width: 900px; }
-table.partners td, table.partners th { vertical-align: top; white-space: nowrap; }
-table.partners th:nth-child(7), table.partners td.status-cell { width: 220px; white-space: normal; }
-table.partners select { min-width: 205px; max-width: 300px; }
-.partner-note { color: var(--muted); font-size: 12px; margin-top: 2px; max-width: 300px; }
-
-.pair-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 4px 0; }
-.pair-row select { min-width: 185px; }
-.pair-row.locked select { opacity: .72; }
-.pair-x { color: var(--muted); font-weight: 700; }
+.partner-head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap;
+  margin-bottom: 4px; }
+.partner-actions { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+.partner-actions input { width: 64px; }
+.partner-scroll { max-height: 430px; overflow-y: auto; overflow-x: hidden; }
+/* Fixed layout + percentage columns: the table always fits its card at any
+   window width, so the status column wraps instead of being pushed out of
+   view (or forcing a sideways scroll). */
+table.partners { table-layout: fixed; width: 100%; }
+table.partners th, table.partners td { padding: 6px; vertical-align: top;
+  white-space: normal; overflow-wrap: break-word; }
+table.partners th:nth-child(1) { width: 17%; }
+table.partners th:nth-child(2) { width: 34px; text-align: center; }
+table.partners th:nth-child(3) { width: 46px; text-align: center; }
+table.partners th:nth-child(4) { width: 17%; }
+table.partners th:nth-child(5) { width: 34px; text-align: center; }
+table.partners th:nth-child(6) { width: 46px; text-align: center; }
+table.partners th:nth-child(7) { width: 28%; }
+table.partners th:nth-child(8) { width: 20%; }
+table.partners td:nth-child(2), table.partners td:nth-child(3),
+table.partners td:nth-child(5), table.partners td:nth-child(6) { text-align: center; }
+table.partners select { width: 100%; }
+.partner-buttons { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.partner-buttons .btn { padding: 4px 8px; font-size: 12px; white-space: nowrap; }
+.partner-note { color: var(--muted); font-size: 12px; margin-top: 2px; }
 .pair-issue { color: var(--warn); font-size: 12.5px; }
-.pair-unpaired { margin-top: 10px; font-size: 13.5px; }
-.pair-chip { display: inline-block; background: #eef4fb; border: 1px solid var(--line);
-  border-radius: 12px; padding: 2px 9px; margin: 3px 4px 0 0; font-size: 13px; }
+/* In a narrow window the same columns get less room: shrink the type a little
+   so names and the status column still read instead of breaking mid-word. */
+@media (max-width: 820px) {
+  table.partners { font-size: 12px; }
+  table.partners th, table.partners td { padding: 5px 4px; }
+  table.partners select { font-size: 12px; padding: 4px 5px; }
+  .partner-buttons .btn { font-size: 11px; padding: 3px 6px; }
+}

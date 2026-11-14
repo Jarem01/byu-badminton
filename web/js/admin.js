@@ -8,7 +8,7 @@ document.querySelectorAll(".tabs button").forEach(b => {
     document.querySelectorAll(".tab-panel").forEach(x => x.classList.remove("active"));
     b.classList.add("active");
     document.getElementById("tab-" + b.dataset.tab).classList.add("active");
-    if (b.dataset.tab === "draw") { loadDivisions(); loadPairs(); loadPlanWindow(); }
+    if (b.dataset.tab === "draw") { loadDivisions(); loadPlanWindow(); }
     if (b.dataset.tab === "manage") { manageView === "board" ? loadBoard() : loadManagerDivisions(); }
     if (b.dataset.tab === "schedule") { loadBestDates(); loadSchedule(); }
     if (b.dataset.tab === "settings") loadSettings();
@@ -217,16 +217,24 @@ function renderPartnerships() {
       "Gender and skill come from the roster — fix those in Players above.";
   box.innerHTML = partnerView.events.map(ev => {
     const head = `<div class="partner-head"><b>${ev.label}</b> <span class="muted">` +
-      `${ev.players} players · ${ev.paired} pair(s) · ${ev.open} without a partner</span></div>`;
+      `${ev.players} players · ${ev.paired} pair(s) · ${ev.open} without a partner</span>` +
+      `<span class="partner-actions">` +
+      `<label class="inline" title="Same number reproduces the same shuffle">Shuffle ` +
+      `<input type="number" value="1" data-seed="${ev.event}" style="width:64px" ${locked ? "disabled" : ""}></label>` +
+      `<button class="btn secondary" data-shuffle="${ev.event}" ${locked ? "disabled" : ""}>Shuffle this event</button>` +
+      `<button class="btn secondary" data-repair="${ev.event}" ${locked ? "disabled" : ""}>Re-pair from forms</button>` +
+      `</span></div>`;
     const rows = ev.rows.map(r => partnerRow(ev, r, locked)).join("");
     return `<div class="partner-event">${head}<div class="partner-scroll">` +
       `<table class="partners"><thead><tr><th>Name</th><th>G</th><th>Skill</th>` +
       `<th>Partner</th><th>G</th><th>Skill</th><th>Status</th>` +
-      `<th>Set partner</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+      `<th>Set partner</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
   }).join("");
   box.querySelectorAll("select[data-player]").forEach(s => { s.onchange = onPartnerPick; });
   box.querySelectorAll("button[data-clear]").forEach(b => { b.onclick = onPartnerClear; });
   box.querySelectorAll("button[data-confirm]").forEach(b => { b.onclick = onPartnerConfirm; });
+  box.querySelectorAll("button[data-shuffle]").forEach(b => { b.onclick = onPartnerShuffle; });
+  box.querySelectorAll("button[data-repair]").forEach(b => { b.onclick = onPartnerRepair; });
 }
 
 function partnerRow(ev, r, locked) {
@@ -264,8 +272,9 @@ function partnerRow(ev, r, locked) {
     `<td>${q ? (q.gender || "?") : ""}</td>` +
     `<td>${q && q.skill != null ? q.skill : ""}</td>` +
     `<td class="status-cell"><span class="badge ${cls}">${label}</span>${issue}${note}</td>` +
-    `<td><select data-ev="${ev.event}" data-player="${p.id}" ${locked ? "disabled" : ""}>${opts}</select></td>` +
-    `<td>${confirm}${clear}</td>` +
+    `<td class="partner-pick">` +
+      `<select data-ev="${ev.event}" data-player="${p.id}" ${locked ? "disabled" : ""}>${opts}</select>` +
+      `${confirm || clear ? `<div class="partner-buttons">${confirm}${clear}</div>` : ""}</td>` +
     `</tr>`;
 }
 
@@ -298,6 +307,37 @@ async function onPartnerConfirm(e) {
   if (r) toast("Partnership confirmed");
 }
 
+async function onPartnerShuffle(e) {
+  const b = e.target;
+  const ev = b.dataset.shuffle;
+  const seedEl = document.querySelector(`input[data-seed="${ev}"]`);
+  const seed = seedEl ? parseInt(seedEl.value, 10) : 1;
+  try {
+    const r = await API.post("/api/pairs/shuffle",
+      { event: ev, rng_seed: isNaN(seed) ? null : seed });
+    await loadPartnerships();
+    loadValidation();
+    if (r.rebuilt) loadDivisions();
+    toast(`${ev} shuffled`);
+  } catch (err) { toast(err.message, true); }
+}
+
+async function onPartnerRepair(e) {
+  const b = e.target;
+  const ev = b.dataset.repair;
+  const seedEl = document.querySelector(`input[data-seed="${ev}"]`);
+  const seed = seedEl ? parseInt(seedEl.value, 10) : 1;
+  try {
+    const r = await API.post("/api/pairs/auto",
+      { event: ev, rng_seed: isNaN(seed) ? null : seed });
+    await loadPartnerships();
+    loadValidation();
+    if (r.rebuilt) loadDivisions();
+    const made = (r.auto_paired || []).length;
+    toast(made ? `${ev} re-paired (${made} auto pair(s))` : `${ev} re-paired from forms`);
+  } catch (err) { toast(err.message, true); }
+}
+
 async function onPartnerClear(e) {
   const b = e.target;
   const r = await savePartnership("/api/partnership/clear",
@@ -317,130 +357,7 @@ document.getElementById("btn-build").onclick = async () => {
       (r.unpaired.length ? `<br><b>Unpaired (need attention):</b> ${r.unpaired.join(", ")}` : "");
     toast("Divisions built");
     loadDivisions();
-    loadPairs();
     loadPartnerships();
-  } catch (e) { toast(e.message, true); }
-};
-
-// --- pairs editor: see who is paired with whom, and rearrange ----------------
-let pairView = null;
-let pairEvent = null;
-
-async function loadPairs() {
-  try { pairView = await API.get("/api/pairs"); } catch { pairView = null; return; }
-  const sel = document.getElementById("pairs-event");
-  const events = (pairView.events || []).map(e => e.event);
-  if (!pairEvent || !events.includes(pairEvent)) pairEvent = events[0] || null;
-  sel.innerHTML = (pairView.events || []).map(e =>
-    `<option value="${e.event}"${e.event === pairEvent ? " selected" : ""}>` +
-    `${e.event} — ${e.players} players</option>`).join("");
-  sel.disabled = !pairView.editable;
-  renderPairs();
-}
-
-function currentPairEvent() {
-  if (!pairView) return null;
-  return (pairView.events || []).find(e => e.event === pairEvent) || null;
-}
-
-function renderPairs() {
-  const body = document.getElementById("pairs-body");
-  const note = document.getElementById("pairs-note");
-  const meta = document.getElementById("pairs-meta");
-  const ev = currentPairEvent();
-  if (!ev) {
-    body.innerHTML = pairView && pairView.reason
-      ? `<p class="muted">${pairView.reason}</p>`
-      : '<p class="muted">No doubles entries yet — import players first.</p>';
-    note.textContent = "";
-    meta.textContent = "";
-    return;
-  }
-  const locked = !pairView.editable;
-  meta.textContent = `${ev.pairs.length} pair(s) · ${ev.unpaired.length} unpaired`;
-  note.textContent = locked ? pairView.reason
-    : "Pick a name to move that player into the slot; whoever was there swaps. " +
-      "Set a slot to “—” to leave someone unpaired. Divisions are rebuilt from these pairs.";
-  const everyone = ev.pairs.flatMap(p => p.players).concat(ev.unpaired);
-  const options = (chosen) => ['<option value="">—</option>'].concat(
-    everyone.map(p => `<option value="${p.id}"${p.id === chosen ? " selected" : ""}>` +
-      `${p.name}${p.gender ? " (" + p.gender + ")" : ""}</option>`)).join("");
-  let html = "";
-  ev.pairs.forEach((p, i) => {
-    const a = p.players[0] || {}, b = p.players[1] || {};
-    html += `<div class="pair-row${locked ? " locked" : ""}">` +
-      `<select data-pair="${i}" data-slot="0" ${locked ? "disabled" : ""}>${options(a.id)}</select>` +
-      `<span class="pair-x">+</span>` +
-      `<select data-pair="${i}" data-slot="1" ${locked ? "disabled" : ""}>${options(b.id)}</select>` +
-      (p.issue ? `<span class="pair-issue">${p.issue}</span>` : "") +
-      `</div>`;
-  });
-  if (ev.unpaired.length) {
-    html += `<div class="pair-unpaired"><b>Unpaired</b> ` +
-      ev.unpaired.map(u => `<span class="pair-chip"` +
-        (u.why ? ` title="${u.why}"` : "") + `>${u.name}</span>`).join(" ") + `</div>`;
-  }
-  body.innerHTML = html;
-  body.querySelectorAll("select").forEach(s => { s.onchange = onPairChange; });
-}
-
-async function onPairChange(evt) {
-  const el = evt.target;
-  const pi = parseInt(el.dataset.pair, 10), si = parseInt(el.dataset.slot, 10);
-  const ev = currentPairEvent();
-  const groups = ev.pairs.map(p => (p.players || []).map(x => x.id));
-  const value = el.value || null;
-  let from = null;
-  groups.forEach((g, i) => g.forEach((pid, s) => {
-    if (value && pid === value) from = { i, s };
-  }));
-  const previous = groups[pi][si] || null;
-  groups[pi][si] = value;
-  if (from && !(from.i === pi && from.s === si)) groups[from.i][from.s] = previous;
-  await savePairs(groups);
-}
-
-async function savePairs(groups) {
-  try {
-    const r = await API.post("/api/pairs/set", { event: pairEvent, groups });
-    pairView = r.view;
-    renderPairs();
-    loadPartnerships();          // the table shows the same pairings
-    if (r.rebuilt) { loadDivisions(); toast("Pairs saved — divisions rebuilt"); }
-    else toast("Pairs saved");
-  } catch (e) { toast(e.message, true); loadPairs(); }
-}
-
-document.getElementById("pairs-event").onchange = (e) => {
-  pairEvent = e.target.value;
-  renderPairs();
-};
-document.getElementById("pairs-shuffle").onclick = async () => {
-  if (!pairEvent) return;
-  const seed = parseInt(document.getElementById("pairs-seed").value, 10);
-  try {
-    const r = await API.post("/api/pairs/shuffle",
-      { event: pairEvent, rng_seed: isNaN(seed) ? null : seed });
-    pairView = r.view;
-    renderPairs();
-    loadPartnerships();
-    if (r.rebuilt) loadDivisions();
-    toast(`${pairEvent} shuffled`);
-  } catch (e) { toast(e.message, true); }
-};
-document.getElementById("pairs-auto").onclick = async () => {
-  if (!pairEvent) return;
-  const seed = parseInt(document.getElementById("pairs-seed").value, 10);
-  try {
-    const r = await API.post("/api/pairs/auto",
-      { event: pairEvent, rng_seed: isNaN(seed) ? null : seed });
-    pairView = r.view;
-    renderPairs();
-    loadPartnerships();
-    if (r.rebuilt) loadDivisions();
-    const made = (r.auto_paired || []).length;
-    toast(made ? `${pairEvent} re-paired (${made} new auto pair(s))`
-               : `${pairEvent} re-paired from registrations`);
   } catch (e) { toast(e.message, true); }
 };
 
@@ -1088,7 +1005,7 @@ async function clearStage(stage, msg) {
   try {
     await API.post("/api/clear", { stage });
     toast("Cleared");
-    refreshAll(); loadDivisions(); loadPairs(); loadManagerDivisions(); loadSchedule();
+    refreshAll(); loadDivisions(); loadManagerDivisions(); loadSchedule();
   } catch (e) { toast(e.message, true); }
 }
 document.getElementById("btn-clear-import").onclick = () =>

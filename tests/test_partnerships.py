@@ -206,6 +206,62 @@ class TestClear(unittest.TestCase):
         self.assertEqual(row(r["view"], "MD", "m1")["status"], "open")
 
 
+class TestOnePairEditor(unittest.TestCase):
+    """Both pair views read one dataset: any write keeps the roster pairs and
+    the registrations in step, so the table and the pair list cannot disagree."""
+
+    def setUp(self):
+        self.d, self.svc = make_service()
+        roster(self.svc.t)
+
+    def tearDown(self):
+        self.d.cleanup()
+
+    def assert_views_agree(self, code):
+        pairs = event(self.svc.pairs_view(), code)
+        part = event(self.svc.partnerships_view(), code)
+        from_pairs = sorted(tuple(sorted(p["players"][i]["id"] for i in (0, 1)))
+                            for p in pairs["pairs"])
+        from_table = sorted({tuple(sorted((r["player"]["id"], r["partner"]["id"])))
+                             for r in part["rows"] if r["status"] == "paired"})
+        self.assertEqual(from_pairs, from_table)
+        self.assertEqual(sorted(p["id"] for p in pairs["unpaired"]),
+                         sorted(r["player"]["id"] for r in part["rows"]
+                                if r["status"] != "paired"))
+
+    def test_setting_pairs_records_them_both_ways(self):
+        self.svc.pairs_set("MD", [["m0", "m1"]])
+        view = self.svc.partnerships_view()
+        self.assertEqual(row(view, "MD", "m0")["status"], "paired")
+        self.assertEqual(row(view, "MD", "m2")["status"], "open")
+        self.assertNotIn("waiting", {r["status"] for r in event(view, "MD")["rows"]})
+        self.assert_views_agree("MD")
+
+    def test_a_shuffle_does_not_leave_a_stale_request_behind(self):
+        asks(self.svc.t, "m0", "m1", "MD")      # will not survive the shuffle
+        self.svc.pairs_shuffle("MD", 3)
+        view = self.svc.partnerships_view()
+        self.assertNotIn("waiting", {r["status"] for r in event(view, "MD")["rows"]})
+        self.assertEqual(event(view, "MD")["paired"], 1)   # the three men
+        self.assert_views_agree("MD")
+
+    def test_re_pair_from_forms_matches_what_the_table_shows(self):
+        asks(self.svc.t, "m0", "m1", "MD")
+        asks(self.svc.t, "m1", "m0", "MD")
+        self.svc.pairs_auto("MD")
+        view = self.svc.partnerships_view()
+        self.assertEqual(row(view, "MD", "m0")["partner"]["id"], "m1")
+        self.assertEqual(row(view, "MD", "m0")["status"], "paired")
+        self.assert_views_agree("MD")
+
+    def test_unpairing_in_the_table_is_visible_to_the_pair_list(self):
+        self.svc.partnership_assign("MD", "m0", "m1")
+        self.svc.partnership_clear("MD", "m0")
+        pairs = event(self.svc.pairs_view(), "MD")
+        self.assertEqual(pairs["pairs"], [])
+        self.assert_views_agree("MD")
+
+
 class TestPreviewEdits(unittest.TestCase):
     def test_partnership_edits_work_on_an_open_import_preview(self):
         d, svc = make_service()

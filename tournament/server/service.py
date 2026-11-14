@@ -653,6 +653,7 @@ class TournamentService:
             res = GroupingResult()
             form_pairs_for_event(self.t, event, _id_factory(self.t),
                                  random.Random(rng_seed or 0), res)
+            self._sync_hints(event)
             out = self._finish_pair_edit()
             out["auto_paired"] = res.auto_paired
             return out
@@ -691,6 +692,7 @@ class TournamentService:
             pid = ids.make("pair", players[a].last or a, players[b].last or b)
             self.t.pairs[pid] = Pair(id=pid, player_ids=[a, b], event=event,
                                      origin="manual")
+        self._sync_hints(event)
 
     def _finish_pair_edit(self) -> dict:
         """Persist a pair change, rebuilding any divisions that used the old
@@ -856,6 +858,32 @@ class TournamentService:
                                 _name if who != p.id else "", "",
                                 "partnership cleared on the import page")
             return self._finish_partnership_edit(notes)
+
+    def _sync_hints(self, event: str) -> None:
+        """Make the registrations tell the same story as the pairs on the roster.
+
+        Every write path (the partnerships table, the pair list, a shuffle, a
+        re-pair) ends here, so a pair on the roster is always also recorded as a
+        mutual partner request, and a player left off is recorded as having no
+        request in that event. Without this the two views could disagree -- a
+        player still shown as "waiting on" someone they are not with.
+        """
+        t = self.t
+        entered = [p for p in t.players.values()
+                   if event in p.events and not p.withdrawn and not p.is_stub]
+        paired: set[str] = set()
+        for pr in sorted(t.pairs.values(), key=lambda x: x.id):
+            if pr.event != event or len(pr.player_ids) != 2:
+                continue
+            a, b = pr.player_ids
+            if a not in t.players or b not in t.players:
+                continue
+            self._set_partner_hint(t, a, event, b)
+            self._set_partner_hint(t, b, event, a)
+            paired.update([a, b])
+        for p in entered:
+            if p.id not in paired:
+                self._drop_hints(t, p.id, event)
 
     def _drop_hints(self, t, player_id: str, event: str,
                     targets: set[str] | None = None) -> None:
