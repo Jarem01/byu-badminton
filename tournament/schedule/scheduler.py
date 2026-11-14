@@ -150,6 +150,26 @@ def generate_schedule(t: Tournament, settings: Settings,
             if mid in feeders:
                 feeders[mid].extend(pool_ids)
 
+    # A pool's rounds run in order: round 2 of a pool waits for that pool's round
+    # 1, so "Round 1/2/3" mean what they say and every pool works through the
+    # same round together instead of one pool racing three rounds ahead while
+    # another hasn't started. Pools still run side by side; this only orders a
+    # pool against itself.
+    for div_id in division_ids:
+        br = t.brackets.get(div_id)
+        if not br:
+            continue
+        prev_of_pool: dict[str, list[str]] = {}
+        for rnd in br.rounds:
+            if rnd.bracket_part != "pool" or not rnd.match_ids:
+                continue
+            pool_id = br.matches[rnd.match_ids[0]].pool_id
+            prev = prev_of_pool.get(pool_id, [])
+            for mid in rnd.match_ids:
+                if mid in feeders:
+                    feeders[mid].extend(prev)
+            prev_of_pool[pool_id] = [m for m in rnd.match_ids if m in feeders]
+
     # Round ordinal within each pool, so the scheduler interleaves pools by round
     # (round 1 of every pool runs together, then round 2, ...). This spreads a
     # player's own pool matches across time and fills courts with other pools'
@@ -168,10 +188,21 @@ def generate_schedule(t: Tournament, settings: Settings,
             for mid in rnd.match_ids:
                 pool_round_ord[mid] = per_pool[pool_id]
 
+    # The organizer's run order: divisions earlier in the list are placed first,
+    # so their events claim the courts and finish first. Ties (every division at
+    # the default sort_no) keep the old stable event order.
+    ranked = sorted(enumerate(t.divisions),
+                    key=lambda p: (t.divisions[p[1]].sort_no, p[0]))
+    div_rank = {did: rank for rank, (_, did) in enumerate(ranked)}
+
     depth = _depths(matches, feeders)
+    # Run order first, so an event placed earlier in the order claims the courts
+    # and finishes before the next event starts in earnest; depth still orders a
+    # division against itself (round 2 after round 1, final last).
     order = sorted(matches.values(),
-                   key=lambda m: (depth[m.id], pool_round_ord.get(m.id, 0),
-                                  m.division_id, m.seq))
+                   key=lambda m: (div_rank.get(m.division_id, len(div_rank)),
+                                  depth[m.id], pool_round_ord.get(m.id, 0),
+                                  m.seq))
 
     def timing_for(m: Match):
         # Team rubbers use FULL timing unless the team format is 'quick' -- the
@@ -180,9 +211,14 @@ def generate_schedule(t: Tournament, settings: Settings,
             return settings.pool_timing
         if m.id in team_full_ids:
             return settings.timing
-        # Short timed single games ONLY for a standalone round-robin division;
-        # group_knockout pools (and all knockouts) play full best-of-N matches.
-        if fmt_by_match.get(m.id) == "round_robin":
+        # Pool/round-robin play is a short single timed game (settings.
+        # pool_timing) -- for a standalone league AND for the group stage of
+        # group_knockout, which is the same kind of match. Knockout matches
+        # always play full best-of-N. Organizers who want full-length pools
+        # turn pool_single_game off.
+        is_pool = (m.bracket_part == "pool"
+                   or fmt_by_match.get(m.id) == "round_robin")
+        if is_pool and settings.pool_single_game:
             return settings.pool_timing
         return settings.timing
 
@@ -194,9 +230,15 @@ def generate_schedule(t: Tournament, settings: Settings,
         return int(c.id.rsplit("-", 1)[1])
     center = set(center_court_numbers(settings, [court_num(c) for c in courts]))
     center_courts = [c for c in courts if court_num(c) in center]
+    side_courts = [c for c in courts if court_num(c) not in center]
 
     def courts_for(m: Match):
-        return center_courts if (knockout_of.get(m.id) and center_courts) else courts
+        if knockout_of.get(m.id) and center_courts:
+            return center_courts
+        # Pool play may use any court, so keep it off the center courts where
+        # possible: a pool game parked on a center court delays the knockout
+        # that can only be played there.
+        return side_courts + center_courts
 
     court_intervals: dict[str, list[tuple[int, int]]] = {c.id: [] for c in courts}
     player_windows: dict[str, list[tuple[int, int]]] = {}

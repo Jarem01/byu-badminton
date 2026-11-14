@@ -195,6 +195,9 @@ class Handler(BaseHTTPRequestHandler):
                     body["event"], body["player"]))
             if path == "/api/division/format":
                 return self._json(svc.set_format(body["division"], body["format"]))
+            if path == "/api/division/move":
+                return self._json(svc.move_division(body["division"],
+                                                    int(body.get("delta", 0))))
             if path == "/api/division/seed":
                 return self._json(svc.set_seed_choice(
                     body["division"], body.get("method", "ranking"),

@@ -28,6 +28,14 @@
 .seg-heading { margin: 14px 0 4px; font-size: 12px; font-weight: 700;
   color: var(--royal); text-transform: uppercase; letter-spacing: .08em;
   font-family: var(--sans); }
+.seg-note { font-size: 12px; color: var(--muted); margin: 0 0 6px; }
+/* Multi-pool stage: one column per pool with its rounds stacked in order, so the
+   pools read as running side by side rather than as a queue of rounds. */
+.pool-col { justify-content: flex-start; }
+.pool-col .match { margin-bottom: 6px; }
+.round-cap { font-size: 10.5px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .06em; margin: 12px 0 5px; }
+.round-cap:first-of-type { margin-top: 0; }
 .match .side:last-child { border-bottom: 0; }
 .match .side { align-items: center; }
 /* Names may wrap; score boxes must NOT wrap and stay centred beside the name. */

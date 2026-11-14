@@ -19,7 +19,7 @@ from ..engine import (
 from ..engine.advancement import champion, record_result, unpropagate
 from ..engine.grouping import build_divisions
 from ..engine.seeding import seed_entries
-from ..engine.standings import all_standings
+from ..engine.standings import all_standings, pool_standings
 from ..schedule.best_date import availability_report
 from ..schedule.courtplan import center_court_numbers, is_center_court_match
 from ..schedule.scheduler import generate_schedule, match_player_ids, player_conflicts
@@ -852,10 +852,32 @@ class TournamentService:
             out.append({"id": d.id, "event": d.event, "label": d.label,
                         "format": d.format, "seed_method": d.seed_method,
                         "seed_no": d.seed_no, "custom": d.custom,
+                        "sort_no": d.sort_no,
                         "entries": len(d.entry_refs),
                         "has_bracket": br is not None,
                         "finalized": br.finalized if br else False})
-        return sorted(out, key=lambda x: x["event"])
+        # In the organizer's run order (all-equal sort_no = the old event order).
+        return sorted(out, key=lambda x: (x["sort_no"], x["event"]))
+
+    def move_division(self, division_id: str, delta: int) -> dict:
+        """Move a division earlier (-1) or later (+1) in the run order.
+
+        The run order is the order events are scheduled in: the first division's
+        matches get first claim on the courts, so that event finishes first."""
+        with self._lock:
+            ranked = sorted(enumerate(self.t.divisions),
+                            key=lambda p: (self.t.divisions[p[1]].sort_no, p[0]))
+            ids = [did for _, did in ranked]
+            if division_id not in ids:
+                raise ValueError(f"unknown division {division_id!r}")
+            i = ids.index(division_id)
+            j = max(0, min(len(ids) - 1, i + int(delta)))
+            if j != i:
+                ids.insert(j, ids.pop(i))
+            for n, did in enumerate(ids):
+                self.t.divisions[did].sort_no = n
+            self._save()
+            return {"ok": True, "order": ids, "divisions": self.divisions()}
 
     # --- grouping / seeding / brackets -------------------------------------
     def build_divisions(self, rng_seed: int | None = None) -> dict:
@@ -870,6 +892,7 @@ class TournamentService:
             self._clear_divisions()
             res = build_divisions(self.t, rng_seed=rng_seed)
             self._restore_division_settings(kept)
+            self._number_run_order(kept)
             self._save(backup=True)
             return {"divisions": self.divisions(),
                     "auto_paired": res.auto_paired,
@@ -1326,8 +1349,9 @@ class TournamentService:
                 if not d.custom and d.team_type is None]
 
     def _division_settings(self) -> dict[str, tuple]:
-        """Format + seeding per event, so a rebuild keeps the organizer's picks."""
-        return {d.event: (d.format, d.seed_method, d.seed_no)
+        """Format, seeding and run order per event, so a rebuild keeps the
+        organizer's picks."""
+        return {d.event: (d.format, d.seed_method, d.seed_no, d.sort_no)
                 for d in self.t.divisions.values()
                 if not d.custom and d.team_type is None}
 
@@ -1335,7 +1359,20 @@ class TournamentService:
         for d in self.t.divisions.values():
             if d.custom or d.team_type is not None or d.event not in kept:
                 continue
-            d.format, d.seed_method, d.seed_no = kept[d.event]
+            d.format, d.seed_method, d.seed_no, d.sort_no = kept[d.event]
+
+    def _number_run_order(self, kept: dict[str, tuple] | None = None) -> None:
+        """Give every division a 0..n-1 run order. Events that were not in the
+        previous build join at the end rather than jumping to the front."""
+        def key(pair):
+            i, d = pair
+            if kept is not None and d.event not in kept:
+                return (1, 0, i)
+            return (0, d.sort_no, i)
+
+        ranked = sorted(enumerate(self.t.divisions.values()), key=key)
+        for n, (_, d) in enumerate(ranked):
+            d.sort_no = n
 
     def _clear_divisions(self) -> None:
         """Drop the built divisions, braces and generated pairs, keeping the
@@ -1403,8 +1440,16 @@ class TournamentService:
                 div.seed_no = rng_seed
             seeds = seed_entries(self.t, div, method, rng_seed, manual_order)
             if fmt == "group_knockout":
-                br = bracket_groups.generate(div, seeds, rng_seed, num_groups,
-                                             main_draw)
+                # A plain regenerate (the division row's Generate button) keeps
+                # the pool plan already in use, so asking for 3 pools once is not
+                # silently undone the next time the draw is rebuilt.
+                ng, draw = num_groups, main_draw
+                if existing and existing.format == "group_knockout" and not ng:
+                    ng = len(existing.pools) or None
+                    main = next((r for r in existing.rounds
+                                 if r.bracket_part == "main"), None)
+                    draw = draw or (len(main.match_ids) * 2 if main else None)
+                br = bracket_groups.generate(div, seeds, rng_seed, ng, draw)
             else:
                 br = format_registry.generate(fmt, div, seeds, rng_seed)
             if existing:
@@ -1732,12 +1777,13 @@ class TournamentService:
                 "side1": self._entry_view(m.side1) if m else None,
                 "side2": self._entry_view(m.side2) if m else None,
             })
-        # Simulation-mode estimate: when does the last court free up?
-        end_min = max((b.start_min + self.t.settings.timing.slot_min
-                       for b in self.t.schedule), default=0)
+        # Simulation-mode estimate: when does the last court free up? Each block
+        # carries its own length (pool games are shorter than knockout matches).
+        end_min = max((b.end_min for b in self.t.schedule), default=0)
         stale = bool(self.t.schedule and self.t.schedule_sig
                      and self.t.schedule_sig != self._schedule_sig())
         return {"day_start": day_start, "slot_min": self.t.settings.timing.slot_min,
+                "pool_slot_min": self.t.settings.pool_timing.slot_min,
                 "ends": minutes_to_clock(day_start, end_min) if self.t.schedule else "",
                 "duration_min": end_min, "match_count": len(self.t.schedule),
                 "conflicts": player_conflicts(self.t), "stale": stale, "blocks": rows}
@@ -1757,8 +1803,7 @@ class TournamentService:
                                   division_id=div.id, format=br.format,
                                   matches=matches, seeds=br.seeds)})
             blocks = generate_schedule(temp, settings, [div.id])
-            return max((b.start_min + settings.timing.slot_min for b in blocks),
-                       default=0)
+            return max((b.end_min for b in blocks), default=0)
 
         if div.team_format:
             return sched(br.matches)         # scheduler picks the rubbers itself
@@ -1823,8 +1868,9 @@ class TournamentService:
         out = {"division": {"id": div.id, "event": div.event, "label": div.label},
                "entries": n, "start": start, "end": end,
                "courts": settings.court_count,
-               "slot_min": settings.timing.slot_min, "options": options,
-               "team": is_team}
+               "slot_min": settings.timing.slot_min,
+               "pool_slot_min": settings.pool_timing.slot_min,
+               "options": options, "team": is_team}
         if is_team:
             tf = div.team_format
             out["team_format"] = {
@@ -1918,6 +1964,15 @@ class TournamentService:
         def gk_note(g, m, base, wild):
             """Human summary of how a group->knockout draw is filled (no byes):
             top-`base` per pool guaranteed, rest by best-remaining points."""
+            if g == 1 and m == 2:
+                return (f"One pool: all {n} play each other once, then the top 2 "
+                        f"on points play the final.")
+            if g == 1:
+                return (f"One pool: all {n} play each other once -> clean "
+                        f"{m}-draw (no byes).")
+            if m == 2:
+                return (f"{g} pools: everyone plays their pool once, then the "
+                        f"pool winners play the final.")
             guaranteed = base * g
             who = (f"top {base} of each pool ({guaranteed})" if base
                    else "no automatic qualifiers")
@@ -1937,8 +1992,16 @@ class TournamentService:
                     g, drawn, base, wild = resolve_group_plan(n, g_fixed, mm)
                     if drawn != mm:              # already offered this draw size
                         continue
-                    label = f"{g} pools -> {drawn}-draw knockout"
-                    recommended = (g_fixed is None and not is_pow2 and first)
+                    pools_txt = "1 pool" if g == 1 else f"{g} pools"
+                    if drawn == 2 and g == 1:
+                        label = "Round robin -> top 2 -> final"
+                    elif drawn == 2:
+                        label = f"{pools_txt} -> winners -> final"
+                    else:
+                        label = f"{pools_txt} -> {drawn}-draw knockout"
+                    recommended = ((g_fixed is None and n > 6 and not is_pow2
+                                   and first)
+                                   or (g == 1 and drawn == 2))
                     note = gk_note(g, drawn, base, wild)
                     if not first:
                         note = "Tighter (shorter day): " + note
@@ -1946,6 +2009,15 @@ class TournamentService:
                                   {"num_groups": g, "main_draw": drawn},
                                   label, True, recommended, note))
                     first = False
+            # A small field wants one pool where everyone meets everyone, then a
+            # final between the top two -- not a padded knockout. Offered even
+            # when the pool count is left blank.
+            if g_fixed is None and 3 <= n <= 6:
+                g, drawn, base, wild = resolve_group_plan(n, 1, 2)
+                out.append(mk("group_knockout",
+                              {"num_groups": 1, "main_draw": 2},
+                              "Round robin -> top 2 -> final", True, True,
+                              gk_note(1, 2, base, wild)))
 
         out: list[dict] = []
         if n < 2:
@@ -1965,7 +2037,10 @@ class TournamentService:
 
         # --- Pure knockout / round robin (always listed) ---
         if is_pow2:
-            out.append(mk("single_elim", {}, "Single elimination", False, True,
+            # A small field is better served by the round-robin -> final card
+            # below, so it carries the recommendation instead.
+            out.append(mk("single_elim", {}, "Single elimination", False,
+                          not (3 <= n <= 6),
                           f"Clean {n}-draw knockout, no byes."))
         else:
             byes = next_power_of_two(n) - n
@@ -2168,15 +2243,30 @@ class TournamentService:
                          "format": div.format},
             "exists": True, "finalized": br.finalized, "version": br.version,
             "queue": queue,
-            "champion": self._entry_view(
-                bracket_double.champion(br) if br.format == "double_elim"
-                else champion(br)),
+            "champion": self._entry_view(self._champion_of(br)),
             "seeds": [{"seed_no": s.seed_no, "label": self.t.entry_label(s.entry)}
                       for s in br.seeds],
             "standings": self._standings_view(br),
             "team_rosters": self._team_rosters_view(div, br) if is_team else [],
             "rounds": rounds,
         }
+
+    def _champion_of(self, br):
+        """Champion of a draw. A pure league has no final to win, so its champion
+        is the team on top of the table once every match has a result."""
+        if br.format == "double_elim":
+            return bracket_double.champion(br)
+        won = champion(br)
+        if won is not None or br.format != "round_robin" or not br.pools:
+            return won
+        if any(m.result is None for m in br.matches.values()
+               if m.bracket_part == "pool" and not m.is_bye()):
+            return None                    # the league is still running
+        rows = pool_standings(self.t, br, br.pools[0])
+        if not rows:
+            return None
+        return next((e for e in br.pools[0].entry_refs
+                     if e.key() == rows[0]["key"]), None)
 
     def _live_tally(self, br, tie) -> list | None:
         """Running rubbers-won [side1, side2] for a tie, from played rubbers."""

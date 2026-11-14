@@ -469,10 +469,10 @@ async function loadDivisions() {
   try { data = await API.get("/api/divisions"); } catch { return; }
   const tb = document.querySelector("#divisions tbody");
   tb.innerHTML = "";
-  data.divisions.forEach(d => {
+  data.divisions.forEach((d, idx) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td><b>${d.label}</b></td>
+      <td><b>${idx + 1}. ${d.label}</b></td>
       <td>${d.entries}</td>
       <td><select data-f="format">${FORMATS.map(f =>
         `<option ${f === d.format ? "selected" : ""}>${f}</option>`).join("")}</select></td>
@@ -481,6 +481,10 @@ async function loadDivisions() {
         <option value="random"${d.seed_method === "random" ? " selected" : ""}>random</option></select></td>
       <td><input data-f="seed" type="number" value="${d.seed_no == null ? "" : d.seed_no}" placeholder="opt" style="width:70px"></td>
       <td>
+        <button class="btn ghost" data-act="earlier" title="Run this event earlier"
+          ${idx === 0 ? "disabled" : ""}>↑</button>
+        <button class="btn ghost" data-act="later" title="Run this event later"
+          ${idx === data.divisions.length - 1 ? "disabled" : ""}>↓</button>
         <button class="btn" data-act="plan">Plan / preview</button>
         <button class="btn secondary" data-act="gen">Generate</button>
         <button class="btn ghost" data-act="final" ${d.has_bracket ? "" : "disabled"} title="${d.has_bracket ? "Lock the bracket once every result is in" : "Generate the bracket first"}">${d.finalized ? "Un-finalize" : "Finalize"}</button>
@@ -499,6 +503,8 @@ async function loadDivisions() {
     };
     tr.querySelector('[data-f="method"]').onchange = saveSeed;
     tr.querySelector('[data-f="seed"]').onchange = saveSeed;
+    tr.querySelector('[data-act="earlier"]').onclick = () => moveDivision(d, -1);
+    tr.querySelector('[data-act="later"]').onclick = () => moveDivision(d, 1);
     tr.querySelector('[data-act="plan"]').onclick = () => planDivision(d);
     tr.querySelector('[data-act="gen"]').onclick = () => generate(d, tr);
     tr.querySelector('[data-act="final"]').onclick = () => toggleFinal(d);
@@ -506,6 +512,13 @@ async function loadDivisions() {
   });
   syncPlannerInputs();   // keep the planner window aligned with Settings
   updateStepper();
+}
+
+async function moveDivision(d, delta) {
+  try {
+    await API.post("/api/division/move", { division: d.id, delta });
+    loadDivisions();
+  } catch (e) { toast(e.message, true); }
 }
 
 async function generate(d, tr) {
@@ -659,7 +672,9 @@ async function saveScoring() {
 
 function renderPlanGallery(plan) {
   document.getElementById("plan-meta").textContent =
-    `${plan.entries} entries · ${plan.courts} courts · ${plan.slot_min}-min slots · ` +
+    `${plan.entries} entries · ${plan.courts} courts · ` +
+    `${plan.pool_slot_min ? plan.pool_slot_min + "-min pool games · " : ""}` +
+    `${plan.slot_min}-min knockout matches · ` +
     `window ${plan.start}${plan.end ? "–" + plan.end : ""}`;
   syncScoringPanel(plan);
   const g = document.getElementById("plan-gallery");
@@ -1142,7 +1157,9 @@ async function loadSchedule() {
   let v;
   try { v = await API.get("/api/schedule"); } catch { return; }
   document.getElementById("sched-meta").textContent =
-    `${v.blocks.length} matches · ${v.slot_min}-min slots · ${v.day_start}` +
+    `${v.blocks.length} matches · ` +
+    (v.pool_slot_min ? `${v.pool_slot_min}-min pool games · ` : "") +
+    `${v.slot_min}-min knockouts · ${v.day_start}` +
     (v.ends ? ` → ${v.ends} (est. ${Math.floor(v.duration_min / 60)}h ${v.duration_min % 60}m)` : "");
   document.getElementById("sched-stale").innerHTML = v.stale
     ? '<div class="guide locked"><div><b>Settings changed since this schedule was generated.</b> Click <b>Generate schedule</b> again to apply the new courts/timing.</div></div>'

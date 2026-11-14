@@ -95,8 +95,36 @@ class TestScheduling(unittest.TestCase):
         for b in t.schedule:
             self.assertEqual(b.play_min, s.pool_timing.play_min)   # 10
 
-    def test_group_stage_uses_full_matches(self):
-        # group_knockout pools AND knockout both play full best-of-N (not timed).
+    def test_group_stage_uses_short_timed_games(self):
+        # The group stage of group_knockout is an ordinary round-robin match, so
+        # it is a short single timed game (pool_timing); only the knockout plays
+        # full best-of-N. Costing pools as full matches made a 5-pair group stage
+        # look like five 40-minute rounds.
+        from tournament.engine import bracket_groups as GK
+        t = Tournament()
+        refs = []
+        for i in range(8):
+            pid = f"p{i}"
+            t.players[pid] = Player(id=pid, first=f"P{i}", last=str(i), skill=8 - i)
+            refs.append(EntryRef("player", pid))
+        div = Division(id="gk", event="MS", label="MS", entry_refs=refs,
+                       format="group_knockout")
+        t.divisions["gk"] = div
+        br = GK.generate(div, seed_entries(t, div, "ranking"),
+                         num_groups=2, main_draw=4)
+        t.brackets["gk"] = br
+        s = Settings()
+        generate_schedule(t, s, ["gk"])
+        seen = set()
+        for b in t.schedule:
+            part = br.matches[b.match_id].bracket_part
+            seen.add(part)
+            want = s.pool_timing if part == "pool" else s.timing
+            self.assertEqual(b.play_min, want.play_min, part)
+        self.assertEqual(seen, {"pool", "main"})      # both stages were scheduled
+
+    def test_full_length_pools_when_pool_single_game_is_off(self):
+        # Organizers who want best-of-3 group play can turn the flag off.
         from tournament.engine import bracket_groups as GK
         t = Tournament()
         refs = []
@@ -109,10 +137,36 @@ class TestScheduling(unittest.TestCase):
         t.divisions["gk"] = div
         t.brackets["gk"] = GK.generate(div, seed_entries(t, div, "ranking"),
                                        num_groups=2, main_draw=4)
-        s = Settings()
+        s = Settings(pool_single_game=False)
         generate_schedule(t, s, ["gk"])
         for b in t.schedule:
-            self.assertEqual(b.play_min, s.timing.play_min)        # 30, incl. pools
+            self.assertEqual(b.play_min, s.timing.play_min)
+
+    def test_run_order_schedules_the_first_event_first(self):
+        # Two unrelated divisions on one court: whichever the organizer put first
+        # in the run order is played first, end to end.
+        from tournament.engine import bracket_rr as RR
+        t = Tournament()
+
+        def add(div_id, tag, sort_no):
+            refs = []
+            for i in range(4):
+                pid = f"{tag}{i}"
+                t.players[pid] = Player(id=pid, first=tag, last=str(i), skill=4 - i)
+                refs.append(EntryRef("player", pid))
+            div = Division(id=div_id, event="MS", label=div_id, entry_refs=refs,
+                           format="round_robin", sort_no=sort_no)
+            t.divisions[div_id] = div
+            t.brackets[div_id] = RR.generate(div, seed_entries(t, div, "ranking"))
+
+        add("second", "B", 1)
+        add("first", "A", 0)
+        generate_schedule(t, Settings(court_count=1), ["first", "second"])
+        div_of = {mid: did for did, br in t.brackets.items() for mid in br.matches}
+        first_starts = [b.start_min for b in t.schedule if div_of[b.match_id] == "first"]
+        second_starts = [b.start_min for b in t.schedule if div_of[b.match_id] == "second"]
+        self.assertTrue(first_starts and second_starts)
+        self.assertLess(max(first_starts), min(second_starts))
 
     def test_pool_stage_scheduled_before_knockout(self):
         from tournament.engine import bracket_groups as GK

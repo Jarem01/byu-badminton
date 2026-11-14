@@ -52,6 +52,68 @@ class TestGenerateEndpointParams(unittest.TestCase):
             httpd.server_close()
 
 
+class TestRunOrderEndpoint(unittest.TestCase):
+    """The organizer can put the events in the order they want scheduled."""
+
+    def test_move_endpoint_reorders_and_keeps_the_choice(self):
+        d = tempfile.mkdtemp()
+        httpd, port = make_server(os.path.join(d, "t.json"), port=0)
+        threading.Thread(target=httpd.serve_forever, daemon=True).start()
+        time.sleep(0.2)
+        base = f"http://127.0.0.1:{httpd.server_address[1]}"
+
+        def post(p, o):
+            req = urllib.request.Request(base + p, data=json.dumps(o).encode(),
+                                         headers={"Content-Type": "application/json"})
+            return json.load(urllib.request.urlopen(req, timeout=20))
+
+        def get(p):
+            return json.load(urllib.request.urlopen(base + p, timeout=10))
+        try:
+            post("/api/import", {"source": "file", "ref": os.path.abspath(
+                os.path.join(os.path.dirname(__file__), "..", "sample_data",
+                             "legacy_mixed.csv"))})
+            post("/api/import/commit", {})
+            post("/api/divisions/build", {"rng_seed": 1})
+            divs = get("/api/divisions")["divisions"]
+            self.assertEqual([x["sort_no"] for x in divs], list(range(len(divs))))
+            xd = next(x for x in divs if x["event"] == "XD")
+            for _ in range(len(divs)):                 # walk XD to the front
+                post("/api/division/move", {"division": xd["id"], "delta": -1})
+            order = [x["event"] for x in get("/api/divisions")["divisions"]]
+            self.assertEqual(order[0], "XD")
+            # A rebuild keeps the run order instead of resetting it.
+            post("/api/divisions/build", {"rng_seed": 1})
+            order2 = [x["event"] for x in get("/api/divisions")["divisions"]]
+            self.assertEqual(order2[0], "XD")
+        finally:
+            httpd.shutdown()
+            httpd.server_close()
+
+
+class TestLeagueChampion(unittest.TestCase):
+    """A pure round robin has no final to win, so once every match is played the
+    leader of the table is the champion (it used to show nobody)."""
+
+    def test_league_leader_is_champion_once_complete(self):
+        d = tempfile.mkdtemp()
+        svc = TournamentService(Repository(os.path.join(d, "t.json")))
+        r = svc.create_custom_division("League", "player",
+                                       [f"P{i}:{5 - i}" for i in range(4)], "MS")
+        svc.generate_bracket(r["id"], "round_robin")
+        br = svc.t.brackets[r["id"]]
+        self.assertIsNone(svc.bracket_view(r["id"])["champion"])   # nothing decided
+        for m in list(br.matches.values()):
+            first_wins = m.side1.key() < m.side2.key()
+            svc.record_result(r["id"], m.id,
+                              [[21, 15], [21, 18]] if first_wins
+                              else [[15, 21], [18, 21]])
+        view = svc.bracket_view(r["id"])
+        top = view["standings"][0]["rows"][0]
+        self.assertEqual(top["rank"], 1)
+        self.assertEqual(view["champion"]["label"], top["label"])
+
+
 class TestServiceFlow(unittest.TestCase):
     def setUp(self):
         self.dir = tempfile.TemporaryDirectory()

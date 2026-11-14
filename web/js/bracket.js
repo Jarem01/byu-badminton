@@ -201,6 +201,47 @@ function renderColumns(rounds, opts) {
   return scroll;
 }
 
+// Pool stage of a multi-pool draw: one column per POOL (its rounds stacked in
+// order), not one column per round. Pools play side by side, so laying them out
+// as a single strip of rounds made them look like a queue.
+function renderPoolColumns(rounds, opts) {
+  const pools = [];
+  rounds.forEach(rnd => {
+    const label = rnd.name.includes("·")
+      ? rnd.name.split("·")[0].trim() : rnd.name;
+    let g = pools.find(p => p.label === label);
+    if (!g) pools.push(g = { label, rounds: [] });
+    g.rounds.push(rnd);
+  });
+  const scroll = document.createElement("div");
+  scroll.className = "bracket-wrap";
+  const b = document.createElement("div");
+  b.className = "bracket";
+  pools.forEach(p => {
+    const col = document.createElement("div");
+    col.className = "round pool-col";
+    const t = document.createElement("div");
+    t.className = "round-title";
+    t.textContent = p.label;
+    col.appendChild(t);
+    p.rounds.forEach(rnd => {
+      const cap = document.createElement("div");
+      cap.className = "round-cap";
+      cap.textContent = rnd.name.replace(p.label, "").replace(/^[·\s]+/, "") || rnd.name;
+      col.appendChild(cap);
+      rnd.matches.forEach(m => col.appendChild(matchEl(m, opts)));
+    });
+    b.appendChild(col);
+  });
+  scroll.appendChild(b);
+  return scroll;
+}
+
+function poolLabels(rounds) {
+  return [...new Set(rounds.map(r => r.name.includes("·")
+    ? r.name.split("·")[0].trim() : r.name))];
+}
+
 const SEG_HEADING = {
   winners: "Winners Bracket", losers: "Losers Bracket",
   grand_final: "Grand Final", pool: "Pool Matches",
@@ -240,9 +281,22 @@ function renderBracket(container, view, opts = {}) {
       h.textContent = SEG_HEADING[seg.part];
       container.appendChild(h);
     }
-    // Tree layout for clean knockout parts; columns for pools / losers bracket.
+    const pools = seg.part === "pool" ? poolLabels(seg.rounds) : [];
+    if (pools.length > 1) {
+      const note = document.createElement("div");
+      note.className = "seg-note";
+      note.textContent = `${pools.length} pools play side by side: round 1 of every `
+        + "pool at the same time, then round 2, and so on.";
+      container.appendChild(note);
+    }
+    // Tree layout for clean knockout parts; per-pool columns for a multi-pool
+    // stage; plain columns for a single league / losers bracket.
     const tree = seg.part !== "pool" && seg.part !== "losers" && isBinaryTree(seg.rounds);
-    container.appendChild(tree ? renderTree(seg.rounds, opts) : renderColumns(seg.rounds, opts));
+    let el;
+    if (tree) el = renderTree(seg.rounds, opts);
+    else if (pools.length > 1) el = renderPoolColumns(seg.rounds, opts);
+    else el = renderColumns(seg.rounds, opts);
+    container.appendChild(el);
   });
 }
 

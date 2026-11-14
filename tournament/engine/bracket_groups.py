@@ -56,7 +56,9 @@ def resolve_group_plan(n: int, num_groups: int | None = None,
     pool (top 1 or 2, the largest that fits) and ``wildcards`` is the number of
     extra slots filled by the best remaining teams across pools."""
     g = num_groups or choose_num_groups(n)
-    g = max(1, min(g, n))
+    # Never make a pool of one: everyone in a pool has to play someone, so the
+    # useful maximum is roughly half the field.
+    g = max(1, min(g, n // 2 or 1))
     cap = largest_pow2_le(n)                 # most real teams a clean draw holds
     m = main_draw or cap
     m = largest_pow2_le(m) if m >= 2 else 2  # snap to a power of two

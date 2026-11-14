@@ -174,6 +174,9 @@ class Division:
     seed_no: Optional[int] = None
     # Hand-made divisions (custom bracket, team event) survive a table rebuild.
     custom: bool = False
+    # Position in the run order the organizer set (0 = first). The scheduler
+    # places the earlier divisions' matches first, so those events finish first.
+    sort_no: int = 0
     # Team divisions only: how teams field a tie. Absent (None) => individual.
     team_type: Optional[TeamType] = None
     team_format: Optional[TeamFormat] = None
