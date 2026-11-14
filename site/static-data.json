@@ -1,5 +1,5 @@
 {
- "generated": "2026-11-14 08:06 UTC",
+ "generated": "2026-11-14 20:04 UTC",
  "name": "BYU Badminton Tournament",
  "public": {
   "name": "BYU Badminton Tournament",
@@ -9,11 +9,11 @@
      "id": "div-md",
      "event": "MD",
      "label": "Men's Doubles",
-     "format": "round_robin"
+     "format": "group_knockout"
     },
     "exists": true,
     "finalized": true,
-    "version": 1,
+    "version": 2,
     "queue": {
      "ready": [
       {
@@ -21,16 +21,16 @@
        "round": "Pool A · Round 1",
        "part": "pool",
        "side1": {
-        "key": "pair:pair-tu-player-vivek",
+        "key": "pair:pair-chi-miller",
         "kind": "pair",
-        "label": "Anthony Tu / Vivek",
-        "seed": 1
+        "label": "Brian Chi / Jarem Miller",
+        "seed": 2
        },
        "side2": {
-        "key": "pair:pair-lim-guo",
+        "key": "pair:pair-guo-phui",
         "kind": "pair",
-        "label": "Josh Lim / Kevin(Wenjie) Guo",
-        "seed": 4
+        "label": "Kevin(Wenjie) Guo / Spencer Phui",
+        "seed": 5
        }
       },
       {
@@ -38,16 +38,16 @@
        "round": "Pool A · Round 1",
        "part": "pool",
        "side1": {
-        "key": "pair:pair-pang-wong",
+        "key": "pair:pair-lim-cheng",
         "kind": "pair",
-        "label": "Michael Pang / Kei Wong",
-        "seed": 2
+        "label": "Josh Lim / Scott Cheng",
+        "seed": 3
        },
        "side2": {
-        "key": "pair:pair-chen-poh",
+        "key": "pair:pair-chen-tsai",
         "kind": "pair",
-        "label": "Stanley Chen / Eugene Poh",
-        "seed": 3
+        "label": "Stanley Chen / Zhi-Han Tsai",
+        "seed": 4
        }
       },
       {
@@ -61,10 +61,10 @@
         "seed": 1
        },
        "side2": {
-        "key": "pair:pair-chen-poh",
+        "key": "pair:pair-guo-phui",
         "kind": "pair",
-        "label": "Stanley Chen / Eugene Poh",
-        "seed": 3
+        "label": "Kevin(Wenjie) Guo / Spencer Phui",
+        "seed": 5
        }
       },
       {
@@ -72,16 +72,16 @@
        "round": "Pool A · Round 2",
        "part": "pool",
        "side1": {
-        "key": "pair:pair-lim-guo",
+        "key": "pair:pair-chi-miller",
         "kind": "pair",
-        "label": "Josh Lim / Kevin(Wenjie) Guo",
-        "seed": 4
+        "label": "Brian Chi / Jarem Miller",
+        "seed": 2
        },
        "side2": {
-        "key": "pair:pair-pang-wong",
+        "key": "pair:pair-lim-cheng",
         "kind": "pair",
-        "label": "Michael Pang / Kei Wong",
-        "seed": 2
+        "label": "Josh Lim / Scott Cheng",
+        "seed": 3
        }
       },
       {
@@ -95,10 +95,10 @@
         "seed": 1
        },
        "side2": {
-        "key": "pair:pair-pang-wong",
+        "key": "pair:pair-chen-tsai",
         "kind": "pair",
-        "label": "Michael Pang / Kei Wong",
-        "seed": 2
+        "label": "Stanley Chen / Zhi-Han Tsai",
+        "seed": 4
        }
       },
       {
@@ -106,20 +106,96 @@
        "round": "Pool A · Round 3",
        "part": "pool",
        "side1": {
-        "key": "pair:pair-chen-poh",
+        "key": "pair:pair-guo-phui",
         "kind": "pair",
-        "label": "Stanley Chen / Eugene Poh",
-        "seed": 3
+        "label": "Kevin(Wenjie) Guo / Spencer Phui",
+        "seed": 5
        },
        "side2": {
-        "key": "pair:pair-lim-guo",
+        "key": "pair:pair-lim-cheng",
         "kind": "pair",
-        "label": "Josh Lim / Kevin(Wenjie) Guo",
+        "label": "Josh Lim / Scott Cheng",
+        "seed": 3
+       }
+      },
+      {
+       "id": "div-md-poolA-r4-m0",
+       "round": "Pool A · Round 4",
+       "part": "pool",
+       "side1": {
+        "key": "pair:pair-tu-player-vivek",
+        "kind": "pair",
+        "label": "Anthony Tu / Vivek",
+        "seed": 1
+       },
+       "side2": {
+        "key": "pair:pair-lim-cheng",
+        "kind": "pair",
+        "label": "Josh Lim / Scott Cheng",
+        "seed": 3
+       }
+      },
+      {
+       "id": "div-md-poolA-r4-m1",
+       "round": "Pool A · Round 4",
+       "part": "pool",
+       "side1": {
+        "key": "pair:pair-chen-tsai",
+        "kind": "pair",
+        "label": "Stanley Chen / Zhi-Han Tsai",
         "seed": 4
+       },
+       "side2": {
+        "key": "pair:pair-chi-miller",
+        "kind": "pair",
+        "label": "Brian Chi / Jarem Miller",
+        "seed": 2
+       }
+      },
+      {
+       "id": "div-md-poolA-r5-m0",
+       "round": "Pool A · Round 5",
+       "part": "pool",
+       "side1": {
+        "key": "pair:pair-tu-player-vivek",
+        "kind": "pair",
+        "label": "Anthony Tu / Vivek",
+        "seed": 1
+       },
+       "side2": {
+        "key": "pair:pair-chi-miller",
+        "kind": "pair",
+        "label": "Brian Chi / Jarem Miller",
+        "seed": 2
+       }
+      },
+      {
+       "id": "div-md-poolA-r5-m1",
+       "round": "Pool A · Round 5",
+       "part": "pool",
+       "side1": {
+        "key": "pair:pair-chen-tsai",
+        "kind": "pair",
+        "label": "Stanley Chen / Zhi-Han Tsai",
+        "seed": 4
+       },
+       "side2": {
+        "key": "pair:pair-guo-phui",
+        "kind": "pair",
+        "label": "Kevin(Wenjie) Guo / Spencer Phui",
+        "seed": 5
        }
       }
      ],
-     "upcoming": []
+     "upcoming": [
+      {
+       "id": "div-md-r1-m0",
+       "round": "Final",
+       "part": "main",
+       "side1": null,
+       "side2": null
+      }
+     ]
     },
     "champion": null,
     "seeds": [
@@ -129,15 +205,19 @@
      },
      {
       "seed_no": 2,
-      "label": "Michael Pang / Kei Wong"
+      "label": "Brian Chi / Jarem Miller"
      },
      {
       "seed_no": 3,
-      "label": "Stanley Chen / Eugene Poh"
+      "label": "Josh Lim / Scott Cheng"
      },
      {
       "seed_no": 4,
-      "label": "Josh Lim / Kevin(Wenjie) Guo"
+      "label": "Stanley Chen / Zhi-Han Tsai"
+     },
+     {
+      "seed_no": 5,
+      "label": "Kevin(Wenjie) Guo / Spencer Phui"
      }
     ],
     "standings": [
@@ -156,12 +236,13 @@
         "point_diff": 0,
         "points_for": 0,
         "points_against": 0,
-        "advances": true
+        "advances": true,
+        "qualify": "auto"
        },
        {
         "rank": 2,
-        "key": "pair:pair-pang-wong",
-        "label": "Michael Pang / Kei Wong",
+        "key": "pair:pair-chi-miller",
+        "label": "Brian Chi / Jarem Miller",
         "played": 0,
         "wins": 0,
         "losses": 0,
@@ -169,12 +250,13 @@
         "point_diff": 0,
         "points_for": 0,
         "points_against": 0,
-        "advances": true
+        "advances": true,
+        "qualify": "auto"
        },
        {
         "rank": 3,
-        "key": "pair:pair-chen-poh",
-        "label": "Stanley Chen / Eugene Poh",
+        "key": "pair:pair-lim-cheng",
+        "label": "Josh Lim / Scott Cheng",
         "played": 0,
         "wins": 0,
         "losses": 0,
@@ -182,12 +264,13 @@
         "point_diff": 0,
         "points_for": 0,
         "points_against": 0,
-        "advances": true
+        "advances": false,
+        "qualify": "wildcard"
        },
        {
         "rank": 4,
-        "key": "pair:pair-lim-guo",
-        "label": "Josh Lim / Kevin(Wenjie) Guo",
+        "key": "pair:pair-chen-tsai",
+        "label": "Stanley Chen / Zhi-Han Tsai",
         "played": 0,
         "wins": 0,
         "losses": 0,
@@ -195,7 +278,22 @@
         "point_diff": 0,
         "points_for": 0,
         "points_against": 0,
-        "advances": true
+        "advances": false,
+        "qualify": "wildcard"
+       },
+       {
+        "rank": 5,
+        "key": "pair:pair-guo-phui",
+        "label": "Kevin(Wenjie) Guo / Spencer Phui",
+        "played": 0,
+        "wins": 0,
+        "losses": 0,
+        "game_diff": 0,
+        "point_diff": 0,
+        "points_for": 0,
+        "points_against": 0,
+        "advances": false,
+        "qualify": "out"
        }
       ]
      }
@@ -212,23 +310,23 @@
         "part": "pool",
         "seq": 0,
         "side1": {
-         "key": "pair:pair-tu-player-vivek",
+         "key": "pair:pair-chi-miller",
          "kind": "pair",
-         "label": "Anthony Tu / Vivek",
-         "seed": 1
+         "label": "Brian Chi / Jarem Miller",
+         "seed": 2
         },
         "side2": {
-         "key": "pair:pair-lim-guo",
+         "key": "pair:pair-guo-phui",
          "kind": "pair",
-         "label": "Josh Lim / Kevin(Wenjie) Guo",
-         "seed": 4
+         "label": "Kevin(Wenjie) Guo / Spencer Phui",
+         "seed": 5
         },
         "winner": null,
         "games": [],
         "walkover": false,
         "is_bye": false,
         "ready": true,
-        "max_games": 1,
+        "max_games": 3,
         "is_tie": false,
         "rubbers": [],
         "tally": null,
@@ -240,23 +338,23 @@
         "part": "pool",
         "seq": 1,
         "side1": {
-         "key": "pair:pair-pang-wong",
+         "key": "pair:pair-lim-cheng",
          "kind": "pair",
-         "label": "Michael Pang / Kei Wong",
-         "seed": 2
+         "label": "Josh Lim / Scott Cheng",
+         "seed": 3
         },
         "side2": {
-         "key": "pair:pair-chen-poh",
+         "key": "pair:pair-chen-tsai",
          "kind": "pair",
-         "label": "Stanley Chen / Eugene Poh",
-         "seed": 3
+         "label": "Stanley Chen / Zhi-Han Tsai",
+         "seed": 4
         },
         "winner": null,
         "games": [],
         "walkover": false,
         "is_bye": false,
         "ready": true,
-        "max_games": 1,
+        "max_games": 3,
         "is_tie": false,
         "rubbers": [],
         "tally": null,
@@ -280,17 +378,17 @@
          "seed": 1
         },
         "side2": {
-         "key": "pair:pair-chen-poh",
+         "key": "pair:pair-guo-phui",
          "kind": "pair",
-         "label": "Stanley Chen / Eugene Poh",
-         "seed": 3
+         "label": "Kevin(Wenjie) Guo / Spencer Phui",
+         "seed": 5
         },
         "winner": null,
         "games": [],
         "walkover": false,
         "is_bye": false,
         "ready": true,
-        "max_games": 1,
+        "max_games": 3,
         "is_tie": false,
         "rubbers": [],
         "tally": null,
@@ -302,23 +400,23 @@
         "part": "pool",
         "seq": 3,
         "side1": {
-         "key": "pair:pair-lim-guo",
+         "key": "pair:pair-chi-miller",
          "kind": "pair",
-         "label": "Josh Lim / Kevin(Wenjie) Guo",
-         "seed": 4
+         "label": "Brian Chi / Jarem Miller",
+         "seed": 2
         },
         "side2": {
-         "key": "pair:pair-pang-wong",
+         "key": "pair:pair-lim-cheng",
          "kind": "pair",
-         "label": "Michael Pang / Kei Wong",
-         "seed": 2
+         "label": "Josh Lim / Scott Cheng",
+         "seed": 3
         },
         "winner": null,
         "games": [],
         "walkover": false,
         "is_bye": false,
         "ready": true,
-        "max_games": 1,
+        "max_games": 3,
         "is_tie": false,
         "rubbers": [],
         "tally": null,
@@ -342,17 +440,17 @@
          "seed": 1
         },
         "side2": {
-         "key": "pair:pair-pang-wong",
+         "key": "pair:pair-chen-tsai",
          "kind": "pair",
-         "label": "Michael Pang / Kei Wong",
-         "seed": 2
+         "label": "Stanley Chen / Zhi-Han Tsai",
+         "seed": 4
         },
         "winner": null,
         "games": [],
         "walkover": false,
         "is_bye": false,
         "ready": true,
-        "max_games": 1,
+        "max_games": 3,
         "is_tie": false,
         "rubbers": [],
         "tally": null,
@@ -364,23 +462,233 @@
         "part": "pool",
         "seq": 5,
         "side1": {
-         "key": "pair:pair-chen-poh",
+         "key": "pair:pair-guo-phui",
          "kind": "pair",
-         "label": "Stanley Chen / Eugene Poh",
-         "seed": 3
+         "label": "Kevin(Wenjie) Guo / Spencer Phui",
+         "seed": 5
         },
         "side2": {
-         "key": "pair:pair-lim-guo",
+         "key": "pair:pair-lim-cheng",
          "kind": "pair",
-         "label": "Josh Lim / Kevin(Wenjie) Guo",
-         "seed": 4
+         "label": "Josh Lim / Scott Cheng",
+         "seed": 3
         },
         "winner": null,
         "games": [],
         "walkover": false,
         "is_bye": false,
         "ready": true,
-        "max_games": 1,
+        "max_games": 3,
+        "is_tie": false,
+        "rubbers": [],
+        "tally": null,
+        "gaps": []
+       }
+      ]
+     },
+     {
+      "name": "Pool A · Round 4",
+      "part": "pool",
+      "matches": [
+       {
+        "id": "div-md-poolA-r4-m0",
+        "round": "Pool A · Round 4",
+        "part": "pool",
+        "seq": 6,
+        "side1": {
+         "key": "pair:pair-tu-player-vivek",
+         "kind": "pair",
+         "label": "Anthony Tu / Vivek",
+         "seed": 1
+        },
+        "side2": {
+         "key": "pair:pair-lim-cheng",
+         "kind": "pair",
+         "label": "Josh Lim / Scott Cheng",
+         "seed": 3
+        },
+        "winner": null,
+        "games": [],
+        "walkover": false,
+        "is_bye": false,
+        "ready": true,
+        "max_games": 3,
+        "is_tie": false,
+        "rubbers": [],
+        "tally": null,
+        "gaps": []
+       },
+       {
+        "id": "div-md-poolA-r4-m1",
+        "round": "Pool A · Round 4",
+        "part": "pool",
+        "seq": 7,
+        "side1": {
+         "key": "pair:pair-chen-tsai",
+         "kind": "pair",
+         "label": "Stanley Chen / Zhi-Han Tsai",
+         "seed": 4
+        },
+        "side2": {
+         "key": "pair:pair-chi-miller",
+         "kind": "pair",
+         "label": "Brian Chi / Jarem Miller",
+         "seed": 2
+        },
+        "winner": null,
+        "games": [],
+        "walkover": false,
+        "is_bye": false,
+        "ready": true,
+        "max_games": 3,
+        "is_tie": false,
+        "rubbers": [],
+        "tally": null,
+        "gaps": []
+       }
+      ]
+     },
+     {
+      "name": "Pool A · Round 5",
+      "part": "pool",
+      "matches": [
+       {
+        "id": "div-md-poolA-r5-m0",
+        "round": "Pool A · Round 5",
+        "part": "pool",
+        "seq": 8,
+        "side1": {
+         "key": "pair:pair-tu-player-vivek",
+         "kind": "pair",
+         "label": "Anthony Tu / Vivek",
+         "seed": 1
+        },
+        "side2": {
+         "key": "pair:pair-chi-miller",
+         "kind": "pair",
+         "label": "Brian Chi / Jarem Miller",
+         "seed": 2
+        },
+        "winner": null,
+        "games": [],
+        "walkover": false,
+        "is_bye": false,
+        "ready": true,
+        "max_games": 3,
+        "is_tie": false,
+        "rubbers": [],
+        "tally": null,
+        "gaps": []
+       },
+       {
+        "id": "div-md-poolA-r5-m1",
+        "round": "Pool A · Round 5",
+        "part": "pool",
+        "seq": 9,
+        "side1": {
+         "key": "pair:pair-chen-tsai",
+         "kind": "pair",
+         "label": "Stanley Chen / Zhi-Han Tsai",
+         "seed": 4
+        },
+        "side2": {
+         "key": "pair:pair-guo-phui",
+         "kind": "pair",
+         "label": "Kevin(Wenjie) Guo / Spencer Phui",
+         "seed": 5
+        },
+        "winner": null,
+        "games": [],
+        "walkover": false,
+        "is_bye": false,
+        "ready": true,
+        "max_games": 3,
+        "is_tie": false,
+        "rubbers": [],
+        "tally": null,
+        "gaps": []
+       }
+      ]
+     },
+     {
+      "name": "Semifinal",
+      "part": "main",
+      "matches": [
+       {
+        "id": "div-md-r0-m0",
+        "round": "Semifinal",
+        "part": "main",
+        "seq": 0,
+        "side1": {
+         "key": "slot:A#1",
+         "kind": "slot",
+         "label": "Winner Pool A",
+         "seed": null
+        },
+        "side2": {
+         "key": "slot:W#2",
+         "kind": "slot",
+         "label": "Wildcard 2",
+         "seed": null
+        },
+        "winner": null,
+        "games": [],
+        "walkover": false,
+        "is_bye": false,
+        "ready": false,
+        "max_games": 3,
+        "is_tie": false,
+        "rubbers": [],
+        "tally": null,
+        "gaps": []
+       },
+       {
+        "id": "div-md-r0-m1",
+        "round": "Semifinal",
+        "part": "main",
+        "seq": 1,
+        "side1": {
+         "key": "slot:A#2",
+         "kind": "slot",
+         "label": "Runner-up Pool A",
+         "seed": null
+        },
+        "side2": {
+         "key": "slot:W#1",
+         "kind": "slot",
+         "label": "Wildcard 1",
+         "seed": null
+        },
+        "winner": null,
+        "games": [],
+        "walkover": false,
+        "is_bye": false,
+        "ready": false,
+        "max_games": 3,
+        "is_tie": false,
+        "rubbers": [],
+        "tally": null,
+        "gaps": []
+       }
+      ]
+     },
+     {
+      "name": "Final",
+      "part": "main",
+      "matches": [
+       {
+        "id": "div-md-r1-m0",
+        "round": "Final",
+        "part": "main",
+        "seq": 2,
+        "side1": null,
+        "side2": null,
+        "winner": null,
+        "games": [],
+        "walkover": false,
+        "is_bye": false,
+        "ready": false,
+        "max_games": 3,
         "is_tie": false,
         "rubbers": [],
         "tally": null,
@@ -395,28 +703,113 @@
      "id": "div-wd",
      "event": "WD",
      "label": "Women's Doubles",
-     "format": "single_elim"
+     "format": "group_knockout"
     },
     "exists": true,
     "finalized": true,
-    "version": 1,
+    "version": 4,
     "queue": {
      "ready": [
       {
-       "id": "div-wd-r0-m0",
-       "round": "Final",
-       "part": "main",
+       "id": "div-wd-poolA-r1-m0",
+       "round": "Pool A · Round 1",
+       "part": "pool",
        "side1": {
-        "key": "pair:pair-tao-player-zhihan",
+        "key": "pair:pair-hsiao-player-x",
         "kind": "pair",
-        "label": "Ruihong TAO / Zhihan",
+        "label": "Kaya Hsiao / 李佳嬛",
         "seed": 1
        },
        "side2": {
-        "key": "pair:pair-wong-lin",
+        "key": "pair:pair-wong-ng",
         "kind": "pair",
-        "label": "Kei Wong / En-Chi Lin",
+        "label": "Kei Wong / Oriana Ng",
+        "seed": 4
+       }
+      },
+      {
+       "id": "div-wd-poolA-r1-m1",
+       "round": "Pool A · Round 1",
+       "part": "pool",
+       "side1": {
+        "key": "pair:pair-lam-nguyen",
+        "kind": "pair",
+        "label": "Grace Lam / Amy Nguyen",
         "seed": 2
+       },
+       "side2": {
+        "key": "pair:pair-player-julian-tao",
+        "kind": "pair",
+        "label": "Julian / Ruihong TAO",
+        "seed": 3
+       }
+      },
+      {
+       "id": "div-wd-poolA-r2-m0",
+       "round": "Pool A · Round 2",
+       "part": "pool",
+       "side1": {
+        "key": "pair:pair-hsiao-player-x",
+        "kind": "pair",
+        "label": "Kaya Hsiao / 李佳嬛",
+        "seed": 1
+       },
+       "side2": {
+        "key": "pair:pair-player-julian-tao",
+        "kind": "pair",
+        "label": "Julian / Ruihong TAO",
+        "seed": 3
+       }
+      },
+      {
+       "id": "div-wd-poolA-r2-m1",
+       "round": "Pool A · Round 2",
+       "part": "pool",
+       "side1": {
+        "key": "pair:pair-wong-ng",
+        "kind": "pair",
+        "label": "Kei Wong / Oriana Ng",
+        "seed": 4
+       },
+       "side2": {
+        "key": "pair:pair-lam-nguyen",
+        "kind": "pair",
+        "label": "Grace Lam / Amy Nguyen",
+        "seed": 2
+       }
+      },
+      {
+       "id": "div-wd-poolA-r3-m0",
+       "round": "Pool A · Round 3",
+       "part": "pool",
+       "side1": {
+        "key": "pair:pair-hsiao-player-x",
+        "kind": "pair",
+        "label": "Kaya Hsiao / 李佳嬛",
+        "seed": 1
+       },
+       "side2": {
+        "key": "pair:pair-lam-nguyen",
+        "kind": "pair",
+        "label": "Grace Lam / Amy Nguyen",
+        "seed": 2
+       }
+      },
+      {
+       "id": "div-wd-poolA-r3-m1",
+       "round": "Pool A · Round 3",
+       "part": "pool",
+       "side1": {
+        "key": "pair:pair-player-julian-tao",
+        "kind": "pair",
+        "label": "Julian / Ruihong TAO",
+        "seed": 3
+       },
+       "side2": {
+        "key": "pair:pair-wong-ng",
+        "kind": "pair",
+        "label": "Kei Wong / Oriana Ng",
+        "seed": 4
        }
       }
      ],
@@ -426,16 +819,273 @@
     "seeds": [
      {
       "seed_no": 1,
-      "label": "Ruihong TAO / Zhihan"
+      "label": "Kaya Hsiao / 李佳嬛"
      },
      {
       "seed_no": 2,
-      "label": "Kei Wong / En-Chi Lin"
+      "label": "Grace Lam / Amy Nguyen"
+     },
+     {
+      "seed_no": 3,
+      "label": "Julian / Ruihong TAO"
+     },
+     {
+      "seed_no": 4,
+      "label": "Kei Wong / Oriana Ng"
      }
     ],
-    "standings": [],
+    "standings": [
+     {
+      "pool": "A",
+      "complete": false,
+      "rows": [
+       {
+        "rank": 1,
+        "key": "pair:pair-hsiao-player-x",
+        "label": "Kaya Hsiao / 李佳嬛",
+        "played": 0,
+        "wins": 0,
+        "losses": 0,
+        "game_diff": 0,
+        "point_diff": 0,
+        "points_for": 0,
+        "points_against": 0,
+        "advances": true,
+        "qualify": "auto"
+       },
+       {
+        "rank": 2,
+        "key": "pair:pair-lam-nguyen",
+        "label": "Grace Lam / Amy Nguyen",
+        "played": 0,
+        "wins": 0,
+        "losses": 0,
+        "game_diff": 0,
+        "point_diff": 0,
+        "points_for": 0,
+        "points_against": 0,
+        "advances": true,
+        "qualify": "auto"
+       },
+       {
+        "rank": 3,
+        "key": "pair:pair-player-julian-tao",
+        "label": "Julian / Ruihong TAO",
+        "played": 0,
+        "wins": 0,
+        "losses": 0,
+        "game_diff": 0,
+        "point_diff": 0,
+        "points_for": 0,
+        "points_against": 0,
+        "advances": false,
+        "qualify": "out"
+       },
+       {
+        "rank": 4,
+        "key": "pair:pair-wong-ng",
+        "label": "Kei Wong / Oriana Ng",
+        "played": 0,
+        "wins": 0,
+        "losses": 0,
+        "game_diff": 0,
+        "point_diff": 0,
+        "points_for": 0,
+        "points_against": 0,
+        "advances": false,
+        "qualify": "out"
+       }
+      ]
+     }
+    ],
     "team_rosters": [],
     "rounds": [
+     {
+      "name": "Pool A · Round 1",
+      "part": "pool",
+      "matches": [
+       {
+        "id": "div-wd-poolA-r1-m0",
+        "round": "Pool A · Round 1",
+        "part": "pool",
+        "seq": 0,
+        "side1": {
+         "key": "pair:pair-hsiao-player-x",
+         "kind": "pair",
+         "label": "Kaya Hsiao / 李佳嬛",
+         "seed": 1
+        },
+        "side2": {
+         "key": "pair:pair-wong-ng",
+         "kind": "pair",
+         "label": "Kei Wong / Oriana Ng",
+         "seed": 4
+        },
+        "winner": null,
+        "games": [],
+        "walkover": false,
+        "is_bye": false,
+        "ready": true,
+        "max_games": 3,
+        "is_tie": false,
+        "rubbers": [],
+        "tally": null,
+        "gaps": []
+       },
+       {
+        "id": "div-wd-poolA-r1-m1",
+        "round": "Pool A · Round 1",
+        "part": "pool",
+        "seq": 1,
+        "side1": {
+         "key": "pair:pair-lam-nguyen",
+         "kind": "pair",
+         "label": "Grace Lam / Amy Nguyen",
+         "seed": 2
+        },
+        "side2": {
+         "key": "pair:pair-player-julian-tao",
+         "kind": "pair",
+         "label": "Julian / Ruihong TAO",
+         "seed": 3
+        },
+        "winner": null,
+        "games": [],
+        "walkover": false,
+        "is_bye": false,
+        "ready": true,
+        "max_games": 3,
+        "is_tie": false,
+        "rubbers": [],
+        "tally": null,
+        "gaps": []
+       }
+      ]
+     },
+     {
+      "name": "Pool A · Round 2",
+      "part": "pool",
+      "matches": [
+       {
+        "id": "div-wd-poolA-r2-m0",
+        "round": "Pool A · Round 2",
+        "part": "pool",
+        "seq": 2,
+        "side1": {
+         "key": "pair:pair-hsiao-player-x",
+         "kind": "pair",
+         "label": "Kaya Hsiao / 李佳嬛",
+         "seed": 1
+        },
+        "side2": {
+         "key": "pair:pair-player-julian-tao",
+         "kind": "pair",
+         "label": "Julian / Ruihong TAO",
+         "seed": 3
+        },
+        "winner": null,
+        "games": [],
+        "walkover": false,
+        "is_bye": false,
+        "ready": true,
+        "max_games": 3,
+        "is_tie": false,
+        "rubbers": [],
+        "tally": null,
+        "gaps": []
+       },
+       {
+        "id": "div-wd-poolA-r2-m1",
+        "round": "Pool A · Round 2",
+        "part": "pool",
+        "seq": 3,
+        "side1": {
+         "key": "pair:pair-wong-ng",
+         "kind": "pair",
+         "label": "Kei Wong / Oriana Ng",
+         "seed": 4
+        },
+        "side2": {
+         "key": "pair:pair-lam-nguyen",
+         "kind": "pair",
+         "label": "Grace Lam / Amy Nguyen",
+         "seed": 2
+        },
+        "winner": null,
+        "games": [],
+        "walkover": false,
+        "is_bye": false,
+        "ready": true,
+        "max_games": 3,
+        "is_tie": false,
+        "rubbers": [],
+        "tally": null,
+        "gaps": []
+       }
+      ]
+     },
+     {
+      "name": "Pool A · Round 3",
+      "part": "pool",
+      "matches": [
+       {
+        "id": "div-wd-poolA-r3-m0",
+        "round": "Pool A · Round 3",
+        "part": "pool",
+        "seq": 4,
+        "side1": {
+         "key": "pair:pair-hsiao-player-x",
+         "kind": "pair",
+         "label": "Kaya Hsiao / 李佳嬛",
+         "seed": 1
+        },
+        "side2": {
+         "key": "pair:pair-lam-nguyen",
+         "kind": "pair",
+         "label": "Grace Lam / Amy Nguyen",
+         "seed": 2
+        },
+        "winner": null,
+        "games": [],
+        "walkover": false,
+        "is_bye": false,
+        "ready": true,
+        "max_games": 3,
+        "is_tie": false,
+        "rubbers": [],
+        "tally": null,
+        "gaps": []
+       },
+       {
+        "id": "div-wd-poolA-r3-m1",
+        "round": "Pool A · Round 3",
+        "part": "pool",
+        "seq": 5,
+        "side1": {
+         "key": "pair:pair-player-julian-tao",
+         "kind": "pair",
+         "label": "Julian / Ruihong TAO",
+         "seed": 3
+        },
+        "side2": {
+         "key": "pair:pair-wong-ng",
+         "kind": "pair",
+         "label": "Kei Wong / Oriana Ng",
+         "seed": 4
+        },
+        "winner": null,
+        "games": [],
+        "walkover": false,
+        "is_bye": false,
+        "ready": true,
+        "max_games": 3,
+        "is_tie": false,
+        "rubbers": [],
+        "tally": null,
+        "gaps": []
+       }
+      ]
+     },
      {
       "name": "Final",
       "part": "main",
@@ -446,22 +1096,22 @@
         "part": "main",
         "seq": 0,
         "side1": {
-         "key": "pair:pair-tao-player-zhihan",
-         "kind": "pair",
-         "label": "Ruihong TAO / Zhihan",
-         "seed": 1
+         "key": "slot:A#1",
+         "kind": "slot",
+         "label": "Winner Pool A",
+         "seed": null
         },
         "side2": {
-         "key": "pair:pair-wong-lin",
-         "kind": "pair",
-         "label": "Kei Wong / En-Chi Lin",
-         "seed": 2
+         "key": "slot:A#2",
+         "kind": "slot",
+         "label": "Runner-up Pool A",
+         "seed": null
         },
         "winner": null,
         "games": [],
         "walkover": false,
         "is_bye": false,
-        "ready": true,
+        "ready": false,
         "max_games": 3,
         "is_tie": false,
         "rubbers": [],
@@ -481,7 +1131,7 @@
     },
     "exists": true,
     "finalized": true,
-    "version": 1,
+    "version": 5,
     "queue": {
      "ready": [
       {
@@ -489,16 +1139,67 @@
        "round": "Pool A · Round 1",
        "part": "pool",
        "side1": {
-        "key": "pair:pair-tao-player-zhihan-2",
+        "key": "pair:pair-middlebrook-hsiao",
         "kind": "pair",
-        "label": "Ruihong TAO / Zhihan",
-        "seed": 6
+        "label": "Sonny Middlebrook / Kaya Hsiao",
+        "seed": 2
+       },
+       "side2": {
+        "key": "pair:pair-lee-shu",
+        "kind": "pair",
+        "label": "Grace Lee / Sean Shu",
+        "seed": 9
+       }
+      },
+      {
+       "id": "div-xd-poolA-r1-m1",
+       "round": "Pool A · Round 1",
+       "part": "pool",
+       "side1": {
+        "key": "pair:pair-lam-phui",
+        "kind": "pair",
+        "label": "Grace Lam / Spencer Phui",
+        "seed": 3
+       },
+       "side2": {
+        "key": "pair:pair-tsai-tao",
+        "kind": "pair",
+        "label": "Zhi-Han Tsai / Ruihong TAO",
+        "seed": 8
+       }
+      },
+      {
+       "id": "div-xd-poolA-r1-m2",
+       "round": "Pool A · Round 1",
+       "part": "pool",
+       "side1": {
+        "key": "pair:pair-pang-wong",
+        "kind": "pair",
+        "label": "Michael Pang / Kei Wong",
+        "seed": 4
+       },
+       "side2": {
+        "key": "pair:pair-liu",
+        "kind": "pair",
+        "label": "Yu Liu / Jesse 宋雨潔",
+        "seed": 7
+       }
+      },
+      {
+       "id": "div-xd-poolA-r1-m3",
+       "round": "Pool A · Round 1",
+       "part": "pool",
+       "side1": {
+        "key": "pair:pair-li-lewis",
+        "kind": "pair",
+        "label": "Simon Li / Nancy Lewis",
+        "seed": 5
        },
        "side2": {
         "key": "pair:pair-poh-chen",
         "kind": "pair",
         "label": "Eugene Poh / Stanley Chen",
-        "seed": 7
+        "seed": 6
        }
       },
       {
@@ -512,10 +1213,61 @@
         "seed": 1
        },
        "side2": {
+        "key": "pair:pair-lee-shu",
+        "kind": "pair",
+        "label": "Grace Lee / Sean Shu",
+        "seed": 9
+       }
+      },
+      {
+       "id": "div-xd-poolA-r2-m1",
+       "round": "Pool A · Round 2",
+       "part": "pool",
+       "side1": {
+        "key": "pair:pair-middlebrook-hsiao",
+        "kind": "pair",
+        "label": "Sonny Middlebrook / Kaya Hsiao",
+        "seed": 2
+       },
+       "side2": {
+        "key": "pair:pair-liu",
+        "kind": "pair",
+        "label": "Yu Liu / Jesse 宋雨潔",
+        "seed": 7
+       }
+      },
+      {
+       "id": "div-xd-poolA-r2-m2",
+       "round": "Pool A · Round 2",
+       "part": "pool",
+       "side1": {
+        "key": "pair:pair-lam-phui",
+        "kind": "pair",
+        "label": "Grace Lam / Spencer Phui",
+        "seed": 3
+       },
+       "side2": {
         "key": "pair:pair-poh-chen",
         "kind": "pair",
         "label": "Eugene Poh / Stanley Chen",
-        "seed": 7
+        "seed": 6
+       }
+      },
+      {
+       "id": "div-xd-poolA-r2-m3",
+       "round": "Pool A · Round 2",
+       "part": "pool",
+       "side1": {
+        "key": "pair:pair-pang-wong",
+        "kind": "pair",
+        "label": "Michael Pang / Kei Wong",
+        "seed": 4
+       },
+       "side2": {
+        "key": "pair:pair-li-lewis",
+        "kind": "pair",
+        "label": "Simon Li / Nancy Lewis",
+        "seed": 5
        }
       },
       {
@@ -529,55 +1281,106 @@
         "seed": 1
        },
        "side2": {
-        "key": "pair:pair-tao-player-zhihan-2",
+        "key": "pair:pair-tsai-tao",
         "kind": "pair",
-        "label": "Ruihong TAO / Zhihan",
+        "label": "Zhi-Han Tsai / Ruihong TAO",
+        "seed": 8
+       }
+      },
+      {
+       "id": "div-xd-poolA-r3-m1",
+       "round": "Pool A · Round 3",
+       "part": "pool",
+       "side1": {
+        "key": "pair:pair-lee-shu",
+        "kind": "pair",
+        "label": "Grace Lee / Sean Shu",
+        "seed": 9
+       },
+       "side2": {
+        "key": "pair:pair-liu",
+        "kind": "pair",
+        "label": "Yu Liu / Jesse 宋雨潔",
+        "seed": 7
+       }
+      },
+      {
+       "id": "div-xd-poolA-r3-m2",
+       "round": "Pool A · Round 3",
+       "part": "pool",
+       "side1": {
+        "key": "pair:pair-middlebrook-hsiao",
+        "kind": "pair",
+        "label": "Sonny Middlebrook / Kaya Hsiao",
+        "seed": 2
+       },
+       "side2": {
+        "key": "pair:pair-li-lewis",
+        "kind": "pair",
+        "label": "Simon Li / Nancy Lewis",
+        "seed": 5
+       }
+      },
+      {
+       "id": "div-xd-poolA-r3-m3",
+       "round": "Pool A · Round 3",
+       "part": "pool",
+       "side1": {
+        "key": "pair:pair-lam-phui",
+        "kind": "pair",
+        "label": "Grace Lam / Spencer Phui",
+        "seed": 3
+       },
+       "side2": {
+        "key": "pair:pair-pang-wong",
+        "kind": "pair",
+        "label": "Michael Pang / Kei Wong",
+        "seed": 4
+       }
+      },
+      {
+       "id": "div-xd-poolA-r4-m0",
+       "round": "Pool A · Round 4",
+       "part": "pool",
+       "side1": {
+        "key": "pair:pair-nguyen-chi",
+        "kind": "pair",
+        "label": "Amy Nguyen / Brian Chi",
+        "seed": 1
+       },
+       "side2": {
+        "key": "pair:pair-liu",
+        "kind": "pair",
+        "label": "Yu Liu / Jesse 宋雨潔",
+        "seed": 7
+       }
+      },
+      {
+       "id": "div-xd-poolA-r4-m1",
+       "round": "Pool A · Round 4",
+       "part": "pool",
+       "side1": {
+        "key": "pair:pair-tsai-tao",
+        "kind": "pair",
+        "label": "Zhi-Han Tsai / Ruihong TAO",
+        "seed": 8
+       },
+       "side2": {
+        "key": "pair:pair-poh-chen",
+        "kind": "pair",
+        "label": "Eugene Poh / Stanley Chen",
         "seed": 6
        }
       },
       {
-       "id": "div-xd-poolB-r1-m0",
-       "round": "Pool B · Round 1",
+       "id": "div-xd-poolA-r4-m2",
+       "round": "Pool A · Round 4",
        "part": "pool",
        "side1": {
-        "key": "pair:pair-li-lewis",
+        "key": "pair:pair-lee-shu",
         "kind": "pair",
-        "label": "Simon Li / Nancy Lewis",
-        "seed": 5
-       },
-       "side2": {
-        "key": "pair:pair-guo-lin",
-        "kind": "pair",
-        "label": "Kevin(Wenjie) Guo / En-Chi Lin",
-        "seed": 8
-       }
-      },
-      {
-       "id": "div-xd-poolB-r2-m0",
-       "round": "Pool B · Round 2",
-       "part": "pool",
-       "side1": {
-        "key": "pair:pair-middlebrook-hsiao",
-        "kind": "pair",
-        "label": "Sonny Middlebrook / Kaya Hsiao",
-        "seed": 2
-       },
-       "side2": {
-        "key": "pair:pair-guo-lin",
-        "kind": "pair",
-        "label": "Kevin(Wenjie) Guo / En-Chi Lin",
-        "seed": 8
-       }
-      },
-      {
-       "id": "div-xd-poolB-r3-m0",
-       "round": "Pool B · Round 3",
-       "part": "pool",
-       "side1": {
-        "key": "pair:pair-middlebrook-hsiao",
-        "kind": "pair",
-        "label": "Sonny Middlebrook / Kaya Hsiao",
-        "seed": 2
+        "label": "Grace Lee / Sean Shu",
+        "seed": 9
        },
        "side2": {
         "key": "pair:pair-li-lewis",
@@ -587,54 +1390,360 @@
        }
       },
       {
-       "id": "div-xd-poolC-r1-m0",
-       "round": "Pool C · Round 1",
+       "id": "div-xd-poolA-r4-m3",
+       "round": "Pool A · Round 4",
        "part": "pool",
        "side1": {
-        "key": "pair:pair-pang-wong-2",
+        "key": "pair:pair-middlebrook-hsiao",
         "kind": "pair",
-        "label": "Michael Pang / Kei Wong",
-        "seed": 4
+        "label": "Sonny Middlebrook / Kaya Hsiao",
+        "seed": 2
        },
        "side2": {
-        "key": "pair:pair-shu-lee",
+        "key": "pair:pair-lam-phui",
         "kind": "pair",
-        "label": "Sean Shu / Grace Lee",
-        "seed": 9
+        "label": "Grace Lam / Spencer Phui",
+        "seed": 3
        }
       },
       {
-       "id": "div-xd-poolC-r2-m0",
-       "round": "Pool C · Round 2",
+       "id": "div-xd-poolA-r5-m0",
+       "round": "Pool A · Round 5",
+       "part": "pool",
+       "side1": {
+        "key": "pair:pair-nguyen-chi",
+        "kind": "pair",
+        "label": "Amy Nguyen / Brian Chi",
+        "seed": 1
+       },
+       "side2": {
+        "key": "pair:pair-poh-chen",
+        "kind": "pair",
+        "label": "Eugene Poh / Stanley Chen",
+        "seed": 6
+       }
+      },
+      {
+       "id": "div-xd-poolA-r5-m1",
+       "round": "Pool A · Round 5",
        "part": "pool",
        "side1": {
         "key": "pair:pair-liu",
         "kind": "pair",
         "label": "Yu Liu / Jesse 宋雨潔",
-        "seed": 3
+        "seed": 7
        },
        "side2": {
-        "key": "pair:pair-shu-lee",
+        "key": "pair:pair-li-lewis",
         "kind": "pair",
-        "label": "Sean Shu / Grace Lee",
-        "seed": 9
+        "label": "Simon Li / Nancy Lewis",
+        "seed": 5
        }
       },
       {
-       "id": "div-xd-poolC-r3-m0",
-       "round": "Pool C · Round 3",
+       "id": "div-xd-poolA-r5-m2",
+       "round": "Pool A · Round 5",
+       "part": "pool",
+       "side1": {
+        "key": "pair:pair-tsai-tao",
+        "kind": "pair",
+        "label": "Zhi-Han Tsai / Ruihong TAO",
+        "seed": 8
+       },
+       "side2": {
+        "key": "pair:pair-pang-wong",
+        "kind": "pair",
+        "label": "Michael Pang / Kei Wong",
+        "seed": 4
+       }
+      },
+      {
+       "id": "div-xd-poolA-r5-m3",
+       "round": "Pool A · Round 5",
+       "part": "pool",
+       "side1": {
+        "key": "pair:pair-lee-shu",
+        "kind": "pair",
+        "label": "Grace Lee / Sean Shu",
+        "seed": 9
+       },
+       "side2": {
+        "key": "pair:pair-lam-phui",
+        "kind": "pair",
+        "label": "Grace Lam / Spencer Phui",
+        "seed": 3
+       }
+      },
+      {
+       "id": "div-xd-poolA-r6-m0",
+       "round": "Pool A · Round 6",
+       "part": "pool",
+       "side1": {
+        "key": "pair:pair-nguyen-chi",
+        "kind": "pair",
+        "label": "Amy Nguyen / Brian Chi",
+        "seed": 1
+       },
+       "side2": {
+        "key": "pair:pair-li-lewis",
+        "kind": "pair",
+        "label": "Simon Li / Nancy Lewis",
+        "seed": 5
+       }
+      },
+      {
+       "id": "div-xd-poolA-r6-m1",
+       "round": "Pool A · Round 6",
+       "part": "pool",
+       "side1": {
+        "key": "pair:pair-poh-chen",
+        "kind": "pair",
+        "label": "Eugene Poh / Stanley Chen",
+        "seed": 6
+       },
+       "side2": {
+        "key": "pair:pair-pang-wong",
+        "kind": "pair",
+        "label": "Michael Pang / Kei Wong",
+        "seed": 4
+       }
+      },
+      {
+       "id": "div-xd-poolA-r6-m2",
+       "round": "Pool A · Round 6",
        "part": "pool",
        "side1": {
         "key": "pair:pair-liu",
         "kind": "pair",
         "label": "Yu Liu / Jesse 宋雨潔",
-        "seed": 3
+        "seed": 7
        },
        "side2": {
-        "key": "pair:pair-pang-wong-2",
+        "key": "pair:pair-lam-phui",
+        "kind": "pair",
+        "label": "Grace Lam / Spencer Phui",
+        "seed": 3
+       }
+      },
+      {
+       "id": "div-xd-poolA-r6-m3",
+       "round": "Pool A · Round 6",
+       "part": "pool",
+       "side1": {
+        "key": "pair:pair-tsai-tao",
+        "kind": "pair",
+        "label": "Zhi-Han Tsai / Ruihong TAO",
+        "seed": 8
+       },
+       "side2": {
+        "key": "pair:pair-middlebrook-hsiao",
+        "kind": "pair",
+        "label": "Sonny Middlebrook / Kaya Hsiao",
+        "seed": 2
+       }
+      },
+      {
+       "id": "div-xd-poolA-r7-m0",
+       "round": "Pool A · Round 7",
+       "part": "pool",
+       "side1": {
+        "key": "pair:pair-nguyen-chi",
+        "kind": "pair",
+        "label": "Amy Nguyen / Brian Chi",
+        "seed": 1
+       },
+       "side2": {
+        "key": "pair:pair-pang-wong",
         "kind": "pair",
         "label": "Michael Pang / Kei Wong",
         "seed": 4
+       }
+      },
+      {
+       "id": "div-xd-poolA-r7-m1",
+       "round": "Pool A · Round 7",
+       "part": "pool",
+       "side1": {
+        "key": "pair:pair-li-lewis",
+        "kind": "pair",
+        "label": "Simon Li / Nancy Lewis",
+        "seed": 5
+       },
+       "side2": {
+        "key": "pair:pair-lam-phui",
+        "kind": "pair",
+        "label": "Grace Lam / Spencer Phui",
+        "seed": 3
+       }
+      },
+      {
+       "id": "div-xd-poolA-r7-m2",
+       "round": "Pool A · Round 7",
+       "part": "pool",
+       "side1": {
+        "key": "pair:pair-poh-chen",
+        "kind": "pair",
+        "label": "Eugene Poh / Stanley Chen",
+        "seed": 6
+       },
+       "side2": {
+        "key": "pair:pair-middlebrook-hsiao",
+        "kind": "pair",
+        "label": "Sonny Middlebrook / Kaya Hsiao",
+        "seed": 2
+       }
+      },
+      {
+       "id": "div-xd-poolA-r7-m3",
+       "round": "Pool A · Round 7",
+       "part": "pool",
+       "side1": {
+        "key": "pair:pair-tsai-tao",
+        "kind": "pair",
+        "label": "Zhi-Han Tsai / Ruihong TAO",
+        "seed": 8
+       },
+       "side2": {
+        "key": "pair:pair-lee-shu",
+        "kind": "pair",
+        "label": "Grace Lee / Sean Shu",
+        "seed": 9
+       }
+      },
+      {
+       "id": "div-xd-poolA-r8-m0",
+       "round": "Pool A · Round 8",
+       "part": "pool",
+       "side1": {
+        "key": "pair:pair-nguyen-chi",
+        "kind": "pair",
+        "label": "Amy Nguyen / Brian Chi",
+        "seed": 1
+       },
+       "side2": {
+        "key": "pair:pair-lam-phui",
+        "kind": "pair",
+        "label": "Grace Lam / Spencer Phui",
+        "seed": 3
+       }
+      },
+      {
+       "id": "div-xd-poolA-r8-m1",
+       "round": "Pool A · Round 8",
+       "part": "pool",
+       "side1": {
+        "key": "pair:pair-pang-wong",
+        "kind": "pair",
+        "label": "Michael Pang / Kei Wong",
+        "seed": 4
+       },
+       "side2": {
+        "key": "pair:pair-middlebrook-hsiao",
+        "kind": "pair",
+        "label": "Sonny Middlebrook / Kaya Hsiao",
+        "seed": 2
+       }
+      },
+      {
+       "id": "div-xd-poolA-r8-m2",
+       "round": "Pool A · Round 8",
+       "part": "pool",
+       "side1": {
+        "key": "pair:pair-poh-chen",
+        "kind": "pair",
+        "label": "Eugene Poh / Stanley Chen",
+        "seed": 6
+       },
+       "side2": {
+        "key": "pair:pair-lee-shu",
+        "kind": "pair",
+        "label": "Grace Lee / Sean Shu",
+        "seed": 9
+       }
+      },
+      {
+       "id": "div-xd-poolA-r8-m3",
+       "round": "Pool A · Round 8",
+       "part": "pool",
+       "side1": {
+        "key": "pair:pair-liu",
+        "kind": "pair",
+        "label": "Yu Liu / Jesse 宋雨潔",
+        "seed": 7
+       },
+       "side2": {
+        "key": "pair:pair-tsai-tao",
+        "kind": "pair",
+        "label": "Zhi-Han Tsai / Ruihong TAO",
+        "seed": 8
+       }
+      },
+      {
+       "id": "div-xd-poolA-r9-m0",
+       "round": "Pool A · Round 9",
+       "part": "pool",
+       "side1": {
+        "key": "pair:pair-nguyen-chi",
+        "kind": "pair",
+        "label": "Amy Nguyen / Brian Chi",
+        "seed": 1
+       },
+       "side2": {
+        "key": "pair:pair-middlebrook-hsiao",
+        "kind": "pair",
+        "label": "Sonny Middlebrook / Kaya Hsiao",
+        "seed": 2
+       }
+      },
+      {
+       "id": "div-xd-poolA-r9-m1",
+       "round": "Pool A · Round 9",
+       "part": "pool",
+       "side1": {
+        "key": "pair:pair-pang-wong",
+        "kind": "pair",
+        "label": "Michael Pang / Kei Wong",
+        "seed": 4
+       },
+       "side2": {
+        "key": "pair:pair-lee-shu",
+        "kind": "pair",
+        "label": "Grace Lee / Sean Shu",
+        "seed": 9
+       }
+      },
+      {
+       "id": "div-xd-poolA-r9-m2",
+       "round": "Pool A · Round 9",
+       "part": "pool",
+       "side1": {
+        "key": "pair:pair-li-lewis",
+        "kind": "pair",
+        "label": "Simon Li / Nancy Lewis",
+        "seed": 5
+       },
+       "side2": {
+        "key": "pair:pair-tsai-tao",
+        "kind": "pair",
+        "label": "Zhi-Han Tsai / Ruihong TAO",
+        "seed": 8
+       }
+      },
+      {
+       "id": "div-xd-poolA-r9-m3",
+       "round": "Pool A · Round 9",
+       "part": "pool",
+       "side1": {
+        "key": "pair:pair-poh-chen",
+        "kind": "pair",
+        "label": "Eugene Poh / Stanley Chen",
+        "seed": 6
+       },
+       "side2": {
+        "key": "pair:pair-liu",
+        "kind": "pair",
+        "label": "Yu Liu / Jesse 宋雨潔",
+        "seed": 7
        }
       }
      ],
@@ -660,7 +1769,7 @@
      },
      {
       "seed_no": 3,
-      "label": "Yu Liu / Jesse 宋雨潔"
+      "label": "Grace Lam / Spencer Phui"
      },
      {
       "seed_no": 4,
@@ -672,19 +1781,19 @@
      },
      {
       "seed_no": 6,
-      "label": "Ruihong TAO / Zhihan"
-     },
-     {
-      "seed_no": 7,
       "label": "Eugene Poh / Stanley Chen"
      },
      {
+      "seed_no": 7,
+      "label": "Yu Liu / Jesse 宋雨潔"
+     },
+     {
       "seed_no": 8,
-      "label": "Kevin(Wenjie) Guo / En-Chi Lin"
+      "label": "Zhi-Han Tsai / Ruihong TAO"
      },
      {
       "seed_no": 9,
-      "label": "Sean Shu / Grace Lee"
+      "label": "Grace Lee / Sean Shu"
      }
     ],
     "standings": [
@@ -708,40 +1817,6 @@
        },
        {
         "rank": 2,
-        "key": "pair:pair-tao-player-zhihan-2",
-        "label": "Ruihong TAO / Zhihan",
-        "played": 0,
-        "wins": 0,
-        "losses": 0,
-        "game_diff": 0,
-        "point_diff": 0,
-        "points_for": 0,
-        "points_against": 0,
-        "advances": false,
-        "qualify": "out"
-       },
-       {
-        "rank": 3,
-        "key": "pair:pair-poh-chen",
-        "label": "Eugene Poh / Stanley Chen",
-        "played": 0,
-        "wins": 0,
-        "losses": 0,
-        "game_diff": 0,
-        "point_diff": 0,
-        "points_for": 0,
-        "points_against": 0,
-        "advances": false,
-        "qualify": "out"
-       }
-      ]
-     },
-     {
-      "pool": "B",
-      "complete": false,
-      "rows": [
-       {
-        "rank": 1,
         "key": "pair:pair-middlebrook-hsiao",
         "label": "Sonny Middlebrook / Kaya Hsiao",
         "played": 0,
@@ -755,7 +1830,35 @@
         "qualify": "auto"
        },
        {
-        "rank": 2,
+        "rank": 3,
+        "key": "pair:pair-lam-phui",
+        "label": "Grace Lam / Spencer Phui",
+        "played": 0,
+        "wins": 0,
+        "losses": 0,
+        "game_diff": 0,
+        "point_diff": 0,
+        "points_for": 0,
+        "points_against": 0,
+        "advances": false,
+        "qualify": "wildcard"
+       },
+       {
+        "rank": 4,
+        "key": "pair:pair-pang-wong",
+        "label": "Michael Pang / Kei Wong",
+        "played": 0,
+        "wins": 0,
+        "losses": 0,
+        "game_diff": 0,
+        "point_diff": 0,
+        "points_for": 0,
+        "points_against": 0,
+        "advances": false,
+        "qualify": "wildcard"
+       },
+       {
+        "rank": 5,
         "key": "pair:pair-li-lewis",
         "label": "Simon Li / Nancy Lewis",
         "played": 0,
@@ -769,9 +1872,9 @@
         "qualify": "out"
        },
        {
-        "rank": 3,
-        "key": "pair:pair-guo-lin",
-        "label": "Kevin(Wenjie) Guo / En-Chi Lin",
+        "rank": 6,
+        "key": "pair:pair-poh-chen",
+        "label": "Eugene Poh / Stanley Chen",
         "played": 0,
         "wins": 0,
         "losses": 0,
@@ -781,15 +1884,9 @@
         "points_against": 0,
         "advances": false,
         "qualify": "out"
-       }
-      ]
-     },
-     {
-      "pool": "C",
-      "complete": false,
-      "rows": [
+       },
        {
-        "rank": 1,
+        "rank": 7,
         "key": "pair:pair-liu",
         "label": "Yu Liu / Jesse 宋雨潔",
         "played": 0,
@@ -799,13 +1896,13 @@
         "point_diff": 0,
         "points_for": 0,
         "points_against": 0,
-        "advances": true,
-        "qualify": "auto"
+        "advances": false,
+        "qualify": "out"
        },
        {
-        "rank": 2,
-        "key": "pair:pair-pang-wong-2",
-        "label": "Michael Pang / Kei Wong",
+        "rank": 8,
+        "key": "pair:pair-tsai-tao",
+        "label": "Zhi-Han Tsai / Ruihong TAO",
         "played": 0,
         "wins": 0,
         "losses": 0,
@@ -814,12 +1911,12 @@
         "points_for": 0,
         "points_against": 0,
         "advances": false,
-        "qualify": "wildcard"
+        "qualify": "out"
        },
        {
-        "rank": 3,
-        "key": "pair:pair-shu-lee",
-        "label": "Sean Shu / Grace Lee",
+        "rank": 9,
+        "key": "pair:pair-lee-shu",
+        "label": "Grace Lee / Sean Shu",
         "played": 0,
         "wins": 0,
         "losses": 0,
@@ -845,16 +1942,100 @@
         "part": "pool",
         "seq": 0,
         "side1": {
-         "key": "pair:pair-tao-player-zhihan-2",
+         "key": "pair:pair-middlebrook-hsiao",
          "kind": "pair",
-         "label": "Ruihong TAO / Zhihan",
-         "seed": 6
+         "label": "Sonny Middlebrook / Kaya Hsiao",
+         "seed": 2
+        },
+        "side2": {
+         "key": "pair:pair-lee-shu",
+         "kind": "pair",
+         "label": "Grace Lee / Sean Shu",
+         "seed": 9
+        },
+        "winner": null,
+        "games": [],
+        "walkover": false,
+        "is_bye": false,
+        "ready": true,
+        "max_games": 3,
+        "is_tie": false,
+        "rubbers": [],
+        "tally": null,
+        "gaps": []
+       },
+       {
+        "id": "div-xd-poolA-r1-m1",
+        "round": "Pool A · Round 1",
+        "part": "pool",
+        "seq": 1,
+        "side1": {
+         "key": "pair:pair-lam-phui",
+         "kind": "pair",
+         "label": "Grace Lam / Spencer Phui",
+         "seed": 3
+        },
+        "side2": {
+         "key": "pair:pair-tsai-tao",
+         "kind": "pair",
+         "label": "Zhi-Han Tsai / Ruihong TAO",
+         "seed": 8
+        },
+        "winner": null,
+        "games": [],
+        "walkover": false,
+        "is_bye": false,
+        "ready": true,
+        "max_games": 3,
+        "is_tie": false,
+        "rubbers": [],
+        "tally": null,
+        "gaps": []
+       },
+       {
+        "id": "div-xd-poolA-r1-m2",
+        "round": "Pool A · Round 1",
+        "part": "pool",
+        "seq": 2,
+        "side1": {
+         "key": "pair:pair-pang-wong",
+         "kind": "pair",
+         "label": "Michael Pang / Kei Wong",
+         "seed": 4
+        },
+        "side2": {
+         "key": "pair:pair-liu",
+         "kind": "pair",
+         "label": "Yu Liu / Jesse 宋雨潔",
+         "seed": 7
+        },
+        "winner": null,
+        "games": [],
+        "walkover": false,
+        "is_bye": false,
+        "ready": true,
+        "max_games": 3,
+        "is_tie": false,
+        "rubbers": [],
+        "tally": null,
+        "gaps": []
+       },
+       {
+        "id": "div-xd-poolA-r1-m3",
+        "round": "Pool A · Round 1",
+        "part": "pool",
+        "seq": 3,
+        "side1": {
+         "key": "pair:pair-li-lewis",
+         "kind": "pair",
+         "label": "Simon Li / Nancy Lewis",
+         "seed": 5
         },
         "side2": {
          "key": "pair:pair-poh-chen",
          "kind": "pair",
          "label": "Eugene Poh / Stanley Chen",
-         "seed": 7
+         "seed": 6
         },
         "winner": null,
         "games": [],
@@ -877,7 +2058,7 @@
         "id": "div-xd-poolA-r2-m0",
         "round": "Pool A · Round 2",
         "part": "pool",
-        "seq": 1,
+        "seq": 4,
         "side1": {
          "key": "pair:pair-nguyen-chi",
          "kind": "pair",
@@ -885,10 +2066,94 @@
          "seed": 1
         },
         "side2": {
+         "key": "pair:pair-lee-shu",
+         "kind": "pair",
+         "label": "Grace Lee / Sean Shu",
+         "seed": 9
+        },
+        "winner": null,
+        "games": [],
+        "walkover": false,
+        "is_bye": false,
+        "ready": true,
+        "max_games": 3,
+        "is_tie": false,
+        "rubbers": [],
+        "tally": null,
+        "gaps": []
+       },
+       {
+        "id": "div-xd-poolA-r2-m1",
+        "round": "Pool A · Round 2",
+        "part": "pool",
+        "seq": 5,
+        "side1": {
+         "key": "pair:pair-middlebrook-hsiao",
+         "kind": "pair",
+         "label": "Sonny Middlebrook / Kaya Hsiao",
+         "seed": 2
+        },
+        "side2": {
+         "key": "pair:pair-liu",
+         "kind": "pair",
+         "label": "Yu Liu / Jesse 宋雨潔",
+         "seed": 7
+        },
+        "winner": null,
+        "games": [],
+        "walkover": false,
+        "is_bye": false,
+        "ready": true,
+        "max_games": 3,
+        "is_tie": false,
+        "rubbers": [],
+        "tally": null,
+        "gaps": []
+       },
+       {
+        "id": "div-xd-poolA-r2-m2",
+        "round": "Pool A · Round 2",
+        "part": "pool",
+        "seq": 6,
+        "side1": {
+         "key": "pair:pair-lam-phui",
+         "kind": "pair",
+         "label": "Grace Lam / Spencer Phui",
+         "seed": 3
+        },
+        "side2": {
          "key": "pair:pair-poh-chen",
          "kind": "pair",
          "label": "Eugene Poh / Stanley Chen",
-         "seed": 7
+         "seed": 6
+        },
+        "winner": null,
+        "games": [],
+        "walkover": false,
+        "is_bye": false,
+        "ready": true,
+        "max_games": 3,
+        "is_tie": false,
+        "rubbers": [],
+        "tally": null,
+        "gaps": []
+       },
+       {
+        "id": "div-xd-poolA-r2-m3",
+        "round": "Pool A · Round 2",
+        "part": "pool",
+        "seq": 7,
+        "side1": {
+         "key": "pair:pair-pang-wong",
+         "kind": "pair",
+         "label": "Michael Pang / Kei Wong",
+         "seed": 4
+        },
+        "side2": {
+         "key": "pair:pair-li-lewis",
+         "kind": "pair",
+         "label": "Simon Li / Nancy Lewis",
+         "seed": 5
         },
         "winner": null,
         "games": [],
@@ -911,7 +2176,7 @@
         "id": "div-xd-poolA-r3-m0",
         "round": "Pool A · Round 3",
         "part": "pool",
-        "seq": 2,
+        "seq": 8,
         "side1": {
          "key": "pair:pair-nguyen-chi",
          "kind": "pair",
@@ -919,9 +2184,155 @@
          "seed": 1
         },
         "side2": {
-         "key": "pair:pair-tao-player-zhihan-2",
+         "key": "pair:pair-tsai-tao",
          "kind": "pair",
-         "label": "Ruihong TAO / Zhihan",
+         "label": "Zhi-Han Tsai / Ruihong TAO",
+         "seed": 8
+        },
+        "winner": null,
+        "games": [],
+        "walkover": false,
+        "is_bye": false,
+        "ready": true,
+        "max_games": 3,
+        "is_tie": false,
+        "rubbers": [],
+        "tally": null,
+        "gaps": []
+       },
+       {
+        "id": "div-xd-poolA-r3-m1",
+        "round": "Pool A · Round 3",
+        "part": "pool",
+        "seq": 9,
+        "side1": {
+         "key": "pair:pair-lee-shu",
+         "kind": "pair",
+         "label": "Grace Lee / Sean Shu",
+         "seed": 9
+        },
+        "side2": {
+         "key": "pair:pair-liu",
+         "kind": "pair",
+         "label": "Yu Liu / Jesse 宋雨潔",
+         "seed": 7
+        },
+        "winner": null,
+        "games": [],
+        "walkover": false,
+        "is_bye": false,
+        "ready": true,
+        "max_games": 3,
+        "is_tie": false,
+        "rubbers": [],
+        "tally": null,
+        "gaps": []
+       },
+       {
+        "id": "div-xd-poolA-r3-m2",
+        "round": "Pool A · Round 3",
+        "part": "pool",
+        "seq": 10,
+        "side1": {
+         "key": "pair:pair-middlebrook-hsiao",
+         "kind": "pair",
+         "label": "Sonny Middlebrook / Kaya Hsiao",
+         "seed": 2
+        },
+        "side2": {
+         "key": "pair:pair-li-lewis",
+         "kind": "pair",
+         "label": "Simon Li / Nancy Lewis",
+         "seed": 5
+        },
+        "winner": null,
+        "games": [],
+        "walkover": false,
+        "is_bye": false,
+        "ready": true,
+        "max_games": 3,
+        "is_tie": false,
+        "rubbers": [],
+        "tally": null,
+        "gaps": []
+       },
+       {
+        "id": "div-xd-poolA-r3-m3",
+        "round": "Pool A · Round 3",
+        "part": "pool",
+        "seq": 11,
+        "side1": {
+         "key": "pair:pair-lam-phui",
+         "kind": "pair",
+         "label": "Grace Lam / Spencer Phui",
+         "seed": 3
+        },
+        "side2": {
+         "key": "pair:pair-pang-wong",
+         "kind": "pair",
+         "label": "Michael Pang / Kei Wong",
+         "seed": 4
+        },
+        "winner": null,
+        "games": [],
+        "walkover": false,
+        "is_bye": false,
+        "ready": true,
+        "max_games": 3,
+        "is_tie": false,
+        "rubbers": [],
+        "tally": null,
+        "gaps": []
+       }
+      ]
+     },
+     {
+      "name": "Pool A · Round 4",
+      "part": "pool",
+      "matches": [
+       {
+        "id": "div-xd-poolA-r4-m0",
+        "round": "Pool A · Round 4",
+        "part": "pool",
+        "seq": 12,
+        "side1": {
+         "key": "pair:pair-nguyen-chi",
+         "kind": "pair",
+         "label": "Amy Nguyen / Brian Chi",
+         "seed": 1
+        },
+        "side2": {
+         "key": "pair:pair-liu",
+         "kind": "pair",
+         "label": "Yu Liu / Jesse 宋雨潔",
+         "seed": 7
+        },
+        "winner": null,
+        "games": [],
+        "walkover": false,
+        "is_bye": false,
+        "ready": true,
+        "max_games": 3,
+        "is_tie": false,
+        "rubbers": [],
+        "tally": null,
+        "gaps": []
+       },
+       {
+        "id": "div-xd-poolA-r4-m1",
+        "round": "Pool A · Round 4",
+        "part": "pool",
+        "seq": 13,
+        "side1": {
+         "key": "pair:pair-tsai-tao",
+         "kind": "pair",
+         "label": "Zhi-Han Tsai / Ruihong TAO",
+         "seed": 8
+        },
+        "side2": {
+         "key": "pair:pair-poh-chen",
+         "kind": "pair",
+         "label": "Eugene Poh / Stanley Chen",
          "seed": 6
         },
         "winner": null,
@@ -934,91 +2345,17 @@
         "rubbers": [],
         "tally": null,
         "gaps": []
-       }
-      ]
-     },
-     {
-      "name": "Pool B · Round 1",
-      "part": "pool",
-      "matches": [
+       },
        {
-        "id": "div-xd-poolB-r1-m0",
-        "round": "Pool B · Round 1",
+        "id": "div-xd-poolA-r4-m2",
+        "round": "Pool A · Round 4",
         "part": "pool",
-        "seq": 3,
+        "seq": 14,
         "side1": {
-         "key": "pair:pair-li-lewis",
+         "key": "pair:pair-lee-shu",
          "kind": "pair",
-         "label": "Simon Li / Nancy Lewis",
-         "seed": 5
-        },
-        "side2": {
-         "key": "pair:pair-guo-lin",
-         "kind": "pair",
-         "label": "Kevin(Wenjie) Guo / En-Chi Lin",
-         "seed": 8
-        },
-        "winner": null,
-        "games": [],
-        "walkover": false,
-        "is_bye": false,
-        "ready": true,
-        "max_games": 3,
-        "is_tie": false,
-        "rubbers": [],
-        "tally": null,
-        "gaps": []
-       }
-      ]
-     },
-     {
-      "name": "Pool B · Round 2",
-      "part": "pool",
-      "matches": [
-       {
-        "id": "div-xd-poolB-r2-m0",
-        "round": "Pool B · Round 2",
-        "part": "pool",
-        "seq": 4,
-        "side1": {
-         "key": "pair:pair-middlebrook-hsiao",
-         "kind": "pair",
-         "label": "Sonny Middlebrook / Kaya Hsiao",
-         "seed": 2
-        },
-        "side2": {
-         "key": "pair:pair-guo-lin",
-         "kind": "pair",
-         "label": "Kevin(Wenjie) Guo / En-Chi Lin",
-         "seed": 8
-        },
-        "winner": null,
-        "games": [],
-        "walkover": false,
-        "is_bye": false,
-        "ready": true,
-        "max_games": 3,
-        "is_tie": false,
-        "rubbers": [],
-        "tally": null,
-        "gaps": []
-       }
-      ]
-     },
-     {
-      "name": "Pool B · Round 3",
-      "part": "pool",
-      "matches": [
-       {
-        "id": "div-xd-poolB-r3-m0",
-        "round": "Pool B · Round 3",
-        "part": "pool",
-        "seq": 5,
-        "side1": {
-         "key": "pair:pair-middlebrook-hsiao",
-         "kind": "pair",
-         "label": "Sonny Middlebrook / Kaya Hsiao",
-         "seed": 2
+         "label": "Grace Lee / Sean Shu",
+         "seed": 9
         },
         "side2": {
          "key": "pair:pair-li-lewis",
@@ -1036,28 +2373,376 @@
         "rubbers": [],
         "tally": null,
         "gaps": []
+       },
+       {
+        "id": "div-xd-poolA-r4-m3",
+        "round": "Pool A · Round 4",
+        "part": "pool",
+        "seq": 15,
+        "side1": {
+         "key": "pair:pair-middlebrook-hsiao",
+         "kind": "pair",
+         "label": "Sonny Middlebrook / Kaya Hsiao",
+         "seed": 2
+        },
+        "side2": {
+         "key": "pair:pair-lam-phui",
+         "kind": "pair",
+         "label": "Grace Lam / Spencer Phui",
+         "seed": 3
+        },
+        "winner": null,
+        "games": [],
+        "walkover": false,
+        "is_bye": false,
+        "ready": true,
+        "max_games": 3,
+        "is_tie": false,
+        "rubbers": [],
+        "tally": null,
+        "gaps": []
        }
       ]
      },
      {
-      "name": "Pool C · Round 1",
+      "name": "Pool A · Round 5",
       "part": "pool",
       "matches": [
        {
-        "id": "div-xd-poolC-r1-m0",
-        "round": "Pool C · Round 1",
+        "id": "div-xd-poolA-r5-m0",
+        "round": "Pool A · Round 5",
         "part": "pool",
-        "seq": 6,
+        "seq": 16,
         "side1": {
-         "key": "pair:pair-pang-wong-2",
+         "key": "pair:pair-nguyen-chi",
+         "kind": "pair",
+         "label": "Amy Nguyen / Brian Chi",
+         "seed": 1
+        },
+        "side2": {
+         "key": "pair:pair-poh-chen",
+         "kind": "pair",
+         "label": "Eugene Poh / Stanley Chen",
+         "seed": 6
+        },
+        "winner": null,
+        "games": [],
+        "walkover": false,
+        "is_bye": false,
+        "ready": true,
+        "max_games": 3,
+        "is_tie": false,
+        "rubbers": [],
+        "tally": null,
+        "gaps": []
+       },
+       {
+        "id": "div-xd-poolA-r5-m1",
+        "round": "Pool A · Round 5",
+        "part": "pool",
+        "seq": 17,
+        "side1": {
+         "key": "pair:pair-liu",
+         "kind": "pair",
+         "label": "Yu Liu / Jesse 宋雨潔",
+         "seed": 7
+        },
+        "side2": {
+         "key": "pair:pair-li-lewis",
+         "kind": "pair",
+         "label": "Simon Li / Nancy Lewis",
+         "seed": 5
+        },
+        "winner": null,
+        "games": [],
+        "walkover": false,
+        "is_bye": false,
+        "ready": true,
+        "max_games": 3,
+        "is_tie": false,
+        "rubbers": [],
+        "tally": null,
+        "gaps": []
+       },
+       {
+        "id": "div-xd-poolA-r5-m2",
+        "round": "Pool A · Round 5",
+        "part": "pool",
+        "seq": 18,
+        "side1": {
+         "key": "pair:pair-tsai-tao",
+         "kind": "pair",
+         "label": "Zhi-Han Tsai / Ruihong TAO",
+         "seed": 8
+        },
+        "side2": {
+         "key": "pair:pair-pang-wong",
          "kind": "pair",
          "label": "Michael Pang / Kei Wong",
          "seed": 4
         },
-        "side2": {
-         "key": "pair:pair-shu-lee",
+        "winner": null,
+        "games": [],
+        "walkover": false,
+        "is_bye": false,
+        "ready": true,
+        "max_games": 3,
+        "is_tie": false,
+        "rubbers": [],
+        "tally": null,
+        "gaps": []
+       },
+       {
+        "id": "div-xd-poolA-r5-m3",
+        "round": "Pool A · Round 5",
+        "part": "pool",
+        "seq": 19,
+        "side1": {
+         "key": "pair:pair-lee-shu",
          "kind": "pair",
-         "label": "Sean Shu / Grace Lee",
+         "label": "Grace Lee / Sean Shu",
+         "seed": 9
+        },
+        "side2": {
+         "key": "pair:pair-lam-phui",
+         "kind": "pair",
+         "label": "Grace Lam / Spencer Phui",
+         "seed": 3
+        },
+        "winner": null,
+        "games": [],
+        "walkover": false,
+        "is_bye": false,
+        "ready": true,
+        "max_games": 3,
+        "is_tie": false,
+        "rubbers": [],
+        "tally": null,
+        "gaps": []
+       }
+      ]
+     },
+     {
+      "name": "Pool A · Round 6",
+      "part": "pool",
+      "matches": [
+       {
+        "id": "div-xd-poolA-r6-m0",
+        "round": "Pool A · Round 6",
+        "part": "pool",
+        "seq": 20,
+        "side1": {
+         "key": "pair:pair-nguyen-chi",
+         "kind": "pair",
+         "label": "Amy Nguyen / Brian Chi",
+         "seed": 1
+        },
+        "side2": {
+         "key": "pair:pair-li-lewis",
+         "kind": "pair",
+         "label": "Simon Li / Nancy Lewis",
+         "seed": 5
+        },
+        "winner": null,
+        "games": [],
+        "walkover": false,
+        "is_bye": false,
+        "ready": true,
+        "max_games": 3,
+        "is_tie": false,
+        "rubbers": [],
+        "tally": null,
+        "gaps": []
+       },
+       {
+        "id": "div-xd-poolA-r6-m1",
+        "round": "Pool A · Round 6",
+        "part": "pool",
+        "seq": 21,
+        "side1": {
+         "key": "pair:pair-poh-chen",
+         "kind": "pair",
+         "label": "Eugene Poh / Stanley Chen",
+         "seed": 6
+        },
+        "side2": {
+         "key": "pair:pair-pang-wong",
+         "kind": "pair",
+         "label": "Michael Pang / Kei Wong",
+         "seed": 4
+        },
+        "winner": null,
+        "games": [],
+        "walkover": false,
+        "is_bye": false,
+        "ready": true,
+        "max_games": 3,
+        "is_tie": false,
+        "rubbers": [],
+        "tally": null,
+        "gaps": []
+       },
+       {
+        "id": "div-xd-poolA-r6-m2",
+        "round": "Pool A · Round 6",
+        "part": "pool",
+        "seq": 22,
+        "side1": {
+         "key": "pair:pair-liu",
+         "kind": "pair",
+         "label": "Yu Liu / Jesse 宋雨潔",
+         "seed": 7
+        },
+        "side2": {
+         "key": "pair:pair-lam-phui",
+         "kind": "pair",
+         "label": "Grace Lam / Spencer Phui",
+         "seed": 3
+        },
+        "winner": null,
+        "games": [],
+        "walkover": false,
+        "is_bye": false,
+        "ready": true,
+        "max_games": 3,
+        "is_tie": false,
+        "rubbers": [],
+        "tally": null,
+        "gaps": []
+       },
+       {
+        "id": "div-xd-poolA-r6-m3",
+        "round": "Pool A · Round 6",
+        "part": "pool",
+        "seq": 23,
+        "side1": {
+         "key": "pair:pair-tsai-tao",
+         "kind": "pair",
+         "label": "Zhi-Han Tsai / Ruihong TAO",
+         "seed": 8
+        },
+        "side2": {
+         "key": "pair:pair-middlebrook-hsiao",
+         "kind": "pair",
+         "label": "Sonny Middlebrook / Kaya Hsiao",
+         "seed": 2
+        },
+        "winner": null,
+        "games": [],
+        "walkover": false,
+        "is_bye": false,
+        "ready": true,
+        "max_games": 3,
+        "is_tie": false,
+        "rubbers": [],
+        "tally": null,
+        "gaps": []
+       }
+      ]
+     },
+     {
+      "name": "Pool A · Round 7",
+      "part": "pool",
+      "matches": [
+       {
+        "id": "div-xd-poolA-r7-m0",
+        "round": "Pool A · Round 7",
+        "part": "pool",
+        "seq": 24,
+        "side1": {
+         "key": "pair:pair-nguyen-chi",
+         "kind": "pair",
+         "label": "Amy Nguyen / Brian Chi",
+         "seed": 1
+        },
+        "side2": {
+         "key": "pair:pair-pang-wong",
+         "kind": "pair",
+         "label": "Michael Pang / Kei Wong",
+         "seed": 4
+        },
+        "winner": null,
+        "games": [],
+        "walkover": false,
+        "is_bye": false,
+        "ready": true,
+        "max_games": 3,
+        "is_tie": false,
+        "rubbers": [],
+        "tally": null,
+        "gaps": []
+       },
+       {
+        "id": "div-xd-poolA-r7-m1",
+        "round": "Pool A · Round 7",
+        "part": "pool",
+        "seq": 25,
+        "side1": {
+         "key": "pair:pair-li-lewis",
+         "kind": "pair",
+         "label": "Simon Li / Nancy Lewis",
+         "seed": 5
+        },
+        "side2": {
+         "key": "pair:pair-lam-phui",
+         "kind": "pair",
+         "label": "Grace Lam / Spencer Phui",
+         "seed": 3
+        },
+        "winner": null,
+        "games": [],
+        "walkover": false,
+        "is_bye": false,
+        "ready": true,
+        "max_games": 3,
+        "is_tie": false,
+        "rubbers": [],
+        "tally": null,
+        "gaps": []
+       },
+       {
+        "id": "div-xd-poolA-r7-m2",
+        "round": "Pool A · Round 7",
+        "part": "pool",
+        "seq": 26,
+        "side1": {
+         "key": "pair:pair-poh-chen",
+         "kind": "pair",
+         "label": "Eugene Poh / Stanley Chen",
+         "seed": 6
+        },
+        "side2": {
+         "key": "pair:pair-middlebrook-hsiao",
+         "kind": "pair",
+         "label": "Sonny Middlebrook / Kaya Hsiao",
+         "seed": 2
+        },
+        "winner": null,
+        "games": [],
+        "walkover": false,
+        "is_bye": false,
+        "ready": true,
+        "max_games": 3,
+        "is_tie": false,
+        "rubbers": [],
+        "tally": null,
+        "gaps": []
+       },
+       {
+        "id": "div-xd-poolA-r7-m3",
+        "round": "Pool A · Round 7",
+        "part": "pool",
+        "seq": 27,
+        "side1": {
+         "key": "pair:pair-tsai-tao",
+         "kind": "pair",
+         "label": "Zhi-Han Tsai / Ruihong TAO",
+         "seed": 8
+        },
+        "side2": {
+         "key": "pair:pair-lee-shu",
+         "kind": "pair",
+         "label": "Grace Lee / Sean Shu",
          "seed": 9
         },
         "winner": null,
@@ -1074,25 +2759,109 @@
       ]
      },
      {
-      "name": "Pool C · Round 2",
+      "name": "Pool A · Round 8",
       "part": "pool",
       "matches": [
        {
-        "id": "div-xd-poolC-r2-m0",
-        "round": "Pool C · Round 2",
+        "id": "div-xd-poolA-r8-m0",
+        "round": "Pool A · Round 8",
         "part": "pool",
-        "seq": 7,
+        "seq": 28,
+        "side1": {
+         "key": "pair:pair-nguyen-chi",
+         "kind": "pair",
+         "label": "Amy Nguyen / Brian Chi",
+         "seed": 1
+        },
+        "side2": {
+         "key": "pair:pair-lam-phui",
+         "kind": "pair",
+         "label": "Grace Lam / Spencer Phui",
+         "seed": 3
+        },
+        "winner": null,
+        "games": [],
+        "walkover": false,
+        "is_bye": false,
+        "ready": true,
+        "max_games": 3,
+        "is_tie": false,
+        "rubbers": [],
+        "tally": null,
+        "gaps": []
+       },
+       {
+        "id": "div-xd-poolA-r8-m1",
+        "round": "Pool A · Round 8",
+        "part": "pool",
+        "seq": 29,
+        "side1": {
+         "key": "pair:pair-pang-wong",
+         "kind": "pair",
+         "label": "Michael Pang / Kei Wong",
+         "seed": 4
+        },
+        "side2": {
+         "key": "pair:pair-middlebrook-hsiao",
+         "kind": "pair",
+         "label": "Sonny Middlebrook / Kaya Hsiao",
+         "seed": 2
+        },
+        "winner": null,
+        "games": [],
+        "walkover": false,
+        "is_bye": false,
+        "ready": true,
+        "max_games": 3,
+        "is_tie": false,
+        "rubbers": [],
+        "tally": null,
+        "gaps": []
+       },
+       {
+        "id": "div-xd-poolA-r8-m2",
+        "round": "Pool A · Round 8",
+        "part": "pool",
+        "seq": 30,
+        "side1": {
+         "key": "pair:pair-poh-chen",
+         "kind": "pair",
+         "label": "Eugene Poh / Stanley Chen",
+         "seed": 6
+        },
+        "side2": {
+         "key": "pair:pair-lee-shu",
+         "kind": "pair",
+         "label": "Grace Lee / Sean Shu",
+         "seed": 9
+        },
+        "winner": null,
+        "games": [],
+        "walkover": false,
+        "is_bye": false,
+        "ready": true,
+        "max_games": 3,
+        "is_tie": false,
+        "rubbers": [],
+        "tally": null,
+        "gaps": []
+       },
+       {
+        "id": "div-xd-poolA-r8-m3",
+        "round": "Pool A · Round 8",
+        "part": "pool",
+        "seq": 31,
         "side1": {
          "key": "pair:pair-liu",
          "kind": "pair",
          "label": "Yu Liu / Jesse 宋雨潔",
-         "seed": 3
+         "seed": 7
         },
         "side2": {
-         "key": "pair:pair-shu-lee",
+         "key": "pair:pair-tsai-tao",
          "kind": "pair",
-         "label": "Sean Shu / Grace Lee",
-         "seed": 9
+         "label": "Zhi-Han Tsai / Ruihong TAO",
+         "seed": 8
         },
         "winner": null,
         "games": [],
@@ -1108,25 +2877,109 @@
       ]
      },
      {
-      "name": "Pool C · Round 3",
+      "name": "Pool A · Round 9",
       "part": "pool",
       "matches": [
        {
-        "id": "div-xd-poolC-r3-m0",
-        "round": "Pool C · Round 3",
+        "id": "div-xd-poolA-r9-m0",
+        "round": "Pool A · Round 9",
         "part": "pool",
-        "seq": 8,
+        "seq": 32,
         "side1": {
-         "key": "pair:pair-liu",
+         "key": "pair:pair-nguyen-chi",
          "kind": "pair",
-         "label": "Yu Liu / Jesse 宋雨潔",
-         "seed": 3
+         "label": "Amy Nguyen / Brian Chi",
+         "seed": 1
         },
         "side2": {
-         "key": "pair:pair-pang-wong-2",
+         "key": "pair:pair-middlebrook-hsiao",
+         "kind": "pair",
+         "label": "Sonny Middlebrook / Kaya Hsiao",
+         "seed": 2
+        },
+        "winner": null,
+        "games": [],
+        "walkover": false,
+        "is_bye": false,
+        "ready": true,
+        "max_games": 3,
+        "is_tie": false,
+        "rubbers": [],
+        "tally": null,
+        "gaps": []
+       },
+       {
+        "id": "div-xd-poolA-r9-m1",
+        "round": "Pool A · Round 9",
+        "part": "pool",
+        "seq": 33,
+        "side1": {
+         "key": "pair:pair-pang-wong",
          "kind": "pair",
          "label": "Michael Pang / Kei Wong",
          "seed": 4
+        },
+        "side2": {
+         "key": "pair:pair-lee-shu",
+         "kind": "pair",
+         "label": "Grace Lee / Sean Shu",
+         "seed": 9
+        },
+        "winner": null,
+        "games": [],
+        "walkover": false,
+        "is_bye": false,
+        "ready": true,
+        "max_games": 3,
+        "is_tie": false,
+        "rubbers": [],
+        "tally": null,
+        "gaps": []
+       },
+       {
+        "id": "div-xd-poolA-r9-m2",
+        "round": "Pool A · Round 9",
+        "part": "pool",
+        "seq": 34,
+        "side1": {
+         "key": "pair:pair-li-lewis",
+         "kind": "pair",
+         "label": "Simon Li / Nancy Lewis",
+         "seed": 5
+        },
+        "side2": {
+         "key": "pair:pair-tsai-tao",
+         "kind": "pair",
+         "label": "Zhi-Han Tsai / Ruihong TAO",
+         "seed": 8
+        },
+        "winner": null,
+        "games": [],
+        "walkover": false,
+        "is_bye": false,
+        "ready": true,
+        "max_games": 3,
+        "is_tie": false,
+        "rubbers": [],
+        "tally": null,
+        "gaps": []
+       },
+       {
+        "id": "div-xd-poolA-r9-m3",
+        "round": "Pool A · Round 9",
+        "part": "pool",
+        "seq": 35,
+        "side1": {
+         "key": "pair:pair-poh-chen",
+         "kind": "pair",
+         "label": "Eugene Poh / Stanley Chen",
+         "seed": 6
+        },
+        "side2": {
+         "key": "pair:pair-liu",
+         "kind": "pair",
+         "label": "Yu Liu / Jesse 宋雨潔",
+         "seed": 7
         },
         "winner": null,
         "games": [],
@@ -1157,9 +3010,9 @@
          "seed": null
         },
         "side2": {
-         "key": "slot:W#1",
+         "key": "slot:W#2",
          "kind": "slot",
-         "label": "Wildcard 1",
+         "label": "Wildcard 2",
          "seed": null
         },
         "winner": null,
@@ -1179,15 +3032,15 @@
         "part": "main",
         "seq": 1,
         "side1": {
-         "key": "slot:B#1",
+         "key": "slot:A#2",
          "kind": "slot",
-         "label": "Winner Pool B",
+         "label": "Runner-up Pool A",
          "seed": null
         },
         "side2": {
-         "key": "slot:C#1",
+         "key": "slot:W#1",
          "kind": "slot",
-         "label": "Winner Pool C",
+         "label": "Wildcard 1",
          "seed": null
         },
         "winner": null,
@@ -1232,116 +3085,60 @@
   ]
  },
  "schedule": {
-  "day_start": "13:45",
-  "slot_min": 40,
-  "ends": "7:07 PM",
-  "duration_min": 322,
-  "match_count": 19,
+  "day_start": "14:00",
+  "slot_min": 30,
+  "pool_slot_min": 30,
+  "ends": "1:00 AM",
+  "duration_min": 660,
+  "match_count": 59,
   "conflicts": [],
   "stale": false,
   "blocks": [
    {
-    "match_id": "div-md-poolA-r1-m0",
+    "match_id": "div-xd-poolA-r1-m0",
     "court": "court-1",
-    "start": "1:45 PM",
-    "play_start": "1:45 PM",
+    "start": "2:00 PM",
+    "play_start": "2:05 PM",
     "start_min": 0,
-    "division": "Men's Doubles",
+    "division": "Mixed Doubles",
     "round": "Pool A · Round 1",
-    "side1": {
-     "key": "pair:pair-tu-player-vivek",
-     "kind": "pair",
-     "label": "Anthony Tu / Vivek"
-    },
-    "side2": {
-     "key": "pair:pair-lim-guo",
-     "kind": "pair",
-     "label": "Josh Lim / Kevin(Wenjie) Guo"
-    }
-   },
-   {
-    "match_id": "div-wd-r0-m0",
-    "court": "court-2",
-    "start": "1:45 PM",
-    "play_start": "1:50 PM",
-    "start_min": 0,
-    "division": "Women's Doubles",
-    "round": "Final",
-    "side1": {
-     "key": "pair:pair-tao-player-zhihan",
-     "kind": "pair",
-     "label": "Ruihong TAO / Zhihan"
-    },
-    "side2": {
-     "key": "pair:pair-wong-lin",
-     "kind": "pair",
-     "label": "Kei Wong / En-Chi Lin"
-    }
-   },
-   {
-    "match_id": "div-xd-poolC-r2-m0",
-    "court": "court-3",
-    "start": "1:45 PM",
-    "play_start": "1:50 PM",
-    "start_min": 0,
-    "division": "Mixed Doubles",
-    "round": "Pool C · Round 2",
-    "side1": {
-     "key": "pair:pair-liu",
-     "kind": "pair",
-     "label": "Yu Liu / Jesse 宋雨潔"
-    },
-    "side2": {
-     "key": "pair:pair-shu-lee",
-     "kind": "pair",
-     "label": "Sean Shu / Grace Lee"
-    }
-   },
-   {
-    "match_id": "div-xd-poolB-r3-m0",
-    "court": "court-4",
-    "start": "1:45 PM",
-    "play_start": "1:50 PM",
-    "start_min": 0,
-    "division": "Mixed Doubles",
-    "round": "Pool B · Round 3",
     "side1": {
      "key": "pair:pair-middlebrook-hsiao",
      "kind": "pair",
      "label": "Sonny Middlebrook / Kaya Hsiao"
     },
     "side2": {
-     "key": "pair:pair-li-lewis",
+     "key": "pair:pair-lee-shu",
      "kind": "pair",
-     "label": "Simon Li / Nancy Lewis"
+     "label": "Grace Lee / Sean Shu"
     }
    },
    {
-    "match_id": "div-md-poolA-r2-m0",
-    "court": "court-1",
-    "start": "2:05 PM",
+    "match_id": "div-xd-poolA-r1-m1",
+    "court": "court-2",
+    "start": "2:00 PM",
     "play_start": "2:05 PM",
-    "start_min": 20,
-    "division": "Men's Doubles",
-    "round": "Pool A · Round 2",
+    "start_min": 0,
+    "division": "Mixed Doubles",
+    "round": "Pool A · Round 1",
     "side1": {
-     "key": "pair:pair-tu-player-vivek",
+     "key": "pair:pair-lam-phui",
      "kind": "pair",
-     "label": "Anthony Tu / Vivek"
+     "label": "Grace Lam / Spencer Phui"
     },
     "side2": {
-     "key": "pair:pair-chen-poh",
+     "key": "pair:pair-tsai-tao",
      "kind": "pair",
-     "label": "Stanley Chen / Eugene Poh"
+     "label": "Zhi-Han Tsai / Ruihong TAO"
     }
    },
    {
-    "match_id": "div-md-poolA-r1-m1",
-    "court": "court-1",
-    "start": "2:30 PM",
-    "play_start": "2:30 PM",
-    "start_min": 45,
-    "division": "Men's Doubles",
+    "match_id": "div-xd-poolA-r1-m2",
+    "court": "court-3",
+    "start": "2:00 PM",
+    "play_start": "2:05 PM",
+    "start_min": 0,
+    "division": "Mixed Doubles",
     "round": "Pool A · Round 1",
     "side1": {
      "key": "pair:pair-pang-wong",
@@ -1349,133 +3146,266 @@
      "label": "Michael Pang / Kei Wong"
     },
     "side2": {
-     "key": "pair:pair-chen-poh",
+     "key": "pair:pair-liu",
      "kind": "pair",
-     "label": "Stanley Chen / Eugene Poh"
+     "label": "Yu Liu / Jesse 宋雨潔"
     }
    },
    {
-    "match_id": "div-xd-poolB-r1-m0",
-    "court": "court-2",
-    "start": "2:42 PM",
-    "play_start": "2:47 PM",
-    "start_min": 57,
+    "match_id": "div-xd-poolA-r1-m3",
+    "court": "court-4",
+    "start": "2:00 PM",
+    "play_start": "2:05 PM",
+    "start_min": 0,
     "division": "Mixed Doubles",
-    "round": "Pool B · Round 1",
+    "round": "Pool A · Round 1",
     "side1": {
      "key": "pair:pair-li-lewis",
      "kind": "pair",
      "label": "Simon Li / Nancy Lewis"
-    },
-    "side2": {
-     "key": "pair:pair-guo-lin",
-     "kind": "pair",
-     "label": "Kevin(Wenjie) Guo / En-Chi Lin"
-    }
-   },
-   {
-    "match_id": "div-xd-poolA-r1-m0",
-    "court": "court-1",
-    "start": "2:50 PM",
-    "play_start": "2:55 PM",
-    "start_min": 65,
-    "division": "Mixed Doubles",
-    "round": "Pool A · Round 1",
-    "side1": {
-     "key": "pair:pair-tao-player-zhihan-2",
-     "kind": "pair",
-     "label": "Ruihong TAO / Zhihan"
     },
     "side2": {
      "key": "pair:pair-poh-chen",
      "kind": "pair",
      "label": "Eugene Poh / Stanley Chen"
-    }
-   },
-   {
-    "match_id": "div-md-poolA-r3-m0",
-    "court": "court-3",
-    "start": "2:50 PM",
-    "play_start": "2:50 PM",
-    "start_min": 65,
-    "division": "Men's Doubles",
-    "round": "Pool A · Round 3",
-    "side1": {
-     "key": "pair:pair-tu-player-vivek",
-     "kind": "pair",
-     "label": "Anthony Tu / Vivek"
-    },
-    "side2": {
-     "key": "pair:pair-pang-wong",
-     "kind": "pair",
-     "label": "Michael Pang / Kei Wong"
-    }
-   },
-   {
-    "match_id": "div-xd-poolB-r2-m0",
-    "court": "court-2",
-    "start": "3:27 PM",
-    "play_start": "3:32 PM",
-    "start_min": 102,
-    "division": "Mixed Doubles",
-    "round": "Pool B · Round 2",
-    "side1": {
-     "key": "pair:pair-middlebrook-hsiao",
-     "kind": "pair",
-     "label": "Sonny Middlebrook / Kaya Hsiao"
-    },
-    "side2": {
-     "key": "pair:pair-guo-lin",
-     "kind": "pair",
-     "label": "Kevin(Wenjie) Guo / En-Chi Lin"
-    }
-   },
-   {
-    "match_id": "div-xd-poolC-r1-m0",
-    "court": "court-1",
-    "start": "3:30 PM",
-    "play_start": "3:35 PM",
-    "start_min": 105,
-    "division": "Mixed Doubles",
-    "round": "Pool C · Round 1",
-    "side1": {
-     "key": "pair:pair-pang-wong-2",
-     "kind": "pair",
-     "label": "Michael Pang / Kei Wong"
-    },
-    "side2": {
-     "key": "pair:pair-shu-lee",
-     "kind": "pair",
-     "label": "Sean Shu / Grace Lee"
-    }
-   },
-   {
-    "match_id": "div-xd-poolA-r3-m0",
-    "court": "court-3",
-    "start": "3:30 PM",
-    "play_start": "3:35 PM",
-    "start_min": 105,
-    "division": "Mixed Doubles",
-    "round": "Pool A · Round 3",
-    "side1": {
-     "key": "pair:pair-nguyen-chi",
-     "kind": "pair",
-     "label": "Amy Nguyen / Brian Chi"
-    },
-    "side2": {
-     "key": "pair:pair-tao-player-zhihan-2",
-     "kind": "pair",
-     "label": "Ruihong TAO / Zhihan"
     }
    },
    {
     "match_id": "div-xd-poolA-r2-m0",
-    "court": "court-2",
-    "start": "4:10 PM",
-    "play_start": "4:15 PM",
-    "start_min": 145,
+    "court": "court-1",
+    "start": "2:30 PM",
+    "play_start": "2:35 PM",
+    "start_min": 30,
     "division": "Mixed Doubles",
     "round": "Pool A · Round 2",
+    "side1": {
+     "key": "pair:pair-nguyen-chi",
+     "kind": "pair",
+     "label": "Amy Nguyen / Brian Chi"
+    },
+    "side2": {
+     "key": "pair:pair-lee-shu",
+     "kind": "pair",
+     "label": "Grace Lee / Sean Shu"
+    }
+   },
+   {
+    "match_id": "div-xd-poolA-r2-m1",
+    "court": "court-2",
+    "start": "2:30 PM",
+    "play_start": "2:35 PM",
+    "start_min": 30,
+    "division": "Mixed Doubles",
+    "round": "Pool A · Round 2",
+    "side1": {
+     "key": "pair:pair-middlebrook-hsiao",
+     "kind": "pair",
+     "label": "Sonny Middlebrook / Kaya Hsiao"
+    },
+    "side2": {
+     "key": "pair:pair-liu",
+     "kind": "pair",
+     "label": "Yu Liu / Jesse 宋雨潔"
+    }
+   },
+   {
+    "match_id": "div-xd-poolA-r2-m2",
+    "court": "court-3",
+    "start": "2:30 PM",
+    "play_start": "2:35 PM",
+    "start_min": 30,
+    "division": "Mixed Doubles",
+    "round": "Pool A · Round 2",
+    "side1": {
+     "key": "pair:pair-lam-phui",
+     "kind": "pair",
+     "label": "Grace Lam / Spencer Phui"
+    },
+    "side2": {
+     "key": "pair:pair-poh-chen",
+     "kind": "pair",
+     "label": "Eugene Poh / Stanley Chen"
+    }
+   },
+   {
+    "match_id": "div-xd-poolA-r2-m3",
+    "court": "court-4",
+    "start": "2:30 PM",
+    "play_start": "2:35 PM",
+    "start_min": 30,
+    "division": "Mixed Doubles",
+    "round": "Pool A · Round 2",
+    "side1": {
+     "key": "pair:pair-pang-wong",
+     "kind": "pair",
+     "label": "Michael Pang / Kei Wong"
+    },
+    "side2": {
+     "key": "pair:pair-li-lewis",
+     "kind": "pair",
+     "label": "Simon Li / Nancy Lewis"
+    }
+   },
+   {
+    "match_id": "div-xd-poolA-r3-m0",
+    "court": "court-1",
+    "start": "3:00 PM",
+    "play_start": "3:05 PM",
+    "start_min": 60,
+    "division": "Mixed Doubles",
+    "round": "Pool A · Round 3",
+    "side1": {
+     "key": "pair:pair-nguyen-chi",
+     "kind": "pair",
+     "label": "Amy Nguyen / Brian Chi"
+    },
+    "side2": {
+     "key": "pair:pair-tsai-tao",
+     "kind": "pair",
+     "label": "Zhi-Han Tsai / Ruihong TAO"
+    }
+   },
+   {
+    "match_id": "div-xd-poolA-r3-m1",
+    "court": "court-2",
+    "start": "3:00 PM",
+    "play_start": "3:05 PM",
+    "start_min": 60,
+    "division": "Mixed Doubles",
+    "round": "Pool A · Round 3",
+    "side1": {
+     "key": "pair:pair-lee-shu",
+     "kind": "pair",
+     "label": "Grace Lee / Sean Shu"
+    },
+    "side2": {
+     "key": "pair:pair-liu",
+     "kind": "pair",
+     "label": "Yu Liu / Jesse 宋雨潔"
+    }
+   },
+   {
+    "match_id": "div-xd-poolA-r3-m2",
+    "court": "court-3",
+    "start": "3:00 PM",
+    "play_start": "3:05 PM",
+    "start_min": 60,
+    "division": "Mixed Doubles",
+    "round": "Pool A · Round 3",
+    "side1": {
+     "key": "pair:pair-middlebrook-hsiao",
+     "kind": "pair",
+     "label": "Sonny Middlebrook / Kaya Hsiao"
+    },
+    "side2": {
+     "key": "pair:pair-li-lewis",
+     "kind": "pair",
+     "label": "Simon Li / Nancy Lewis"
+    }
+   },
+   {
+    "match_id": "div-xd-poolA-r3-m3",
+    "court": "court-4",
+    "start": "3:00 PM",
+    "play_start": "3:05 PM",
+    "start_min": 60,
+    "division": "Mixed Doubles",
+    "round": "Pool A · Round 3",
+    "side1": {
+     "key": "pair:pair-lam-phui",
+     "kind": "pair",
+     "label": "Grace Lam / Spencer Phui"
+    },
+    "side2": {
+     "key": "pair:pair-pang-wong",
+     "kind": "pair",
+     "label": "Michael Pang / Kei Wong"
+    }
+   },
+   {
+    "match_id": "div-xd-poolA-r4-m0",
+    "court": "court-1",
+    "start": "3:30 PM",
+    "play_start": "3:35 PM",
+    "start_min": 90,
+    "division": "Mixed Doubles",
+    "round": "Pool A · Round 4",
+    "side1": {
+     "key": "pair:pair-nguyen-chi",
+     "kind": "pair",
+     "label": "Amy Nguyen / Brian Chi"
+    },
+    "side2": {
+     "key": "pair:pair-liu",
+     "kind": "pair",
+     "label": "Yu Liu / Jesse 宋雨潔"
+    }
+   },
+   {
+    "match_id": "div-xd-poolA-r4-m1",
+    "court": "court-2",
+    "start": "3:30 PM",
+    "play_start": "3:35 PM",
+    "start_min": 90,
+    "division": "Mixed Doubles",
+    "round": "Pool A · Round 4",
+    "side1": {
+     "key": "pair:pair-tsai-tao",
+     "kind": "pair",
+     "label": "Zhi-Han Tsai / Ruihong TAO"
+    },
+    "side2": {
+     "key": "pair:pair-poh-chen",
+     "kind": "pair",
+     "label": "Eugene Poh / Stanley Chen"
+    }
+   },
+   {
+    "match_id": "div-xd-poolA-r4-m2",
+    "court": "court-3",
+    "start": "3:30 PM",
+    "play_start": "3:35 PM",
+    "start_min": 90,
+    "division": "Mixed Doubles",
+    "round": "Pool A · Round 4",
+    "side1": {
+     "key": "pair:pair-lee-shu",
+     "kind": "pair",
+     "label": "Grace Lee / Sean Shu"
+    },
+    "side2": {
+     "key": "pair:pair-li-lewis",
+     "kind": "pair",
+     "label": "Simon Li / Nancy Lewis"
+    }
+   },
+   {
+    "match_id": "div-xd-poolA-r4-m3",
+    "court": "court-4",
+    "start": "3:30 PM",
+    "play_start": "3:35 PM",
+    "start_min": 90,
+    "division": "Mixed Doubles",
+    "round": "Pool A · Round 4",
+    "side1": {
+     "key": "pair:pair-middlebrook-hsiao",
+     "kind": "pair",
+     "label": "Sonny Middlebrook / Kaya Hsiao"
+    },
+    "side2": {
+     "key": "pair:pair-lam-phui",
+     "kind": "pair",
+     "label": "Grace Lam / Spencer Phui"
+    }
+   },
+   {
+    "match_id": "div-xd-poolA-r5-m0",
+    "court": "court-1",
+    "start": "4:00 PM",
+    "play_start": "4:05 PM",
+    "start_min": 120,
+    "division": "Mixed Doubles",
+    "round": "Pool A · Round 5",
     "side1": {
      "key": "pair:pair-nguyen-chi",
      "kind": "pair",
@@ -1488,17 +3418,36 @@
     }
    },
    {
-    "match_id": "div-md-poolA-r2-m1",
-    "court": "court-1",
-    "start": "4:15 PM",
-    "play_start": "4:15 PM",
-    "start_min": 150,
-    "division": "Men's Doubles",
-    "round": "Pool A · Round 2",
+    "match_id": "div-xd-poolA-r5-m1",
+    "court": "court-2",
+    "start": "4:00 PM",
+    "play_start": "4:05 PM",
+    "start_min": 120,
+    "division": "Mixed Doubles",
+    "round": "Pool A · Round 5",
     "side1": {
-     "key": "pair:pair-lim-guo",
+     "key": "pair:pair-liu",
      "kind": "pair",
-     "label": "Josh Lim / Kevin(Wenjie) Guo"
+     "label": "Yu Liu / Jesse 宋雨潔"
+    },
+    "side2": {
+     "key": "pair:pair-li-lewis",
+     "kind": "pair",
+     "label": "Simon Li / Nancy Lewis"
+    }
+   },
+   {
+    "match_id": "div-xd-poolA-r5-m2",
+    "court": "court-3",
+    "start": "4:00 PM",
+    "play_start": "4:05 PM",
+    "start_min": 120,
+    "division": "Mixed Doubles",
+    "round": "Pool A · Round 5",
+    "side1": {
+     "key": "pair:pair-tsai-tao",
+     "kind": "pair",
+     "label": "Zhi-Han Tsai / Ruihong TAO"
     },
     "side2": {
      "key": "pair:pair-pang-wong",
@@ -1507,49 +3456,334 @@
     }
    },
    {
-    "match_id": "div-md-poolA-r3-m1",
-    "court": "court-1",
-    "start": "4:55 PM",
-    "play_start": "4:55 PM",
-    "start_min": 190,
-    "division": "Men's Doubles",
-    "round": "Pool A · Round 3",
+    "match_id": "div-xd-poolA-r5-m3",
+    "court": "court-4",
+    "start": "4:00 PM",
+    "play_start": "4:05 PM",
+    "start_min": 120,
+    "division": "Mixed Doubles",
+    "round": "Pool A · Round 5",
     "side1": {
-     "key": "pair:pair-chen-poh",
+     "key": "pair:pair-lee-shu",
      "kind": "pair",
-     "label": "Stanley Chen / Eugene Poh"
+     "label": "Grace Lee / Sean Shu"
     },
     "side2": {
-     "key": "pair:pair-lim-guo",
+     "key": "pair:pair-lam-phui",
      "kind": "pair",
-     "label": "Josh Lim / Kevin(Wenjie) Guo"
+     "label": "Grace Lam / Spencer Phui"
     }
    },
    {
-    "match_id": "div-xd-poolC-r3-m0",
+    "match_id": "div-xd-poolA-r6-m0",
     "court": "court-1",
-    "start": "5:07 PM",
-    "play_start": "5:12 PM",
-    "start_min": 202,
+    "start": "4:30 PM",
+    "play_start": "4:35 PM",
+    "start_min": 150,
     "division": "Mixed Doubles",
-    "round": "Pool C · Round 3",
+    "round": "Pool A · Round 6",
+    "side1": {
+     "key": "pair:pair-nguyen-chi",
+     "kind": "pair",
+     "label": "Amy Nguyen / Brian Chi"
+    },
+    "side2": {
+     "key": "pair:pair-li-lewis",
+     "kind": "pair",
+     "label": "Simon Li / Nancy Lewis"
+    }
+   },
+   {
+    "match_id": "div-xd-poolA-r6-m1",
+    "court": "court-2",
+    "start": "4:30 PM",
+    "play_start": "4:35 PM",
+    "start_min": 150,
+    "division": "Mixed Doubles",
+    "round": "Pool A · Round 6",
+    "side1": {
+     "key": "pair:pair-poh-chen",
+     "kind": "pair",
+     "label": "Eugene Poh / Stanley Chen"
+    },
+    "side2": {
+     "key": "pair:pair-pang-wong",
+     "kind": "pair",
+     "label": "Michael Pang / Kei Wong"
+    }
+   },
+   {
+    "match_id": "div-xd-poolA-r6-m2",
+    "court": "court-3",
+    "start": "4:30 PM",
+    "play_start": "4:35 PM",
+    "start_min": 150,
+    "division": "Mixed Doubles",
+    "round": "Pool A · Round 6",
     "side1": {
      "key": "pair:pair-liu",
      "kind": "pair",
      "label": "Yu Liu / Jesse 宋雨潔"
     },
     "side2": {
-     "key": "pair:pair-pang-wong-2",
+     "key": "pair:pair-lam-phui",
+     "kind": "pair",
+     "label": "Grace Lam / Spencer Phui"
+    }
+   },
+   {
+    "match_id": "div-xd-poolA-r6-m3",
+    "court": "court-4",
+    "start": "4:30 PM",
+    "play_start": "4:35 PM",
+    "start_min": 150,
+    "division": "Mixed Doubles",
+    "round": "Pool A · Round 6",
+    "side1": {
+     "key": "pair:pair-tsai-tao",
+     "kind": "pair",
+     "label": "Zhi-Han Tsai / Ruihong TAO"
+    },
+    "side2": {
+     "key": "pair:pair-middlebrook-hsiao",
+     "kind": "pair",
+     "label": "Sonny Middlebrook / Kaya Hsiao"
+    }
+   },
+   {
+    "match_id": "div-xd-poolA-r7-m0",
+    "court": "court-1",
+    "start": "5:00 PM",
+    "play_start": "5:05 PM",
+    "start_min": 180,
+    "division": "Mixed Doubles",
+    "round": "Pool A · Round 7",
+    "side1": {
+     "key": "pair:pair-nguyen-chi",
+     "kind": "pair",
+     "label": "Amy Nguyen / Brian Chi"
+    },
+    "side2": {
+     "key": "pair:pair-pang-wong",
      "kind": "pair",
      "label": "Michael Pang / Kei Wong"
+    }
+   },
+   {
+    "match_id": "div-xd-poolA-r7-m1",
+    "court": "court-2",
+    "start": "5:00 PM",
+    "play_start": "5:05 PM",
+    "start_min": 180,
+    "division": "Mixed Doubles",
+    "round": "Pool A · Round 7",
+    "side1": {
+     "key": "pair:pair-li-lewis",
+     "kind": "pair",
+     "label": "Simon Li / Nancy Lewis"
+    },
+    "side2": {
+     "key": "pair:pair-lam-phui",
+     "kind": "pair",
+     "label": "Grace Lam / Spencer Phui"
+    }
+   },
+   {
+    "match_id": "div-xd-poolA-r7-m2",
+    "court": "court-3",
+    "start": "5:00 PM",
+    "play_start": "5:05 PM",
+    "start_min": 180,
+    "division": "Mixed Doubles",
+    "round": "Pool A · Round 7",
+    "side1": {
+     "key": "pair:pair-poh-chen",
+     "kind": "pair",
+     "label": "Eugene Poh / Stanley Chen"
+    },
+    "side2": {
+     "key": "pair:pair-middlebrook-hsiao",
+     "kind": "pair",
+     "label": "Sonny Middlebrook / Kaya Hsiao"
+    }
+   },
+   {
+    "match_id": "div-xd-poolA-r7-m3",
+    "court": "court-4",
+    "start": "5:00 PM",
+    "play_start": "5:05 PM",
+    "start_min": 180,
+    "division": "Mixed Doubles",
+    "round": "Pool A · Round 7",
+    "side1": {
+     "key": "pair:pair-tsai-tao",
+     "kind": "pair",
+     "label": "Zhi-Han Tsai / Ruihong TAO"
+    },
+    "side2": {
+     "key": "pair:pair-lee-shu",
+     "kind": "pair",
+     "label": "Grace Lee / Sean Shu"
+    }
+   },
+   {
+    "match_id": "div-xd-poolA-r8-m0",
+    "court": "court-1",
+    "start": "5:30 PM",
+    "play_start": "5:35 PM",
+    "start_min": 210,
+    "division": "Mixed Doubles",
+    "round": "Pool A · Round 8",
+    "side1": {
+     "key": "pair:pair-nguyen-chi",
+     "kind": "pair",
+     "label": "Amy Nguyen / Brian Chi"
+    },
+    "side2": {
+     "key": "pair:pair-lam-phui",
+     "kind": "pair",
+     "label": "Grace Lam / Spencer Phui"
+    }
+   },
+   {
+    "match_id": "div-xd-poolA-r8-m1",
+    "court": "court-2",
+    "start": "5:30 PM",
+    "play_start": "5:35 PM",
+    "start_min": 210,
+    "division": "Mixed Doubles",
+    "round": "Pool A · Round 8",
+    "side1": {
+     "key": "pair:pair-pang-wong",
+     "kind": "pair",
+     "label": "Michael Pang / Kei Wong"
+    },
+    "side2": {
+     "key": "pair:pair-middlebrook-hsiao",
+     "kind": "pair",
+     "label": "Sonny Middlebrook / Kaya Hsiao"
+    }
+   },
+   {
+    "match_id": "div-xd-poolA-r8-m2",
+    "court": "court-3",
+    "start": "5:30 PM",
+    "play_start": "5:35 PM",
+    "start_min": 210,
+    "division": "Mixed Doubles",
+    "round": "Pool A · Round 8",
+    "side1": {
+     "key": "pair:pair-poh-chen",
+     "kind": "pair",
+     "label": "Eugene Poh / Stanley Chen"
+    },
+    "side2": {
+     "key": "pair:pair-lee-shu",
+     "kind": "pair",
+     "label": "Grace Lee / Sean Shu"
+    }
+   },
+   {
+    "match_id": "div-xd-poolA-r8-m3",
+    "court": "court-4",
+    "start": "5:30 PM",
+    "play_start": "5:35 PM",
+    "start_min": 210,
+    "division": "Mixed Doubles",
+    "round": "Pool A · Round 8",
+    "side1": {
+     "key": "pair:pair-liu",
+     "kind": "pair",
+     "label": "Yu Liu / Jesse 宋雨潔"
+    },
+    "side2": {
+     "key": "pair:pair-tsai-tao",
+     "kind": "pair",
+     "label": "Zhi-Han Tsai / Ruihong TAO"
+    }
+   },
+   {
+    "match_id": "div-xd-poolA-r9-m0",
+    "court": "court-1",
+    "start": "6:00 PM",
+    "play_start": "6:05 PM",
+    "start_min": 240,
+    "division": "Mixed Doubles",
+    "round": "Pool A · Round 9",
+    "side1": {
+     "key": "pair:pair-nguyen-chi",
+     "kind": "pair",
+     "label": "Amy Nguyen / Brian Chi"
+    },
+    "side2": {
+     "key": "pair:pair-middlebrook-hsiao",
+     "kind": "pair",
+     "label": "Sonny Middlebrook / Kaya Hsiao"
+    }
+   },
+   {
+    "match_id": "div-xd-poolA-r9-m1",
+    "court": "court-2",
+    "start": "6:00 PM",
+    "play_start": "6:05 PM",
+    "start_min": 240,
+    "division": "Mixed Doubles",
+    "round": "Pool A · Round 9",
+    "side1": {
+     "key": "pair:pair-pang-wong",
+     "kind": "pair",
+     "label": "Michael Pang / Kei Wong"
+    },
+    "side2": {
+     "key": "pair:pair-lee-shu",
+     "kind": "pair",
+     "label": "Grace Lee / Sean Shu"
+    }
+   },
+   {
+    "match_id": "div-xd-poolA-r9-m2",
+    "court": "court-3",
+    "start": "6:00 PM",
+    "play_start": "6:05 PM",
+    "start_min": 240,
+    "division": "Mixed Doubles",
+    "round": "Pool A · Round 9",
+    "side1": {
+     "key": "pair:pair-li-lewis",
+     "kind": "pair",
+     "label": "Simon Li / Nancy Lewis"
+    },
+    "side2": {
+     "key": "pair:pair-tsai-tao",
+     "kind": "pair",
+     "label": "Zhi-Han Tsai / Ruihong TAO"
+    }
+   },
+   {
+    "match_id": "div-xd-poolA-r9-m3",
+    "court": "court-4",
+    "start": "6:00 PM",
+    "play_start": "6:05 PM",
+    "start_min": 240,
+    "division": "Mixed Doubles",
+    "round": "Pool A · Round 9",
+    "side1": {
+     "key": "pair:pair-poh-chen",
+     "kind": "pair",
+     "label": "Eugene Poh / Stanley Chen"
+    },
+    "side2": {
+     "key": "pair:pair-liu",
+     "kind": "pair",
+     "label": "Yu Liu / Jesse 宋雨潔"
     }
    },
    {
     "match_id": "div-xd-r0-m0",
     "court": "court-2",
-    "start": "5:47 PM",
-    "play_start": "5:52 PM",
-    "start_min": 242,
+    "start": "6:30 PM",
+    "play_start": "6:35 PM",
+    "start_min": 270,
     "division": "Mixed Doubles",
     "round": "Semifinal",
     "side1": {
@@ -1558,37 +3792,409 @@
      "label": "Winner Pool A"
     },
     "side2": {
+     "key": "slot:W#2",
+     "kind": "slot",
+     "label": "Wildcard 2"
+    }
+   },
+   {
+    "match_id": "div-xd-r0-m1",
+    "court": "court-3",
+    "start": "6:30 PM",
+    "play_start": "6:35 PM",
+    "start_min": 270,
+    "division": "Mixed Doubles",
+    "round": "Semifinal",
+    "side1": {
+     "key": "slot:A#2",
+     "kind": "slot",
+     "label": "Runner-up Pool A"
+    },
+    "side2": {
      "key": "slot:W#1",
      "kind": "slot",
      "label": "Wildcard 1"
     }
    },
    {
-    "match_id": "div-xd-r0-m1",
-    "court": "court-3",
-    "start": "5:47 PM",
-    "play_start": "5:52 PM",
-    "start_min": 242,
+    "match_id": "div-xd-r1-m0",
+    "court": "court-2",
+    "start": "7:00 PM",
+    "play_start": "7:05 PM",
+    "start_min": 300,
     "division": "Mixed Doubles",
-    "round": "Semifinal",
+    "round": "Final",
+    "side1": null,
+    "side2": null
+   },
+   {
+    "match_id": "div-wd-poolA-r1-m0",
+    "court": "court-1",
+    "start": "7:30 PM",
+    "play_start": "7:35 PM",
+    "start_min": 330,
+    "division": "Women's Doubles",
+    "round": "Pool A · Round 1",
     "side1": {
-     "key": "slot:B#1",
-     "kind": "slot",
-     "label": "Winner Pool B"
+     "key": "pair:pair-hsiao-player-x",
+     "kind": "pair",
+     "label": "Kaya Hsiao / 李佳嬛"
     },
     "side2": {
-     "key": "slot:C#1",
-     "kind": "slot",
-     "label": "Winner Pool C"
+     "key": "pair:pair-wong-ng",
+     "kind": "pair",
+     "label": "Kei Wong / Oriana Ng"
     }
    },
    {
-    "match_id": "div-xd-r1-m0",
+    "match_id": "div-wd-poolA-r1-m1",
     "court": "court-2",
-    "start": "6:27 PM",
-    "play_start": "6:32 PM",
-    "start_min": 282,
-    "division": "Mixed Doubles",
+    "start": "7:30 PM",
+    "play_start": "7:35 PM",
+    "start_min": 330,
+    "division": "Women's Doubles",
+    "round": "Pool A · Round 1",
+    "side1": {
+     "key": "pair:pair-lam-nguyen",
+     "kind": "pair",
+     "label": "Grace Lam / Amy Nguyen"
+    },
+    "side2": {
+     "key": "pair:pair-player-julian-tao",
+     "kind": "pair",
+     "label": "Julian / Ruihong TAO"
+    }
+   },
+   {
+    "match_id": "div-wd-poolA-r2-m0",
+    "court": "court-1",
+    "start": "8:00 PM",
+    "play_start": "8:05 PM",
+    "start_min": 360,
+    "division": "Women's Doubles",
+    "round": "Pool A · Round 2",
+    "side1": {
+     "key": "pair:pair-hsiao-player-x",
+     "kind": "pair",
+     "label": "Kaya Hsiao / 李佳嬛"
+    },
+    "side2": {
+     "key": "pair:pair-player-julian-tao",
+     "kind": "pair",
+     "label": "Julian / Ruihong TAO"
+    }
+   },
+   {
+    "match_id": "div-wd-poolA-r2-m1",
+    "court": "court-2",
+    "start": "8:00 PM",
+    "play_start": "8:05 PM",
+    "start_min": 360,
+    "division": "Women's Doubles",
+    "round": "Pool A · Round 2",
+    "side1": {
+     "key": "pair:pair-wong-ng",
+     "kind": "pair",
+     "label": "Kei Wong / Oriana Ng"
+    },
+    "side2": {
+     "key": "pair:pair-lam-nguyen",
+     "kind": "pair",
+     "label": "Grace Lam / Amy Nguyen"
+    }
+   },
+   {
+    "match_id": "div-wd-poolA-r3-m0",
+    "court": "court-1",
+    "start": "8:30 PM",
+    "play_start": "8:35 PM",
+    "start_min": 390,
+    "division": "Women's Doubles",
+    "round": "Pool A · Round 3",
+    "side1": {
+     "key": "pair:pair-hsiao-player-x",
+     "kind": "pair",
+     "label": "Kaya Hsiao / 李佳嬛"
+    },
+    "side2": {
+     "key": "pair:pair-lam-nguyen",
+     "kind": "pair",
+     "label": "Grace Lam / Amy Nguyen"
+    }
+   },
+   {
+    "match_id": "div-wd-poolA-r3-m1",
+    "court": "court-2",
+    "start": "8:30 PM",
+    "play_start": "8:35 PM",
+    "start_min": 390,
+    "division": "Women's Doubles",
+    "round": "Pool A · Round 3",
+    "side1": {
+     "key": "pair:pair-player-julian-tao",
+     "kind": "pair",
+     "label": "Julian / Ruihong TAO"
+    },
+    "side2": {
+     "key": "pair:pair-wong-ng",
+     "kind": "pair",
+     "label": "Kei Wong / Oriana Ng"
+    }
+   },
+   {
+    "match_id": "div-wd-r0-m0",
+    "court": "court-2",
+    "start": "9:00 PM",
+    "play_start": "9:05 PM",
+    "start_min": 420,
+    "division": "Women's Doubles",
+    "round": "Final",
+    "side1": {
+     "key": "slot:A#1",
+     "kind": "slot",
+     "label": "Winner Pool A"
+    },
+    "side2": {
+     "key": "slot:A#2",
+     "kind": "slot",
+     "label": "Runner-up Pool A"
+    }
+   },
+   {
+    "match_id": "div-md-poolA-r1-m0",
+    "court": "court-1",
+    "start": "9:30 PM",
+    "play_start": "9:35 PM",
+    "start_min": 450,
+    "division": "Men's Doubles",
+    "round": "Pool A · Round 1",
+    "side1": {
+     "key": "pair:pair-chi-miller",
+     "kind": "pair",
+     "label": "Brian Chi / Jarem Miller"
+    },
+    "side2": {
+     "key": "pair:pair-guo-phui",
+     "kind": "pair",
+     "label": "Kevin(Wenjie) Guo / Spencer Phui"
+    }
+   },
+   {
+    "match_id": "div-md-poolA-r1-m1",
+    "court": "court-2",
+    "start": "9:30 PM",
+    "play_start": "9:35 PM",
+    "start_min": 450,
+    "division": "Men's Doubles",
+    "round": "Pool A · Round 1",
+    "side1": {
+     "key": "pair:pair-lim-cheng",
+     "kind": "pair",
+     "label": "Josh Lim / Scott Cheng"
+    },
+    "side2": {
+     "key": "pair:pair-chen-tsai",
+     "kind": "pair",
+     "label": "Stanley Chen / Zhi-Han Tsai"
+    }
+   },
+   {
+    "match_id": "div-md-poolA-r2-m0",
+    "court": "court-1",
+    "start": "10:00 PM",
+    "play_start": "10:05 PM",
+    "start_min": 480,
+    "division": "Men's Doubles",
+    "round": "Pool A · Round 2",
+    "side1": {
+     "key": "pair:pair-tu-player-vivek",
+     "kind": "pair",
+     "label": "Anthony Tu / Vivek"
+    },
+    "side2": {
+     "key": "pair:pair-guo-phui",
+     "kind": "pair",
+     "label": "Kevin(Wenjie) Guo / Spencer Phui"
+    }
+   },
+   {
+    "match_id": "div-md-poolA-r2-m1",
+    "court": "court-2",
+    "start": "10:00 PM",
+    "play_start": "10:05 PM",
+    "start_min": 480,
+    "division": "Men's Doubles",
+    "round": "Pool A · Round 2",
+    "side1": {
+     "key": "pair:pair-chi-miller",
+     "kind": "pair",
+     "label": "Brian Chi / Jarem Miller"
+    },
+    "side2": {
+     "key": "pair:pair-lim-cheng",
+     "kind": "pair",
+     "label": "Josh Lim / Scott Cheng"
+    }
+   },
+   {
+    "match_id": "div-md-poolA-r3-m0",
+    "court": "court-1",
+    "start": "10:30 PM",
+    "play_start": "10:35 PM",
+    "start_min": 510,
+    "division": "Men's Doubles",
+    "round": "Pool A · Round 3",
+    "side1": {
+     "key": "pair:pair-tu-player-vivek",
+     "kind": "pair",
+     "label": "Anthony Tu / Vivek"
+    },
+    "side2": {
+     "key": "pair:pair-chen-tsai",
+     "kind": "pair",
+     "label": "Stanley Chen / Zhi-Han Tsai"
+    }
+   },
+   {
+    "match_id": "div-md-poolA-r3-m1",
+    "court": "court-2",
+    "start": "10:30 PM",
+    "play_start": "10:35 PM",
+    "start_min": 510,
+    "division": "Men's Doubles",
+    "round": "Pool A · Round 3",
+    "side1": {
+     "key": "pair:pair-guo-phui",
+     "kind": "pair",
+     "label": "Kevin(Wenjie) Guo / Spencer Phui"
+    },
+    "side2": {
+     "key": "pair:pair-lim-cheng",
+     "kind": "pair",
+     "label": "Josh Lim / Scott Cheng"
+    }
+   },
+   {
+    "match_id": "div-md-poolA-r4-m0",
+    "court": "court-1",
+    "start": "11:00 PM",
+    "play_start": "11:05 PM",
+    "start_min": 540,
+    "division": "Men's Doubles",
+    "round": "Pool A · Round 4",
+    "side1": {
+     "key": "pair:pair-tu-player-vivek",
+     "kind": "pair",
+     "label": "Anthony Tu / Vivek"
+    },
+    "side2": {
+     "key": "pair:pair-lim-cheng",
+     "kind": "pair",
+     "label": "Josh Lim / Scott Cheng"
+    }
+   },
+   {
+    "match_id": "div-md-poolA-r4-m1",
+    "court": "court-2",
+    "start": "11:00 PM",
+    "play_start": "11:05 PM",
+    "start_min": 540,
+    "division": "Men's Doubles",
+    "round": "Pool A · Round 4",
+    "side1": {
+     "key": "pair:pair-chen-tsai",
+     "kind": "pair",
+     "label": "Stanley Chen / Zhi-Han Tsai"
+    },
+    "side2": {
+     "key": "pair:pair-chi-miller",
+     "kind": "pair",
+     "label": "Brian Chi / Jarem Miller"
+    }
+   },
+   {
+    "match_id": "div-md-poolA-r5-m0",
+    "court": "court-1",
+    "start": "11:30 PM",
+    "play_start": "11:35 PM",
+    "start_min": 570,
+    "division": "Men's Doubles",
+    "round": "Pool A · Round 5",
+    "side1": {
+     "key": "pair:pair-tu-player-vivek",
+     "kind": "pair",
+     "label": "Anthony Tu / Vivek"
+    },
+    "side2": {
+     "key": "pair:pair-chi-miller",
+     "kind": "pair",
+     "label": "Brian Chi / Jarem Miller"
+    }
+   },
+   {
+    "match_id": "div-md-poolA-r5-m1",
+    "court": "court-2",
+    "start": "11:30 PM",
+    "play_start": "11:35 PM",
+    "start_min": 570,
+    "division": "Men's Doubles",
+    "round": "Pool A · Round 5",
+    "side1": {
+     "key": "pair:pair-chen-tsai",
+     "kind": "pair",
+     "label": "Stanley Chen / Zhi-Han Tsai"
+    },
+    "side2": {
+     "key": "pair:pair-guo-phui",
+     "kind": "pair",
+     "label": "Kevin(Wenjie) Guo / Spencer Phui"
+    }
+   },
+   {
+    "match_id": "div-md-r0-m0",
+    "court": "court-2",
+    "start": "12:00 AM",
+    "play_start": "12:05 AM",
+    "start_min": 600,
+    "division": "Men's Doubles",
+    "round": "Semifinal",
+    "side1": {
+     "key": "slot:A#1",
+     "kind": "slot",
+     "label": "Winner Pool A"
+    },
+    "side2": {
+     "key": "slot:W#2",
+     "kind": "slot",
+     "label": "Wildcard 2"
+    }
+   },
+   {
+    "match_id": "div-md-r0-m1",
+    "court": "court-3",
+    "start": "12:00 AM",
+    "play_start": "12:05 AM",
+    "start_min": 600,
+    "division": "Men's Doubles",
+    "round": "Semifinal",
+    "side1": {
+     "key": "slot:A#2",
+     "kind": "slot",
+     "label": "Runner-up Pool A"
+    },
+    "side2": {
+     "key": "slot:W#1",
+     "kind": "slot",
+     "label": "Wildcard 1"
+    }
+   },
+   {
+    "match_id": "div-md-r1-m0",
+    "court": "court-2",
+    "start": "12:30 AM",
+    "play_start": "12:35 AM",
+    "start_min": 630,
+    "division": "Men's Doubles",
     "round": "Final",
     "side1": null,
     "side2": null
