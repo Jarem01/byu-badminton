@@ -112,7 +112,8 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/mode":
                 return self._json({"mode": svc.t.mode})
             if path == "/api/players":
-                return self._json({"players": svc.players()})
+                return self._json({"players": svc.players(),
+                                   "merges": svc.merge_history()})
             if path == "/api/pairs":
                 return self._json(svc.pairs_view())
             if path == "/api/partnerships":
@@ -168,6 +169,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(svc.override(
                     body["target"], body["field"], str(body.get("value", "")),
                     body.get("reason", "")))
+            if path == "/api/player/merge/undo":
+                return self._json(svc.undo_merge(body.get("keep") or None))
             if path == "/api/player/merge":
                 return self._json(svc.merge_players(body["keep"], body["drop"]))
             if path == "/api/player/events":

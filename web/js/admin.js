@@ -144,6 +144,14 @@ async function mergeInto(keep, people) {
   } catch (e) { toast(e.message, true); loadValidation(); }
 }
 
+document.getElementById("btn-undo-merge").onclick = async () => {
+  try {
+    const r = await API.post("/api/player/merge/undo", {});
+    toast((r.notes && r.notes[0]) || "merge undone");
+    loadPlayers(); loadPartnerships(); loadValidation();
+  } catch (e) { toast(e.message, true); }
+};
+
 function renderIssues(val) {
   const c = val.counts || { error: 0, warning: 0, info: 0 };
   document.getElementById("val-counts").textContent =
@@ -191,6 +199,17 @@ async function loadPlayers() {
   const tb = document.querySelector("#players tbody");
   tb.innerHTML = "";
   document.getElementById("player-count").textContent = `(${data.players.length})`;
+  const undo = document.getElementById("btn-undo-merge");
+  if (undo) {
+    const merges = data.merges || [];
+    undo.disabled = !merges.length;
+    undo.textContent = merges.length
+      ? `Undo merge (${merges.length})` : "Undo merge";
+    undo.title = merges.length
+      ? `Put "${merges[merges.length - 1].dropped}" back as its own entry, ` +
+        `undone the merge into "${merges[merges.length - 1].kept}"`
+      : "No merge to undo";
+  }
   data.players.forEach(p => {
     const tr = document.createElement("tr");
     tr.innerHTML = `

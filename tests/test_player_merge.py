@@ -282,3 +282,163 @@ class TestMergePlayers(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestUndoMerge(unittest.TestCase):
+    """A merge can be taken back, like a pair change."""
+
+    def setUp(self):
+        self.d, self.svc = make_service()
+        self.t = self.svc.t
+        add_player(self.t, "keep", "Amy", "Nguyen", "F", ["MD"], 7)
+        add_player(self.t, "drop", "Amy", "Nguyen", "F", ["XD"], 6)
+        add_player(self.t, "p1", "Bea", "Beta", "M", ["MD", "XD"], 6)
+        add_player(self.t, "p2", "Cal", "Gamma", "M", ["XD"], 5)
+        self.t.players["keep"].email = "keep@example.com"
+        asks(self.t, "keep", "p1", "MD")
+        asks(self.t, "drop", "p2", "XD")      # the duplicate's own request
+        asks(self.t, "p1", "drop", "XD")      # someone asked for the duplicate
+
+    def tearDown(self):
+        self.d.cleanup()
+
+    def snapshot(self, t=None):
+        t = t or self.t
+        return {
+            "players": {pid: (p.full, p.email, p.gender, p.skill,
+                              list(p.events), p.is_stub)
+                        for pid, p in t.players.items()},
+            "pairs": {pr.id: (tuple(sorted(pr.player_ids)), pr.event)
+                      for pr in t.pairs.values()},
+            "regs": sorted((r.player_id,
+                            tuple(sorted((h.raw_name, h.event_hint or "",
+                                          h.resolved_player_id or "")
+                                         for h in r.partner_hints)))
+                           for r in t.registrations),
+        }
+
+    def test_undo_puts_both_players_back_exactly(self):
+        self.svc.partnership_assign("XD", "drop", "p2")
+        before = self.snapshot()
+
+        self.svc.merge_players("keep", "drop")
+        self.assertNotIn("drop", self.t.players)
+        self.assertEqual(self.svc.merge_history()[0]["dropped"], "Amy Nguyen")
+
+        out = self.svc.undo_merge()
+
+        self.assertEqual(self.snapshot(), before)
+        self.assertIn("are separate entries again", out["notes"][0])
+        self.assertEqual(out["merges"], 0)
+        self.assertEqual(self.svc.merge_history(), [])
+        # the merge is gone from the log, the undo is in the audit trail
+        log = self.svc.repo.read_audit()
+        self.assertEqual([r["field_name"] for r in log
+                          if r["field_name"] == "merge_undone"],
+                         ["merge_undone"])
+
+    def test_undo_restores_the_events_and_pair_of_the_duplicate(self):
+        self.svc.partnership_assign("XD", "drop", "p2")
+        self.svc.merge_players("keep", "drop")
+        self.assertEqual(sorted(self.t.players["keep"].events), ["MD", "XD"])
+        self.assertEqual(self.t.players["keep"].skill, 7)
+
+        self.svc.undo_merge()
+
+        self.assertEqual(self.t.players["drop"].events, ["XD"])
+        self.assertEqual(self.t.players["drop"].skill, 6)
+        self.assertEqual(self.t.players["keep"].events, ["MD"])
+        self.assertEqual(
+            [(sorted(pr.player_ids), pr.event) for pr in self.t.pairs.values()],
+            [(["drop", "p2"], "XD")])
+
+    def test_a_request_pointing_at_the_duplicate_goes_back_to_it(self):
+        self.svc.merge_players("keep", "drop")
+        p1 = next(r for r in self.t.registrations if r.player_id == "p1")
+        self.assertEqual([h.resolved_player_id for h in p1.partner_hints],
+                         ["keep"])
+
+        self.svc.undo_merge()
+
+        p1 = next(r for r in self.t.registrations if r.player_id == "p1")
+        self.assertEqual([h.resolved_player_id for h in p1.partner_hints],
+                         ["drop"])
+
+    def test_undo_works_for_a_placeholder_survivor(self):
+        from tournament.model.entities import Player
+        self.t.players["stub"] = Player(id="stub", first="Ami", last="Ngyun",
+                                        gender="U", skill=None, events=[],
+                                        is_stub=True)
+        before = self.snapshot()
+        self.svc.merge_players("stub", "keep")
+
+        self.svc.undo_merge()
+
+        self.assertEqual(self.snapshot(), before)
+        self.assertTrue(self.t.players["stub"].is_stub)
+        self.assertEqual(self.t.players["stub"].full, "Ami Ngyun")
+
+    def test_merges_undo_newest_first(self):
+        add_player(self.t, "third", "Amy", "Nguyenn", "F", ["WD"], 4)
+        self.svc.merge_players("keep", "drop")      # keep absorbs drop
+        self.svc.merge_players("keep", "third")     # then a second one
+        self.assertEqual(len(self.svc.merge_history()), 2)
+
+        out = self.svc.undo_merge()
+        self.assertEqual(out["merges"], 1)
+        self.assertIn("third", self.t.players)      # the newest comes back first
+        self.assertNotIn("drop", self.t.players)
+
+        out = self.svc.undo_merge()
+        self.assertEqual(out["merges"], 0)
+        self.assertIn("drop", self.t.players)
+        self.assertEqual(sorted(self.t.players["keep"].events), ["MD"])
+        with self.assertRaises(ValueError):
+            self.svc.undo_merge()
+
+    def test_refuses_while_a_bracket_is_drawn_for_a_touched_event(self):
+        self.svc.merge_players("keep", "drop")
+        self.t.divisions["xd-a"] = Division(id="xd-a", event="XD", label="XD A")
+        self.t.brackets["xd-a"] = Bracket(division_id="xd-a",
+                                          format="single_elim")
+
+        with self.assertRaises(Conflict) as caught:
+            self.svc.undo_merge()
+
+        self.assertIn("XD", str(caught.exception))
+        self.assertNotIn("drop", self.t.players)
+        self.assertEqual(len(self.svc.merge_history()), 1)
+
+    def test_refuses_when_the_survivor_has_been_paired_since(self):
+        self.svc.merge_players("keep", "drop")
+        self.svc.partnership_assign("XD", "keep", "p1")     # after the merge
+
+        with self.assertRaises(Conflict) as caught:
+            self.svc.undo_merge()
+
+        self.assertIn("paired since the merge", str(caught.exception))
+        self.assertNotIn("drop", self.t.players)
+
+    def test_the_undo_survives_a_reload(self):
+        self.svc.merge_players("keep", "drop")
+
+        again = TournamentService(self.svc.repo)
+        self.assertEqual(len(again.merge_history()), 1)
+        again.undo_merge()
+
+        self.assertIn("drop", again.t.players)
+        self.assertEqual(again.t.players["drop"].events, ["XD"])
+        self.assertEqual(again.t.players["keep"].events, ["MD"])
+
+    def test_undo_lands_in_the_import_preview(self):
+        path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..",
+                                            "sample_data", "legacy_mixed.csv"))
+        self.svc.import_preview("file", path)
+        people = self.svc.players()
+        self.svc.merge_players(people[0]["id"], people[1]["id"])
+        self.assertEqual(len(self.svc.players()), len(people) - 1)
+
+        out = self.svc.undo_merge()
+
+        self.assertEqual(len(out["players"]), len(people))
+        self.assertEqual(self.svc.repo.load().players, {})   # committed untouched

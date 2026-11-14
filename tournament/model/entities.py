@@ -321,6 +321,29 @@ class PairChange:
 
 
 @dataclass(slots=True)
+class MergeChange:
+    """One duplicate merge, kept so a wrong survivor can be undone.
+
+    Everything the merge touches is snapshotted before it happens -- both
+    players as they were, the registrations that moved, the partner requests
+    repointed, the pairs they were in and the division entries that pointed at
+    them -- so ``undo_merge`` can put the roster back exactly as it was.
+    """
+    ts: str
+    actor: str
+    kept_id: str
+    dropped: Player                       # the player that went away, as they were
+    kept_before: Player                   # the survivor, as they were
+    dropped_regs: list[RegistrationEntry] = field(default_factory=list)
+    dropped_reg_at: list[int] = field(default_factory=list)
+    kept_reg_before: Optional[RegistrationEntry] = None
+    kept_reg_at: int = -1
+    pairs: list[Pair] = field(default_factory=list)      # touching either player
+    hint_regs: list[RegistrationEntry] = field(default_factory=list)
+    divisions: dict[str, list[EntryRef]] = field(default_factory=dict)
+
+
+@dataclass(slots=True)
 class Override:
     """Append-only audit record for every manual data change."""
     ts: str
@@ -358,6 +381,8 @@ class Tournament:
     overrides: list[Override] = field(default_factory=list)
     # Organizer pair decisions, newest last (the form answers stay untouched).
     pair_changes: list[PairChange] = field(default_factory=list)
+    # Duplicate merges, newest last, each with what it took to undo it.
+    merge_changes: list[MergeChange] = field(default_factory=list)
 
     # --- convenience lookups (not serialized behavior, just helpers) ---
     def entry_label(self, ref: EntryRef) -> str:

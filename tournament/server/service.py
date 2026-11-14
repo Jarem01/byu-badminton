@@ -28,8 +28,8 @@ from ..ingest.importer import build_tournament
 from ..ingest.source_csv import read_rows, read_rows_from_text
 from ..ingest.source_gsheet import fetch_rows
 from ..config import Settings
-from ..model.entities import (Bracket, EntryRef, Override, PairChange,
-                              Tournament)
+from ..model.entities import (Bracket, EntryRef, MergeChange, Override,
+                              PairChange, Tournament)
 from ..schedule.timeslots import parse_clock
 from ..store.repository import Repository
 
@@ -623,6 +623,28 @@ class TournamentService:
                 raise Conflict("a bracket has been drawn for %s — clear those "
                                "divisions before merging" % ", ".join(drawn))
 
+            drop_pair_ids = {pr.id for pr in drop_pairs}
+            hint_regs = [copy.deepcopy(reg) for reg in t.registrations
+                         if reg.player_id != keep.id and any(
+                             h.resolved_player_id == drop.id
+                             or (h.resolved_player_id is None
+                                 and h.raw_name.strip().casefold()
+                                 == drop.full.strip().casefold())
+                             for h in reg.partner_hints)]
+            change = MergeChange(
+                ts=datetime.now(timezone.utc).isoformat(), actor=self.actor,
+                kept_id=keep.id,
+                dropped=copy.deepcopy(drop), kept_before=copy.deepcopy(keep),
+                pairs=[copy.deepcopy(pr) for pr in
+                       {(pr.id): pr for pr in keep_pairs + drop_pairs}.values()],
+                hint_regs=hint_regs,
+                divisions={div.id: copy.deepcopy(div.entry_refs)
+                           for div in t.divisions.values()
+                           if any((ref.kind == "player" and ref.ref_id == drop.id)
+                                  or (ref.kind == "pair"
+                                      and ref.ref_id in drop_pair_ids)
+                                  for ref in div.entry_refs)})
+
             notes = []
             before_events = list(keep.events)
             for ev in drop.events:
@@ -663,6 +685,11 @@ class TournamentService:
             # registrations: keep one per player, with every partner request on it
             mine = next((r for r in t.registrations if r.player_id == keep.id), None)
             theirs = [r for r in t.registrations if r.player_id == drop.id]
+            if mine is not None:
+                change.kept_reg_before = copy.deepcopy(mine)
+                change.kept_reg_at = t.registrations.index(mine)
+            change.dropped_regs = [copy.deepcopy(r) for r in theirs]
+            change.dropped_reg_at = [t.registrations.index(r) for r in theirs]
             for reg in theirs:
                 if mine is None:
                     reg.player_id = keep.id
@@ -723,10 +750,82 @@ class TournamentService:
             self._audit(drop, "merged_into", "", "%s (%s)" % (keep.full, keep.id),
                         "merged away as a duplicate")
             del t.players[drop.id]
+            t.merge_changes.append(change)
             if self._preview is None:
                 self._save()
             return {"ok": True, "notes": notes, "players": self.players(),
-                    "view": self.partnerships_view()}
+                    "view": self.partnerships_view(),
+                    "merges": len(t.merge_changes)}
+
+    def merge_history(self) -> list[dict]:
+        """Merges that can still be undone, newest last."""
+        return [{"ts": c.ts, "kept": c.kept_before.full,
+                 "dropped": c.dropped.full,
+                 "kept_id": c.kept_id, "dropped_id": c.dropped.id}
+                for c in self._active().merge_changes]
+
+    def undo_merge(self, kept_id: str | None = None) -> dict:
+        """Put back both players of the last merge, exactly as they were."""
+        with self._lock:
+            t = self._active()
+            history = [c for c in t.merge_changes
+                       if kept_id is None or c.kept_id == kept_id]
+            if not history:
+                raise ValueError("there is no merge to undo")
+            change = history[-1]
+            kept = t.players.get(change.kept_id)
+            if kept is None:
+                raise ValueError("the player that was kept is gone")
+            touched = set(change.kept_before.events) | set(change.dropped.events)
+            touched |= {pr.event for pr in change.pairs}
+            drawn = sorted({d.event for d in t.divisions.values()
+                            if d.event in touched and t.brackets.get(d.id)})
+            if drawn:
+                raise Conflict("a bracket has been drawn for %s — clear those "
+                               "divisions before undoing the merge"
+                               % ", ".join(drawn))
+            known = {pr.id for pr in change.pairs}
+            newer = [pr for pr in t.pairs.values()
+                     if kept.id in pr.player_ids and pr.id not in known]
+            if newer:
+                raise Conflict("%s has been paired since the merge — unpair "
+                               "them before undoing it" % kept.full)
+
+            for pr in change.pairs:               # put the pairs back as they were
+                t.pairs[pr.id] = copy.deepcopy(pr)
+            known_regs = {r.player_id for r in change.hint_regs}
+            t.registrations = [r for r in t.registrations
+                               if r.player_id != kept.id]
+            for reg in t.registrations:           # un-repoint other people's asks
+                if reg.player_id in known_regs:
+                    before = next(e for e in change.hint_regs
+                                  if e.player_id == reg.player_id)
+                    reg.partner_hints = copy.deepcopy(before.partner_hints)
+            back = []
+            if change.kept_reg_before is not None:
+                back.append((change.kept_reg_at,
+                             copy.deepcopy(change.kept_reg_before)))
+            back.extend((at, copy.deepcopy(reg)) for at, reg
+                        in zip(change.dropped_reg_at, change.dropped_regs))
+            for at, reg in sorted(back, key=lambda x: x[0]):
+                t.registrations.insert(max(0, min(at, len(t.registrations))), reg)
+            for did, refs in change.divisions.items():
+                div = t.divisions.get(did)
+                if div is not None:
+                    div.entry_refs = copy.deepcopy(refs)
+            t.players[kept.id] = copy.deepcopy(change.kept_before)
+            t.players[change.dropped.id] = copy.deepcopy(change.dropped)
+            t.merge_changes.remove(change)
+            self._audit(t.players[kept.id], "merge_undone",
+                        change.dropped.full, change.kept_before.full,
+                        "merge undone by hand")
+            if self._preview is None:
+                self._save()
+            note = ("%s and %s are separate entries again"
+                    % (change.kept_before.full, change.dropped.full))
+            return {"ok": True, "notes": [note], "players": self.players(),
+                    "view": self.partnerships_view(),
+                    "merges": len(t.merge_changes)}
 
     def _active(self):
         """The tournament to read/edit right now: the pending import preview if

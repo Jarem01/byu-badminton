@@ -165,6 +165,11 @@ Your `data/` folder is untouched by either command.
    pointing at a player who no longer exists. If the entry you keep is a
    placeholder, it takes the real player's name, email, gender and skill, and
    stops being a placeholder — each change is audited separately.
+   **Undo merge** in the Players header takes the last merge back, putting both
+   entries exactly as they were (name, email, gender, skill, events, partner
+   requests and the pair the duplicate was in), newest merge first. Like the
+   merge itself it is refused while a bracket is drawn for an event it touches,
+   and it is refused if the survivor has been paired since — unpair them first.
 4. Settle the **partnerships** (see below) while you are still on this screen.
 5. **Commit** to save. Nothing downstream exists until you do.
 
