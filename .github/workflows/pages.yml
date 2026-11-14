@@ -44,9 +44,9 @@ jobs:
           test -f site/static-data.json
           test -f site/js/public.js
 
+      # Pages is already switched on for this repo (Settings -> Pages ->
+      # Source: GitHub Actions), so this only reads its base URL.
       - uses: actions/configure-pages@v5
-        with:
-          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site
